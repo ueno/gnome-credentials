@@ -9,8 +9,6 @@ namespace Credentials {
         public abstract Gtk.Dialog create_editor_dialog (Item item); 
         public abstract Gtk.Dialog create_generator_dialog ();
 
-        public virtual string get_action_label (string action_name) {
-            return_val_if_reached (null);
-        }
+        public abstract string? generator_label { get; }
    }
 }

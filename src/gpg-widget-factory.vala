@@ -320,10 +320,10 @@ namespace Credentials {
             return new GpgGeneratorDialog ();
         }
 
-        public override string get_action_label (string action_name) {
-            if (action_name == "generate")
+        public override string? generator_label {
+            get {
                 return _("Generate PGP Key");
-            return_val_if_reached (null);
+            }
         }
     }
 }

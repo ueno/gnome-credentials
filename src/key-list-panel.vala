@@ -9,8 +9,7 @@ namespace Credentials {
             var backend = new GpgBackend ("Gpg");
             var factory = new GpgWidgetFactory ();
             var index = register_backend (backend, factory);
-            var item = new GLib.MenuItem (factory.get_action_label ("generate"),
-                                          null);
+            var item = new GLib.MenuItem (factory.generator_label, null);
             item.set_action_and_target ("generate", "u", index);
             menu.append_item (item);
 
