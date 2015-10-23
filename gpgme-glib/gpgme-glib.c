@@ -1276,6 +1276,10 @@ g_gpg_ctx_keylist_end (GGpgCtx *ctx, GError **error)
   return TRUE;
 }
 
+/* A lock to synchronize gpgme_wait() calls.  Only one thread should
+   ever call gpgme_wait() at any time.  */
+G_LOCK_DEFINE (wait_lock);
+
 struct GetKeyData
 {
   gchar *fpr;
@@ -1303,21 +1307,13 @@ get_key_thread (GTask *task,
 
   err = gpgme_get_key (ctx->pointer, data->fpr, &pointer, data->secret);
   if (err)
+    g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
+                             "%s", gpgme_strerror (err));
+  else
     {
-      g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
-                               "%s", gpgme_strerror (err));
-      g_object_unref (task);
-      return;
+      key = g_object_new (G_GPG_TYPE_KEY, "pointer", pointer, NULL);
+      g_task_return_pointer (task, key, g_object_unref);
     }
-
-  if (g_task_return_error_if_cancelled (task))
-    {
-      g_object_unref (task);
-      return;
-    }
-
-  key = g_object_new (G_GPG_TYPE_KEY, "pointer", pointer, NULL);
-  g_task_return_pointer (task, key, g_object_unref);
 }
 
 void
@@ -1378,22 +1374,34 @@ genkey_thread (GTask *task,
   GGpgCtx *ctx = source_object;
   struct GenkeyData *data = task_data;
   gpgme_error_t err;
+  gpgme_ctx_t waited;
 
-  err = gpgme_op_genkey (ctx->pointer, data->parms,
-                         data->pubkey->pointer, data->seckey->pointer);
+  err = gpgme_op_genkey_start (ctx->pointer, data->parms,
+                               data->pubkey->pointer, data->seckey->pointer);
   if (err)
     {
       g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
                                "%s", gpgme_strerror (err));
-      g_object_unref (task);
+      return;
+    }
+
+  if (cancellable)
+    g_cancellable_connect (cancellable, G_CALLBACK (gpgme_cancel),
+                           ctx->pointer, NULL);
+
+  G_LOCK (wait_lock);
+  waited = gpgme_wait (ctx->pointer, &err, 1);
+  G_UNLOCK (wait_lock);
+
+  if (!waited)
+    {
+      g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
+                               "%s", gpgme_strerror (err));
       return;
     }
 
   if (g_task_return_error_if_cancelled (task))
-    {
-      g_object_unref (task);
-      return;
-    }
+    return;
 
   g_task_return_boolean (task, TRUE);
 }
@@ -1458,21 +1466,34 @@ delete_thread (GTask *task,
   GGpgCtx *ctx = source_object;
   struct DeleteData *data = task_data;
   gpgme_error_t err;
+  gpgme_ctx_t waited;
 
-  err = gpgme_op_delete (ctx->pointer, data->key->pointer, data->allow_secret);
+  err = gpgme_op_delete_start (ctx->pointer, data->key->pointer,
+                               data->allow_secret);
   if (err)
     {
       g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
                                "%s", gpgme_strerror (err));
-      g_object_unref (task);
+      return;
+    }
+
+  if (cancellable)
+    g_cancellable_connect (cancellable, G_CALLBACK (gpgme_cancel),
+                           ctx->pointer, NULL);
+
+  G_LOCK (wait_lock);
+  waited = gpgme_wait (ctx->pointer, &err, 1);
+  G_UNLOCK (wait_lock);
+
+  if (!waited)
+    {
+      g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
+                               "%s", gpgme_strerror (err));
       return;
     }
 
   if (g_task_return_error_if_cancelled (task))
-    {
-      g_object_unref (task);
-      return;
-    }
+    return;
 
   g_task_return_boolean (task, TRUE);
 }
@@ -1515,8 +1536,7 @@ static void
 edit_data_free (struct EditData *data)
 {
   g_object_unref (data->key);
-  if (data->out)
-    g_object_unref (data->out);
+  g_object_unref (data->out);
   g_free (data);
 }
 
@@ -1547,22 +1567,34 @@ edit_thread (GTask *task,
   GGpgCtx *ctx = source_object;
   struct EditData *data = task_data;
   gpgme_error_t err;
+  gpgme_ctx_t waited;
 
-  err = gpgme_op_edit (ctx->pointer, data->key->pointer, _g_gpg_edit_cb,
-                       data, data->out ? data->out->pointer : NULL);
+  err = gpgme_op_edit_start (ctx->pointer, data->key->pointer, _g_gpg_edit_cb,
+                             data, data->out->pointer);
   if (err)
     {
       g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
                                "%s", gpgme_strerror (err));
-      g_object_unref (task);
+      return;
+    }
+
+  if (cancellable)
+    g_cancellable_connect (cancellable, G_CALLBACK (gpgme_cancel),
+                           ctx->pointer, NULL);
+
+  G_LOCK (wait_lock);
+  waited = gpgme_wait (ctx->pointer, &err, 1);
+  G_UNLOCK (wait_lock);
+
+  if (!waited)
+    {
+      g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
+                               "%s", gpgme_strerror (err));
       return;
     }
 
   if (g_task_return_error_if_cancelled (task))
-    {
-      g_object_unref (task);
-      return;
-    }
+    return;
 
   g_task_return_boolean (task, TRUE);
 }
@@ -1571,9 +1603,9 @@ edit_thread (GTask *task,
  * g_gpg_ctx_edit:
  * @ctx: a #GGpgCtx
  * @key: a #GGpgKey
- * @edit_callback: (scope notified): a #GGpgEditCb
+ * @edit_callback: (scope async): a #GGpgEditCb
  * @edit_user_data: a data for @edit_callback
- * @out: (nullable): a #GGpgData
+ * @out: a #GGpgData
  * @cancellable: a #GCancellable
  * @callback: a callback
  * @user_data: a data for @callback
@@ -1597,7 +1629,7 @@ g_gpg_ctx_edit (GGpgCtx *ctx,
   data->key = g_object_ref (key);
   data->callback = edit_callback;
   data->user_data = edit_user_data;
-  data->out = out ? g_object_ref (out) : NULL;
+  data->out = g_object_ref (out);
   g_task_set_task_data (task, data, (GDestroyNotify) edit_data_free);
   g_task_run_in_thread (task, edit_thread);
   g_object_unref (task);
@@ -1635,6 +1667,7 @@ export_thread (GTask *task,
   struct ExportData *data = task_data;
   gpgme_key_t keys[2] = { NULL, NULL };
   gpgme_error_t err;
+  gpgme_ctx_t waited;
 
   keys[0] = data->key->pointer;
   err = gpgme_op_export_keys (ctx->pointer, keys, data->mode,
@@ -1643,15 +1676,26 @@ export_thread (GTask *task,
     {
       g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
                                "%s", gpgme_strerror (err));
-      g_object_unref (task);
+      return;
+    }
+
+  if (cancellable)
+    g_cancellable_connect (cancellable, G_CALLBACK (gpgme_cancel),
+                           ctx->pointer, NULL);
+
+  G_LOCK (wait_lock);
+  waited = gpgme_wait (ctx->pointer, &err, 1);
+  G_UNLOCK (wait_lock);
+
+  if (!waited)
+    {
+      g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
+                               "%s", gpgme_strerror (err));
       return;
     }
 
   if (g_task_return_error_if_cancelled (task))
-    {
-      g_object_unref (task);
-      return;
-    }
+    return;
 
   g_task_return_boolean (task, TRUE);
 }
