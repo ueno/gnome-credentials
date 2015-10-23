@@ -97,11 +97,7 @@ namespace Credentials {
 
         void add_uid (GGpg.UserId uid) {
             this._uids.insert (uid.uid, uid);
-            this._store.insert_sorted (uid, (a, b) => {
-                    var uid1 = (GGpg.UserId) a;
-                    var uid2 = (GGpg.UserId) b;
-                    return GLib.strcmp (uid1.uid, uid2.uid);
-                });
+            this._store.append (uid);
         }
 
         construct {
