@@ -1,0 +1,123 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: my-js-app 0.1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2015-10-14 18:10+0900\n"
+"PO-Revision-Date: 2015-10-14 18:11+0900\n"
+"Last-Translator: Giovanni Campagna <scampa.giovanni@gmail.com>\n"
+"Language-Team: Italian <gnome-it@gnome.org>\n"
+"Language: it\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../data/app-menu.ui.h:1
+msgid "_New"
+msgstr ""
+
+#: ../data/app-menu.ui.h:2
+msgid "About Example"
+msgstr ""
+
+#: ../data/app-menu.ui.h:3
+msgid "Quit"
+msgstr ""
+
+#: ../data/main.ui.h:1
+msgid "Current page"
+msgstr ""
+
+#: ../data/com.example.Gtk.ValaApplication.desktop.in.h:1 ../src/window.vala:94
+msgid "Vala Application"
+msgstr "La mia applicazione Vala"
+
+#: ../data/com.example.Gtk.ValaApplication.desktop.in.h:2 ../src/window.vala:95
+msgid "Demo Vala Application and template"
+msgstr "La mia applicazione Vala è avviata"
+
+#: ../data/com.example.Gtk.ValaApplication.desktop.in.h:3
+msgid "gtk;vala;demo;development;"
+msgstr ""
+
+#: ../data/com.example.Gtk.ValaApplication.appdata.xml.in.h:1
+msgid ""
+"A small but complete template to build a Gtk+ Vala application, using all "
+"the GNOME technologies expected from a modern app, as well as Vala as the "
+"underlying language."
+msgstr ""
+
+#: ../data/com.example.Gtk.ValaApplication.appdata.xml.in.h:2
+msgid ""
+"It is meant to showcase working examples (that can be readily transfered "
+"into a real application) for the following GNOME and Freedesktop techologies:"
+msgstr ""
+
+#: ../data/com.example.Gtk.ValaApplication.appdata.xml.in.h:3
+msgid "The build system (autotools based)"
+msgstr ""
+
+#: ../data/com.example.Gtk.ValaApplication.appdata.xml.in.h:4
+msgid "Configuring and using GSettings"
+msgstr ""
+
+#: ../data/com.example.Gtk.ValaApplication.appdata.xml.in.h:5
+msgid "Using GResources for source and data"
+msgstr ""
+
+#: ../data/com.example.Gtk.ValaApplication.appdata.xml.in.h:6
+msgid "Desktop file and appdata"
+msgstr ""
+
+#: ../data/com.example.Gtk.ValaApplication.gschema.xml.h:1
+msgid "Show exclamation mark"
+msgstr ""
+
+#: ../data/com.example.Gtk.ValaApplication.gschema.xml.h:2
+msgid "Use the exclamation mark at the end of \"Hello world\"."
+msgstr ""
+
+#: ../src/main.vala:34
+msgid "My Vala Application"
+msgstr "La mia applicazione Vala"
+
+#: ../src/main.vala:58
+msgid "My Vala Application started"
+msgstr "La mia applicazione Vala è avviata"
+
+#: ../src/main.vala:66
+msgid "My Vala Application exiting"
+msgstr "La mia applicazione Vala"
+
+#: ../src/window.vala:83
+msgid "New something"
+msgstr ""
+
+#: ../src/window.vala:93
+msgid "translator-credits"
+msgstr ""
+
+#: ../src/window.vala:123
+msgid "First page"
+msgstr ""
+
+#: ../src/window.vala:130
+msgid "Second page"
+msgstr ""
+
+#: ../src/window.vala:130
+msgid "What did you expect?"
+msgstr ""
+
+#: ../src/window.vala:152
+msgid "Hello, world!"
+msgstr ""
+
+#: ../src/window.vala:154
+msgid "Hello world"
+msgstr ""

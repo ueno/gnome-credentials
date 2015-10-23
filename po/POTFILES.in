@@ -1,0 +1,7 @@
+[type: gettext/glade]data/app-menu.ui
+[type: gettext/glade]data/main.ui
+data/com.example.Gtk.ValaApplication.desktop.in
+data/com.example.Gtk.ValaApplication.appdata.xml.in
+data/com.example.Gtk.ValaApplication.gschema.xml
+src/main.vala
+src/window.vala

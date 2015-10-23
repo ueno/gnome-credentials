@@ -1,0 +1,20 @@
+.big-label {
+    font-size: 4em;
+    font-weight: bold;
+}
+
+.password-list-heading {
+    padding: 10px 10px;
+}
+
+.password-list-modified {
+    padding: 10px 10px;
+}
+
+.key-list-heading {
+    padding: 10px 10px;
+}
+
+.key-list-type {
+    padding: 10px 10px;
+}
