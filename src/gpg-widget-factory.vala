@@ -89,15 +89,46 @@ namespace Credentials {
                                                          GLib.str_equal);
             foreach (var uid in item.get_uids ()) {
                 seen.add (uid.uid);
-                if (!this._uids.contains (uid.uid))
-                    add_uid (uid);
+                if (!this._uids.contains (uid.uid)) {
+                    this._uids.insert (uid.uid, uid);
+                    this._store.append (uid);
+                }
             }
+
+            var iter = GLib.HashTableIter<string,GGpg.UserId> (this._uids);
+            string uid_string;
+            GGpg.UserId uid;
+            while (iter.next (out uid_string, out uid)) {
+                if (!seen.contains (uid_string)) {
+                    iter.remove ();
+                    for (var position = 0;
+                         position < this._store.get_n_items ();
+                         position++) {
+                        var _uid =
+                            (GGpg.UserId) this._store.get_item (position);
+                        if (_uid.uid == uid_string) {
+                            this._store.remove (position);
+                            break;
+                        }
+                    }
+                }
+            }
+
             list_box_adjust_scrolling (user_id_list_box);
         }
 
-        void add_uid (GGpg.UserId uid) {
-            this._uids.insert (uid.uid, uid);
-            this._store.append (uid);
+        void edit_del_uid (uint index) {
+            var window = (Gtk.Window) this.get_toplevel ();
+            var command = new GpgDelUidEditCommand (index);
+            item.edit.begin (command, null, (obj, res) => {
+                    try {
+                        item.edit.end (res);
+                    } catch (GLib.Error e) {
+                        show_error (window,
+                                    "Couldn't add user ID: %s", e.message);
+                    }
+                    item.content_changed ();
+                });
         }
 
         construct {
@@ -133,9 +164,11 @@ namespace Credentials {
                                                Gtk.DialogFlags.MODAL,
                                                Gtk.MessageType.QUESTION,
                                                Gtk.ButtonsType.OK_CANCEL,
-                                               _("Delete user ID \"%s\"? "),
+                                               _("Remove user ID \"%s\"? "),
                                                uid.uid);
                     confirm_dialog.response.connect ((res) => {
+                            if (res == Gtk.ResponseType.OK)
+                                edit_del_uid (row.get_index () + 1);
                             confirm_dialog.destroy ();
                         });
                     confirm_dialog.show ();

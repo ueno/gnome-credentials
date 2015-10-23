@@ -345,16 +345,16 @@ namespace Credentials {
     }
 
     class GpgDelUidEditCommand : GpgEditCommand {
-        public int index { construct set; get; }
+        public uint index { construct set; get; }
 
-        public GpgDelUidEditCommand (int index) {
+        public GpgDelUidEditCommand (uint index) {
             Object (index: index);
         }
 
         public override void action (uint state, int fd) throws GLib.Error {
             switch (state) {
             case GpgDelUidState.SELECT:
-                send_string (fd, "uid %d".printf (index));
+                send_string (fd, "uid %u".printf (index));
                 break;
             case GpgDelUidState.COMMAND:
                 send_string (fd, "deluid");
