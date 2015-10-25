@@ -1,5 +1,23 @@
-This is an attempt to implement the new "Passwords and Keys"
-application design:
+About gnome-credentials
+=======================
+
+gnome-credentials is an attempt to implement the new "Passwords and
+Keys" application design:
 https://raw.githubusercontent.com/gnome-design-team/gnome-mockups/master/passwords-and-keys/passwords-and-keys.png
 
-Not working yet.
+The GPGME library is required for GnuPG support.
+
+Still very much work in progress.
+
+License
+=======
+
+Some files under 'data' are taken from gtk-js-app:
+https://github.com/gcampax/gtk-js-app
+which is licensed under the 3-clause BSD license (see the file 'COPYING').
+
+Other files are licensed under GPL 2.0 or later (see the file 'COPYINGv2').
+
+src/secret-*.vala are based on Seahorse (seahorse/gkr/*.vala), and
+src/list-box-helper.vala is based on gnome-control-center
+(gnome-control-center/shell/list-box-helper.c).
