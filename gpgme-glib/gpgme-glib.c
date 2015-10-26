@@ -290,6 +290,8 @@ struct _GGpgCtx
 {
   GObject parent;
   gpgme_ctx_t pointer;
+  gpointer progress_user_data;
+  GDestroyNotify progress_destroy_data;
 };
 
 G_DEFINE_TYPE (GGpgCtx, g_gpg_ctx, G_TYPE_OBJECT)
@@ -404,6 +406,9 @@ g_gpg_ctx_finalize (GObject *object)
 
   gpgme_release (ctx->pointer);
 
+  if (ctx->progress_destroy_data)
+    g_clear_pointer (&ctx->progress_user_data, ctx->progress_destroy_data);
+
   G_OBJECT_CLASS (g_gpg_ctx_parent_class)->finalize (object);
 }
 
@@ -467,20 +472,20 @@ g_gpg_ctx_new (GError **error)
   return g_object_new (G_GPG_TYPE_CTX, "pointer", ctx, NULL);
 }
 
-gboolean
-g_gpg_ctx_set_protocol (GGpgCtx *ctx, GGpgProtocol proto, GError **error)
+void
+g_gpg_ctx_set_progress_callback (GGpgCtx *ctx,
+                                 GGpgProgressCallback callback,
+                                 gpointer user_data,
+                                 GDestroyNotify destroy_data)
 {
-  gpgme_error_t err;
+  if (ctx->progress_destroy_data)
+    g_clear_pointer (&ctx->progress_user_data, ctx->progress_destroy_data);
 
-  err = gpgme_set_protocol (ctx->pointer, proto);
-  if (err)
-    {
-      g_set_error (error, G_GPG_ERROR, gpgme_err_code (err),
-                   "%s", gpgme_strerror (err));
-      g_object_unref (ctx);
-      return FALSE;
-    }
-  return TRUE;
+  ctx->progress_user_data = user_data;
+  ctx->progress_destroy_data = destroy_data;
+
+  gpgme_set_progress_cb (ctx->pointer, (gpgme_progress_cb_t) callback,
+                         user_data);
 }
 
 struct _GGpgSubkey
@@ -1360,8 +1365,8 @@ static void
 genkey_data_free (struct GenkeyData *data)
 {
   g_free (data->parms);
-  g_object_unref (data->pubkey);
-  g_object_unref (data->seckey);
+  g_clear_object (&data->pubkey);
+  g_clear_object (&data->seckey);
   g_free (data);
 }
 
@@ -1377,7 +1382,8 @@ genkey_thread (GTask *task,
   gpgme_ctx_t waited;
 
   err = gpgme_op_genkey_start (ctx->pointer, data->parms,
-                               data->pubkey->pointer, data->seckey->pointer);
+                               data->pubkey ? data->pubkey->pointer : NULL,
+                               data->seckey ? data->seckey->pointer : NULL);
   if (err)
     {
       g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
@@ -1393,7 +1399,7 @@ genkey_thread (GTask *task,
   waited = gpgme_wait (ctx->pointer, &err, 1);
   G_UNLOCK (wait_lock);
 
-  if (!waited)
+  if (waited && err)
     {
       g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
                                "%s", gpgme_strerror (err));
@@ -1430,8 +1436,8 @@ g_gpg_ctx_genkey (GGpgCtx *ctx, const gchar *parms,
   task = g_task_new (ctx, cancellable, callback, user_data);
   data = g_new0 (struct GenkeyData, 1);
   data->parms = g_strdup (parms);
-  data->pubkey = g_object_ref (pubkey);
-  data->seckey = g_object_ref (seckey);
+  data->pubkey = pubkey ? g_object_ref (pubkey) : NULL;
+  data->seckey = seckey ? g_object_ref (seckey) : NULL;
   g_task_set_task_data (task, data, (GDestroyNotify) genkey_data_free);
   g_task_run_in_thread (task, genkey_thread);
   g_object_unref (task);
@@ -1485,7 +1491,7 @@ delete_thread (GTask *task,
   waited = gpgme_wait (ctx->pointer, &err, 1);
   G_UNLOCK (wait_lock);
 
-  if (!waited)
+  if (waited && err)
     {
       g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
                                "%s", gpgme_strerror (err));
@@ -1527,7 +1533,7 @@ g_gpg_ctx_delete_finish (GGpgCtx *ctx, GAsyncResult *result, GError **error)
 struct EditData
 {
   GGpgKey *key;
-  GGpgEditCb callback;
+  GGpgEditCallback callback;
   gpointer user_data;
   GGpgData *out;
 };
@@ -1586,7 +1592,7 @@ edit_thread (GTask *task,
   waited = gpgme_wait (ctx->pointer, &err, 1);
   G_UNLOCK (wait_lock);
 
-  if (!waited)
+  if (waited && err)
     {
       g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
                                "%s", gpgme_strerror (err));
@@ -1603,7 +1609,7 @@ edit_thread (GTask *task,
  * g_gpg_ctx_edit:
  * @ctx: a #GGpgCtx
  * @key: a #GGpgKey
- * @edit_callback: (scope async): a #GGpgEditCb
+ * @edit_callback: (scope async): a #GGpgEditCallback
  * @edit_user_data: a data for @edit_callback
  * @out: a #GGpgData
  * @cancellable: a #GCancellable
@@ -1614,7 +1620,7 @@ edit_thread (GTask *task,
 void
 g_gpg_ctx_edit (GGpgCtx *ctx,
                 GGpgKey *key,
-                GGpgEditCb edit_callback,
+                GGpgEditCallback edit_callback,
                 gpointer edit_user_data,
                 GGpgData *out,
                 GCancellable *cancellable,
@@ -1687,7 +1693,7 @@ export_thread (GTask *task,
   waited = gpgme_wait (ctx->pointer, &err, 1);
   G_UNLOCK (wait_lock);
 
-  if (!waited)
+  if (waited && err)
     {
       g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
                                "%s", gpgme_strerror (err));

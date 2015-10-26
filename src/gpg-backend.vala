@@ -1,4 +1,38 @@
 namespace Credentials {
+    enum GpgGenerateKeyType {
+        RESERVED_0,
+        RSA_RSA,
+        DSA_ELGAMAL,
+        DSA,
+        RSA_SIGN,
+        ELGAMAL,
+        RSA_ENCRYPT,
+        RESERVED_7,
+        RESERVED_8,
+        ECC_ECC,
+        ECC_SIGN,
+        RESERVED_11,
+        ECC_ENCRYPT
+    }
+
+    class GpgGenerateParameters : Parameters, GLib.Object {
+        public string name { construct set; get; }
+        public string email { construct set; get; }
+        public string comment { construct set; get; }
+        public GpgGenerateKeyType key_type { construct set; get; }
+        public uint length { construct set; get; }
+        public int64 expires { construct set; get; }
+
+        public GpgGenerateParameters (string name, string email, string comment,
+                                      GpgGenerateKeyType key_type,
+                                      uint length,
+                                      int64 expires)
+        {
+            Object (name: name, email: email, comment: comment,
+                    key_type: key_type, length: length, expires: expires);
+        }
+    }
+
     class GpgItem : Item {
         GGpg.Key _content;
         public GGpg.Key content {
@@ -67,9 +101,15 @@ namespace Credentials {
         }
     }
 
-    class GpgCollection : Collection {
+    class GpgCollection : Collection, Generator {
         public GGpg.Protocol protocol { construct set; get; }
         GLib.HashTable<GpgItem,void*> _items;
+
+        public string item_type {
+            get {
+                return _("PGP Key");
+            }
+        }
 
         public override bool locked {
             get {
@@ -112,6 +152,83 @@ namespace Credentials {
                 items.append (item);
             }
             return items;
+        }
+
+        public async void generate_item (Parameters _parameters,
+                                         GLib.Cancellable? cancellable) throws GLib.Error {
+            var parameters = (GpgGenerateParameters) _parameters;
+            var buffer = new StringBuilder ();
+            buffer.append ("<GnupgKeyParms format=\"internal\">\n");
+            switch (parameters.key_type) {
+            case GpgGenerateKeyType.RSA_RSA:
+                buffer.append ("Key-Type: RSA\n");
+                buffer.append ("Key-Usage: sign\n");
+                buffer.append_printf ("Key-Length: %u\n", parameters.length);
+                buffer.append ("Subkey-Type: RSA\n");
+                buffer.append ("Subkey-Usage: encrypt\n");
+                buffer.append_printf ("Subkey-Length: %u\n", parameters.length);
+                break;
+            case GpgGenerateKeyType.DSA_ELGAMAL:
+                buffer.append ("Key-Type: DSA\n");
+                buffer.append ("Key-Usage: sign\n");
+                buffer.append_printf ("Key-Length: %u\n", parameters.length);
+                buffer.append ("Subkey-Type: ELG-e\n");
+                buffer.append ("Subkey-Usage: encrypt\n");
+                buffer.append_printf ("Subkey-Length: %u\n", parameters.length);
+                break;
+            case GpgGenerateKeyType.DSA:
+                buffer.append ("Key-Type: DSA\n");
+                buffer.append ("Key-Usage: sign\n");
+                buffer.append_printf ("Key-Length: %u\n", parameters.length);
+                break;
+            case GpgGenerateKeyType.RSA_SIGN:
+                buffer.append ("Key-Type: RSA\n");
+                buffer.append ("Key-Usage: sign\n");
+                buffer.append_printf ("Key-Length: %u\n", parameters.length);
+                break;
+            case GpgGenerateKeyType.ELGAMAL:
+                buffer.append ("Key-Type: ELG-E\n");
+                buffer.append ("Key-Usage: encrypt\n");
+                buffer.append_printf ("Key-Length: %u\n", parameters.length);
+                break;
+            case GpgGenerateKeyType.RSA_ENCRYPT:
+                buffer.append ("Key-Type: RSA\n");
+                buffer.append ("Key-Usage: encrypt\n");
+                buffer.append_printf ("Key-Length: %u\n", parameters.length);
+                break;
+            case GpgGenerateKeyType.ECC_ECC:
+                buffer.append ("Key-Type: ECDSA\n");
+                buffer.append ("Key-Usage: sign\n");
+                buffer.append_printf ("Key-Length: %u\n", parameters.length);
+                buffer.append ("Subkey-Type: ECDH\n");
+                buffer.append ("Subkey-Usage: encrypt\n");
+                buffer.append_printf ("Subkey-Length: %u\n", parameters.length);
+                break;
+            case GpgGenerateKeyType.ECC_SIGN:
+                buffer.append ("Key-Type: ECDSA\n");
+                buffer.append ("Key-Usage: sign\n");
+                buffer.append_printf ("Key-Length: %u\n", parameters.length);
+                break;
+            case GpgGenerateKeyType.ECC_ENCRYPT:
+                buffer.append ("Key-Type: ECDH\n");
+                buffer.append ("Key-Usage: encrypt\n");
+                buffer.append_printf ("Key-Length: %u\n", parameters.length);
+                break;
+            default:
+                return_if_reached ();
+            }
+
+            buffer.append_printf ("Name-Real: %s\n", parameters.name);
+            if (parameters.email.length > 0)
+                buffer.append_printf ("Name-Email: %s\n", parameters.email);
+            if (parameters.comment.length > 0)
+                buffer.append_printf ("Name-Comment: %s\n", parameters.comment);
+            buffer.append ("Expire-Date: 0\n");
+            buffer.append ("</GnupgKeyParms>\n");
+
+            var ctx = new GGpg.Ctx ();
+            ctx.protocol = protocol;
+            yield ctx.genkey (buffer.str, null, null, cancellable);
         }
 
         public override int compare (Collection other) {

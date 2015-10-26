@@ -10,6 +10,14 @@ namespace Credentials {
         public abstract int compare (Item other);
     }
 
+    interface Parameters : GLib.Object {
+    }
+
+    interface Generator : GLib.Object {
+        public abstract string item_type { get; }
+        public abstract async void generate_item (Parameters parameters, GLib.Cancellable? cancellable) throws GLib.Error;
+    }
+
     abstract class Collection : GLib.Object {
         public string name { construct set; get; }
         public Backend backend { construct set; get; }

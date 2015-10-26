@@ -43,6 +43,17 @@ GBytes *g_gpg_data_free_to_bytes (GGpgData *data);
 
 GGpgCtx *g_gpg_ctx_new (GError **error);
 
+typedef void (*GGpgProgressCallback) (gpointer user_data,
+                                      const gchar *what,
+                                      gint type,
+                                      gint current,
+                                      gint total);
+
+void g_gpg_ctx_set_progress_callback (GGpgCtx *ctx,
+                                      GGpgProgressCallback callback,
+                                      gpointer user_data,
+                                      GDestroyNotify destroy_data);
+
 gboolean g_gpg_ctx_keylist_start (GGpgCtx *ctx, const gchar *pattern,
                                   gint secret_only, GError **error);
 GGpgKey *g_gpg_ctx_keylist_next (GGpgCtx *ctx, GError **error);
@@ -72,14 +83,14 @@ void g_gpg_ctx_delete (GGpgCtx *ctx,
 gboolean g_gpg_ctx_delete_finish (GGpgCtx *ctx, GAsyncResult *result,
                                   GError **error);
 
-typedef gboolean (*GGpgEditCb) (gpointer user_data,
+typedef gboolean (*GGpgEditCallback) (gpointer user_data,
                                 GGpgStatusCode status,
                                 const gchar *args, gint fd,
                                 GError **error);
 
 void g_gpg_ctx_edit (GGpgCtx *ctx,
                      GGpgKey *key,
-                     GGpgEditCb edit_callback,
+                     GGpgEditCallback edit_callback,
                      gpointer edit_user_data,
                      GGpgData *out,
                      GCancellable *cancellable,

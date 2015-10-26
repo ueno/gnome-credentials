@@ -262,15 +262,24 @@ namespace Credentials {
         [GtkChild]
         Gtk.Entry comment_entry;
 
-        public GpgGeneratorDialog () {
-            Object (use_header_bar: 1);
+        public GpgCollection collection { construct set; get; }
+
+        public GpgGeneratorDialog (GpgCollection collection) {
+            Object (collection: collection, use_header_bar: 1);
         }
 
         construct {
-            var store = new Gtk.ListStore (2, typeof (GpgGenerateKeyType), typeof (string));
-            var enum_class = (EnumClass) typeof (GpgGenerateKeyType).class_ref ();
-            for (var index = enum_class.minimum; index <= enum_class.maximum; index++) {
-                if (enum_class.get_value (index) == null)
+            var store = new Gtk.ListStore (2,
+                                           typeof (GpgGenerateKeyType),
+                                           typeof (string));
+            var enum_class =
+                (EnumClass) typeof (GpgGenerateKeyType).class_ref ();
+            for (var index = enum_class.minimum;
+                 index <= enum_class.maximum;
+                 index++) {
+                var enum_value = enum_class.get_value (index);
+                if (enum_value == null ||
+                    enum_value.value_nick.has_prefix ("reserved"))
                     continue;
 
                 var key_type = (GpgGenerateKeyType) index;
@@ -287,6 +296,32 @@ namespace Credentials {
             key_type_combobox.pack_start (renderer, true);
             key_type_combobox.set_attributes (renderer, "text", 1);
             key_type_combobox.set_active (0);
+        }
+
+        public override void response (int res) {
+            if (res == Gtk.ResponseType.OK) {
+                Gtk.TreeIter iter;
+                key_type_combobox.get_active_iter (out iter);
+                GpgGenerateKeyType key_type;
+                key_type_combobox.get_model ().get (iter, 0, out key_type);
+
+                var parameters = new GpgGenerateParameters (
+                    name_entry.get_text (),
+                    email_entry.get_text (),
+                    comment_entry.get_text (),
+                    key_type,
+                    1024,
+                    0);
+                collection.generate_item (parameters, null,
+                                          (obj, res) => {
+                                              try {
+                                                  collection.generate_item.end (res);
+                                              } catch (GLib.Error e) {
+                                                  warning ("cannot generate item: %s", e.message);
+                                              }
+                                              print ("generated\n");
+                                          });
+            }
         }
     }
 
@@ -316,14 +351,8 @@ namespace Credentials {
             return new GpgEditorDialog ((GpgItem) item);
         }
 
-        public override Gtk.Dialog create_generator_dialog () {
-            return new GpgGeneratorDialog ();
-        }
-
-        public override string? generator_label {
-            get {
-                return _("Generate PGP Key");
-            }
+        public override Gtk.Dialog create_generator_dialog (Generator generator) {
+            return new GpgGeneratorDialog ((GpgCollection) generator);
         }
     }
 }
