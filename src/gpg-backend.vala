@@ -1,18 +1,20 @@
 namespace Credentials {
     enum GpgGenerateKeyType {
-        RESERVED_0,
         RSA_RSA,
         DSA_ELGAMAL,
         DSA,
         RSA_SIGN,
         ELGAMAL,
         RSA_ENCRYPT,
-        RESERVED_7,
-        RESERVED_8,
         ECC_ECC,
         ECC_SIGN,
-        RESERVED_11,
         ECC_ENCRYPT
+    }
+
+    struct GpgGenerateKeyLength {
+        uint min;
+        uint max;
+        uint _default;
     }
 
     class GpgGenerateParameters : Parameters, GLib.Object {

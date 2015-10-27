@@ -1,5 +1,5 @@
 namespace Credentials {
-    namespace GpgStrings {
+    namespace GpgUtils {
         static string format_protocol (GGpg.Protocol protocol) {
             switch (protocol) {
             case GGpg.Protocol.OPENPGP:
@@ -70,6 +70,26 @@ namespace Credentials {
                 return _("ECC (sign only)");
             case GpgGenerateKeyType.ECC_ENCRYPT:
                 return _("ECC (encrypt only)");
+            default:
+                return_val_if_reached (null);
+            }
+        }
+
+        static GpgGenerateKeyLength get_generate_key_length (GpgGenerateKeyType key_type) {
+            switch (key_type) {
+            case GpgGenerateKeyType.RSA_RSA:
+            case GpgGenerateKeyType.RSA_SIGN:
+            case GpgGenerateKeyType.RSA_ENCRYPT:
+                return { 1024, 4096, 2048 };
+            case GpgGenerateKeyType.DSA_ELGAMAL:
+            case GpgGenerateKeyType.DSA:
+                return { 1024, 3072, 2048 };
+            case GpgGenerateKeyType.ELGAMAL:
+                return { 1024, 4096, 2048 };
+            case GpgGenerateKeyType.ECC_ECC:
+            case GpgGenerateKeyType.ECC_SIGN:
+            case GpgGenerateKeyType.ECC_ENCRYPT:
+                return { 256, 521, 256 };
             default:
                 return_val_if_reached (null);
             }

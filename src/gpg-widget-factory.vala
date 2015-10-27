@@ -181,7 +181,7 @@ namespace Credentials {
             var row_index = 0;
             var label = create_name_label (_("Owner trust"));
             properties_grid.attach (label, 0, row_index, 1, 1);
-            label = create_value_label (GpgStrings.format_validity (item.owner_trust));
+            label = create_value_label (GpgUtils.format_validity (item.owner_trust));
             properties_grid.attach (label, 1, row_index, 1, 1);
             row_index++;
 
@@ -190,7 +190,7 @@ namespace Credentials {
 
             label = create_name_label (_("Algorithm"));
             properties_grid.attach (label, 0, row_index, 1, 1);
-            label = create_value_label (GpgStrings.format_pubkey_algo (pubkey.pubkey_algo));
+            label = create_value_label (GpgUtils.format_pubkey_algo (pubkey.pubkey_algo));
             properties_grid.attach (label, 1, row_index, 1, 1);
             row_index++;
 
@@ -256,6 +256,8 @@ namespace Credentials {
         [GtkChild]
         Gtk.ComboBox key_type_combobox;
         [GtkChild]
+        Gtk.SpinButton length_spinbutton;
+        [GtkChild]
         Gtk.Entry name_entry;
         [GtkChild]
         Gtk.Entry email_entry;
@@ -277,9 +279,7 @@ namespace Credentials {
             for (var index = enum_class.minimum;
                  index <= enum_class.maximum;
                  index++) {
-                var enum_value = enum_class.get_value (index);
-                if (enum_value == null ||
-                    enum_value.value_nick.has_prefix ("reserved"))
+                if (enum_class.get_value (index) == null)
                     continue;
 
                 var key_type = (GpgGenerateKeyType) index;
@@ -288,14 +288,31 @@ namespace Credentials {
                 store.append (out iter);
                 store.set (iter,
                            0, index,
-                           1, GpgStrings.format_key_type (key_type));
+                           1, GpgUtils.format_key_type (key_type));
             }
 
             key_type_combobox.set_model (store);
             var renderer = new Gtk.CellRendererText ();
             key_type_combobox.pack_start (renderer, true);
             key_type_combobox.set_attributes (renderer, "text", 1);
+            key_type_combobox.changed.connect (on_key_type_changed);
             key_type_combobox.set_active (0);
+        }
+
+
+        void on_key_type_changed () {
+            Gtk.TreeIter iter;
+            key_type_combobox.get_active_iter (out iter);
+            GpgGenerateKeyType key_type;
+            key_type_combobox.get_model ().get (iter, 0, out key_type);
+            var length = GpgUtils.get_generate_key_length (key_type);
+            var adjustment = new Gtk.Adjustment (length._default,
+                                                 length.min,
+                                                 length.max,
+                                                 1,
+                                                 1,
+                                                 0);
+            length_spinbutton.set_adjustment (adjustment);
         }
 
         public override void response (int res) {
@@ -338,7 +355,7 @@ namespace Credentials {
             box.pack_start (heading, false, false, 0);
 
             var protocol = ((GpgCollection) item.collection).protocol;
-            var name = new Gtk.Label (_("%s Key").printf (GpgStrings.format_protocol (protocol)));
+            var name = new Gtk.Label (_("%s Key").printf (GpgUtils.format_protocol (protocol)));
             context = name.get_style_context ();
             context.add_class ("key-list-type");
             context.add_class ("dim-label");
