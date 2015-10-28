@@ -53,14 +53,12 @@ namespace Credentials {
             return this._content.get_subkeys ();
         }
 
-        public async void load_content (GLib.Cancellable? cancellable) throws GLib.Error {
+        async void load_content (GLib.Cancellable? cancellable) throws GLib.Error {
             var pubkey = this._content.get_subkeys ().first ().data;
             var ctx = new GGpg.Ctx ();
             ctx.protocol = ((GpgCollection) collection).protocol;
             this._content = yield ctx.get_key (pubkey.fingerprint, 1, cancellable);
         }
-
-        public signal void content_changed ();
 
         public GLib.List<GGpg.UserId> get_uids () {
             return this._content.get_uids ();
@@ -91,26 +89,43 @@ namespace Credentials {
         public override async void delete (GLib.Cancellable? cancellable) throws GLib.Error {
             var ctx = new GGpg.Ctx ();
             ctx.protocol = ((GpgCollection) collection).protocol;
-            yield ctx.delete (this._content, 1, cancellable);
+            try {
+                yield ctx.delete (this._content, 1, cancellable);
+                collection.item_removed (this);
+            } catch (GLib.Error e) {
+                throw e;
+            }
         }
 
         public async void edit (GpgEditCommand command, GLib.Cancellable? cancellable) throws GLib.Error {
             var ctx = new GGpg.Ctx ();
             ctx.protocol = ((GpgCollection) collection).protocol;
             var data = new GGpg.Data ();
-            yield ctx.edit (this._content, command.edit_callback,
-                            data, cancellable);
+            try {
+                yield ctx.edit (this._content, command.edit_callback,
+                                data, cancellable);
+                yield load_content (cancellable);
+                changed ();
+            } catch (GLib.Error e) {
+                throw e;
+            }
         }
     }
 
     class GpgCollection : Collection, Generator {
         public GGpg.Protocol protocol { construct set; get; }
-        GLib.HashTable<GpgItem,void*> _items;
+        GLib.HashTable<string,GpgItem> _items;
 
         public string item_type {
             get {
                 return _("PGP Key");
             }
+        }
+
+        ProgressCallback _progress_callback = null;
+
+        public void set_progress_callback (ProgressCallback progress_callback) {
+            this._progress_callback = progress_callback;
         }
 
         public override bool locked {
@@ -127,10 +142,13 @@ namespace Credentials {
         }
 
         construct {
-            this._items = new GLib.HashTable<GpgItem,void*> (null, null);
+            this._items = new GLib.HashTable<string,GpgItem> (GLib.str_hash,
+                                                              GLib.str_equal);
         }
 
         public override async void load_items () throws GLib.Error {
+            var seen = new GLib.HashTable<string,void*> (GLib.str_hash,
+                                                         GLib.str_equal);
             var ctx = new GGpg.Ctx ();
 
             ctx.protocol = protocol;
@@ -140,25 +158,37 @@ namespace Credentials {
                 var key = ctx.keylist_next ();
                 if (key == null)
                     break;
-                var item = new GpgItem (this, key);
-                this._items.add (item);
-                item_added (item);
+                var pubkey = key.get_subkeys ().first ().data;
+                seen.add (pubkey.fingerprint);
+                if (!this._items.contains (pubkey.fingerprint)) {
+                    var item = new GpgItem (this, key);
+                    this._items.insert (pubkey.fingerprint, item);
+                    item_added (item);
+                }
+            }
+
+            var iter = GLib.HashTableIter<string,GpgItem> (this._items);
+            string fingerprint;
+            GpgItem item;
+            while (iter.next (out fingerprint, out item)) {
+                if (!seen.contains (fingerprint)) {
+                    iter.remove();
+                    item_removed (item);
+                }
             }
         }
 
         public override GLib.List<Item> get_items () {
             GLib.List<Item> items = null;
-            var iter = GLib.HashTableIter<GpgItem,void*> (this._items);
+            var iter = GLib.HashTableIter<string,GpgItem> (this._items);
             GpgItem item;
-            while (iter.next (out item, null)) {
+            while (iter.next (null, out item)) {
                 items.append (item);
             }
             return items;
         }
 
-        public async void generate_item (Parameters _parameters,
-                                         GLib.Cancellable? cancellable) throws GLib.Error {
-            var parameters = (GpgGenerateParameters) _parameters;
+        string format_parameters (GpgGenerateParameters parameters) {
             var buffer = new StringBuilder ();
             buffer.append ("<GnupgKeyParms format=\"internal\">\n");
             switch (parameters.key_type) {
@@ -227,10 +257,43 @@ namespace Credentials {
                 buffer.append_printf ("Name-Comment: %s\n", parameters.comment);
             buffer.append ("Expire-Date: 0\n");
             buffer.append ("</GnupgKeyParms>\n");
+            return buffer.str;
+        }
 
+        string get_progress_label (string what) {
+            if (what == "pk_dsa")
+                return _("Generating DSA key");
+            else if (what == "pk_elg")
+                return _("Generating ElGamal key");
+            else if (what == "primegen")
+                return _("Generating prime numbers");
+            else if (what == "need_entropy")
+                return _("Gathering entropy");
+            return_val_if_reached ("Generating key");
+        }
+
+        void progress_callback_wrapper (string what, int type,
+                                        int current, int total)
+        {
+            this._progress_callback (get_progress_label (what),
+                                     (double) current / (double) total);
+        }
+
+        public async void generate_item (Parameters parameters,
+                                         GLib.Cancellable? cancellable) throws GLib.Error {
             var ctx = new GGpg.Ctx ();
             ctx.protocol = protocol;
-            yield ctx.genkey (buffer.str, null, null, cancellable);
+            if (this._progress_callback != null)
+                ctx.set_progress_callback (this.progress_callback_wrapper);
+            try {
+                yield ctx.genkey (
+                    format_parameters ((GpgGenerateParameters) parameters),
+                    null, null,
+                    cancellable);
+                load_items ();
+            } catch (GLib.Error e) {
+                throw e;
+            }
         }
 
         public override int compare (Collection other) {

@@ -2,6 +2,9 @@ namespace Credentials {
     [GtkTemplate (ui = "/org/gnome/Credentials/main.ui")]
     class Window : Gtk.ApplicationWindow {
         [GtkChild]
+        Gtk.Overlay overlay;
+
+        [GtkChild]
         Gtk.Grid main_grid;
 
         [GtkChild]
@@ -101,6 +104,10 @@ namespace Credentials {
         }
 
         void activate_search () {
+        }
+
+        public void add_notification (Gtk.Widget notification) {
+            overlay.add_overlay (notification);
         }
     }
 

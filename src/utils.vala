@@ -114,4 +114,14 @@ namespace Credentials {
         dialog.response.connect ((res) => { dialog.destroy (); });
         dialog.show ();
     }
+
+    static void show_notification (Gtk.Window window, string format, ...) {
+        var notification = new Gd.Notification ();
+        var grid = new Gtk.Grid ();
+        notification.add (grid);
+        grid.add (new Gtk.Label (format.vprintf (va_list ())));
+        notification.show_all ();
+        notification.timeout = 5;
+        ((Window) window).add_notification (notification);
+    }
 }

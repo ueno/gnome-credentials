@@ -28,7 +28,6 @@ namespace Credentials {
                             show_error (window,
                                         "Couldn't add user ID: %s", e.message);
                         }
-                        item.content_changed ();
                     });
             }
         }
@@ -73,17 +72,6 @@ namespace Credentials {
         GLib.ListStore _store;
         GLib.HashTable<string,GGpg.UserId> _uids;
 
-        void on_content_changed () {
-            item.load_content.begin (null, (obj, res) => {
-                    try {
-                        item.load_content.end (res);
-                    } catch (GLib.Error e) {
-                        return;
-                    }
-                    update_user_id_list ();
-                });
-        }
-
         void update_user_id_list () {
             var seen = new GLib.HashTable<string,void*> (GLib.str_hash,
                                                          GLib.str_equal);
@@ -127,7 +115,6 @@ namespace Credentials {
                         show_error (window,
                                     "Couldn't add user ID: %s", e.message);
                     }
-                    item.content_changed ();
                 });
         }
 
@@ -145,7 +132,7 @@ namespace Credentials {
             user_id_list_box.set_header_func (list_box_update_header_func);
             list_box_setup_scrolling (user_id_list_box, 0);
             list_box_adjust_scrolling (user_id_list_box);
-            item.content_changed.connect (on_content_changed);
+            item.changed.connect (update_user_id_list);
 
             add_uid_button.clicked.connect (() => {
                     var dialog = new GpgAddUserIdDialog (item);
@@ -240,7 +227,7 @@ namespace Credentials {
                             item.delete.end (res);
                         } catch (GLib.Error e) {
                             show_error (window,
-                                        _("Couldn't delete password: %s"),
+                                        _("Couldn't delete PGP key: %s"),
                                         e.message);
                         }
                     });
@@ -313,6 +300,7 @@ namespace Credentials {
                                                  1,
                                                  0);
             length_spinbutton.set_adjustment (adjustment);
+            length_spinbutton.set_editable (true);
         }
 
         public override void response (int res) {
@@ -327,17 +315,26 @@ namespace Credentials {
                     email_entry.get_text (),
                     comment_entry.get_text (),
                     key_type,
-                    1024,
+                    length_spinbutton.get_value_as_int (),
                     0);
-                collection.generate_item (parameters, null,
-                                          (obj, res) => {
-                                              try {
-                                                  collection.generate_item.end (res);
-                                              } catch (GLib.Error e) {
-                                                  warning ("cannot generate item: %s", e.message);
-                                              }
-                                              print ("generated\n");
-                                          });
+
+                var window = (Gtk.Window) this.get_toplevel ();
+                var app_window = (Window) window.get_transient_for ();
+
+                collection.generate_item (
+                    parameters, null,
+                    (obj, res) => {
+                        try {
+                            collection.generate_item.end (res);
+                            show_notification (app_window,
+                                               _("%s key generated"),
+                                               collection.item_type);
+                        } catch (GLib.Error e) {
+                            show_error (app_window,
+                                        "Couldn't generate PGP key: %s",
+                                        e.message);
+                        }
+                    });
             }
         }
     }
