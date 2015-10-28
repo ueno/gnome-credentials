@@ -18,3 +18,12 @@
 .key-list-type {
     padding: 10px 10px;
 }
+
+.banner {
+    color: @insensitive_fg_color;
+}
+
+.banner-label {
+    padding: 10pt;
+    font-size: x-large;
+}

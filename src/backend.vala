@@ -8,6 +8,10 @@ namespace Credentials {
         }
 
         public abstract int compare (Item other);
+
+        public virtual bool match (string[] words) {
+            return false;
+        }
     }
 
     interface Parameters : GLib.Object {

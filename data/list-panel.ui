@@ -1,27 +1,116 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <requires lib="gtk+" version="3.16"/>
-  <template class="CredentialsListPanel" parent="GtkBox">
+  <template class="CredentialsListPanel" parent="GtkStack">
     <property name="visible">True</property>
-    <property name="orientation">vertical</property>
-    <property name="margin-start">134</property>
-    <property name="margin-end">134</property>
-    <property name="margin-top">10</property>
-    <property name="margin-bottom">22</property>
-    <property name="height-request">350</property>
     <child>
-      <object class="GtkFrame" id="frame1">
+      <object class="GtkGrid" id="empty_grid">
+	<property name="can_focus">False</property>
+	<property name="visible">False</property>
+	<property name="orientation">vertical</property>
+	<property name="halign">center</property>
+	<property name="valign">center</property>
+	<style>
+	  <class name="banner"/>
+	</style>
 	<child>
-	  <object class="GtkListBox" id="list_box">
+	  <object class="GtkImage" id="empty_image">
+	    <property name="can_focus">False</property>
 	    <property name="visible">True</property>
-	    <property name="can_focus">True</property>
+	    <property name="halign">center</property>
+	    <property name="pixel_size">128</property>
+	    <property name="icon_name">changes-prevent-symbolic</property>
+	  </object>
+	</child>
+	<child>
+	  <object class="GtkLabel" id="empty_label">
+	    <property name="can_focus">False</property>
+	    <property name="visible">True</property>
+	    <property name="halign">center</property>
+	    <property name="label" translatable="yes">No items found</property>
+	    <style>
+	      <class name="banner-label"/>
+	    </style>
 	  </object>
 	</child>
       </object>
       <packing>
-        <property name="expand">False</property>
-        <property name="fill">True</property>
-        <property name="position">0</property>
+	<property name="name">empty</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkGrid" id="unavailable_panel">
+	<property name="can_focus">False</property>
+	<property name="visible">False</property>
+	<property name="orientation">vertical</property>
+	<property name="halign">center</property>
+	<property name="valign">center</property>
+	<style>
+	  <class name="banner"/>
+	</style>
+	<child>
+	  <object class="GtkImage" id="unavailable_image">
+	    <property name="can_focus">False</property>
+	    <property name="visible">True</property>
+	    <property name="halign">center</property>
+	    <property name="pixel_size">128</property>
+	    <property name="icon_name">action-unavailable-symbolic</property>
+	  </object>
+	</child>
+	<child>
+	  <object class="GtkLabel" id="unavailable_label">
+	    <property name="can_focus">False</property>
+	    <property name="visible">True</property>
+	    <property name="halign">center</property>
+	    <property name="label" translatable="yes">Search produced empty result</property>
+	    <style>
+	      <class name="banner-label"/>
+	    </style>
+	  </object>
+	</child>
+	<child>
+	  <object class="GtkLabel" id="unavailable_hint">
+	    <property name="can_focus">False</property>
+	    <property name="visible">True</property>
+	    <property name="halign">center</property>
+	    <property name="label" translatable="yes">Try another search criteria.</property>
+	    <style>
+	      <class name="banner-hint"/>
+	    </style>
+	  </object>
+	</child>
+      </object>
+      <packing>
+	<property name="name">unavailable</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkBox" id="box1">
+	<property name="visible">True</property>
+	<property name="orientation">vertical</property>
+	<property name="margin-start">134</property>
+	<property name="margin-end">134</property>
+	<property name="margin-top">10</property>
+	<property name="margin-bottom">22</property>
+	<property name="height-request">350</property>
+	<child>
+	  <object class="GtkFrame" id="frame1">
+	    <child>
+	      <object class="GtkListBox" id="list_box">
+		<property name="visible">True</property>
+		<property name="can_focus">True</property>
+	      </object>
+	    </child>
+	  </object>
+	  <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+	  </packing>
+	</child>
+      </object>
+      <packing>
+	<property name="name">listing</property>
       </packing>
     </child>
   </template>

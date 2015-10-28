@@ -86,6 +86,27 @@ namespace Credentials {
             return GLib.strcmp (label, other_label);
         }
 
+        public override bool match (string[] words) {
+            string[] attributes = {};
+            var uids = this._content.get_uids ();
+            foreach (var uid in uids) {
+                attributes += uid.uid;
+            }
+
+            foreach (var attribute in attributes) {
+                var matched = true;
+                foreach (var word in words) {
+                    if (attribute.casefold ().str (word.casefold ()) == null) {
+                        matched = false;
+                        break;
+                    }
+                }
+                if (matched)
+                    return true;
+            }
+            return false;
+        }
+
         public override async void delete (GLib.Cancellable? cancellable) throws GLib.Error {
             var ctx = new GGpg.Ctx ();
             ctx.protocol = ((GpgCollection) collection).protocol;

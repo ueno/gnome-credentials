@@ -1,10 +1,11 @@
 namespace Credentials {
     [GtkTemplate (ui = "/org/gnome/Credentials/list-panel.ui")]
-    abstract class ListPanel : Gtk.Box {
+    abstract class ListPanel : Gtk.Stack {
         [GtkChild]
         protected Gtk.ListBox list_box;
 
         GLib.ListStore _store;
+        GLib.ListStore _filtered_store;
         Backend[] _backends;
         GLib.HashTable<Backend,WidgetFactory> _factories;
         Generator[] _generators;
@@ -13,6 +14,7 @@ namespace Credentials {
 
         construct {
             this._store = new GLib.ListStore (typeof (Item));
+            this._filtered_store = new GLib.ListStore (typeof (Item));
             this._backends = {};
             this._factories = new GLib.HashTable<Backend,WidgetFactory> (null,
                                                                          null);
@@ -35,6 +37,25 @@ namespace Credentials {
             load.begin ();
         }
 
+        public async void filter_items (string[] words,
+                                        GLib.Cancellable cancellable)
+        {
+            this._filtered_store.remove_all ();
+            list_box.bind_model (this._filtered_store, this.create_item_widget);
+            cancellable.connect (() => {
+                    list_box.bind_model (this._store, this.create_item_widget);
+                    this.visible_child_name = "listing";
+                });
+            for (var i = 0; i < this._store.get_n_items (); i++) {
+                var item = (Item) this._store.get_item (i);
+                if (item.match (words))
+                    this._filtered_store.append (item);
+            }
+            if (this._filtered_store.get_n_items () == 0)
+                this.visible_child_name = "unavailable";
+            list_box_adjust_scrolling (list_box);
+        }
+
         void on_map () {
             Window toplevel = (Window) this.get_toplevel ();
             toplevel.new_button.set_popover (this._generator_popover);
@@ -53,14 +74,11 @@ namespace Credentials {
             this._factories.set (backend, factory);
         }
 
-        protected WidgetFactory get_widget_factory (Backend backend) {
-            return this._factories.lookup (backend);
-        }
-
         void on_collection_added (Collection collection) {
             collection.item_added.connect (on_item_added);
             collection.item_removed.connect (on_item_removed);
             collection.load_items.begin ();
+            adjust_view ();
         }
 
         void on_collection_removed (Collection collection) {
@@ -69,7 +87,7 @@ namespace Credentials {
                 if (item.collection == collection)
                     this._store.remove (i);
             }
-            list_box_adjust_scrolling (list_box);
+            adjust_view ();
         }
 
         void on_item_added (Item item) {
@@ -86,16 +104,24 @@ namespace Credentials {
                         }
                     }
                 });
-            list_box_adjust_scrolling (list_box);
+            adjust_view ();
         }
 
         void on_item_removed (Item item) {
             for (var i = 0; i < this._store.get_n_items (); i++) {
                 if (this._store.get_item (i) == item) {
                     this._store.remove (i);
-                    list_box_adjust_scrolling (list_box);
+                    adjust_view ();
                 }
             }
+        }
+
+        void adjust_view () {
+            list_box_adjust_scrolling (list_box);
+            if (this._store.get_n_items () == 0)
+                this.visible_child_name = "empty";
+            else
+                this.visible_child_name = "listing";
         }
 
         void activate_generate (GLib.SimpleAction action,

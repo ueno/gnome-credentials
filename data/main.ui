@@ -93,6 +93,7 @@
 		    <property name="can_focus">True</property>
 		    <property name="width-request">500</property>
 		    <property name="halign">center</property>
+		    <signal name="search-changed" handler="on_search_changed"/>
 		  </object>
 		</child>
 	      </object>

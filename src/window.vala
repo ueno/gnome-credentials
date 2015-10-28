@@ -31,6 +31,7 @@ namespace Credentials {
         public bool search_active { get; set; default = false; }
 
         ContentArea _area;
+        GLib.Cancellable _cancellable;
 
         public Window (Gtk.Application app) {
             Object (application: app,
@@ -42,13 +43,6 @@ namespace Credentials {
         construct {
             var action = new GLib.SimpleAction ("about", null);
             action.activate.connect (() => { this.activate_about (); });
-            add_action (action);
-
-            action = new GLib.SimpleAction.stateful (
-                "search-active",
-                GLib.VariantType.BOOLEAN,
-                new GLib.Variant.boolean (false));
-            action.activate.connect (() => { this.activate_search (); });
             add_action (action);
 
             this.bind_property ("search-active",
@@ -70,10 +64,12 @@ namespace Credentials {
 
             this.main_grid.add (this._area);
             this.main_grid.show_all ();
-        }
 
-        public override bool key_press_event (Gdk.EventKey ev) {
-            return this.main_search_bar.handle_event (ev);
+            key_press_event.connect ((ev) => {
+                    return this.main_search_bar.handle_event (ev);
+                });
+
+            this._cancellable = new GLib.Cancellable ();
         }
 
         void activate_about () {
@@ -103,7 +99,16 @@ namespace Credentials {
             dialog.response.connect (() => { dialog.destroy (); });
         }
 
-        void activate_search () {
+        [GtkCallback]
+        void on_search_changed (Gtk.SearchEntry entry) {
+            var text = entry.get_text ().strip();
+
+            this._cancellable.reset ();
+            if (text.length > 0)
+                this._area.filter_items.begin (text.split_set (" \t", -1),
+                                               this._cancellable);
+            else
+                this._cancellable.cancel ();
         }
 
         public void add_notification (Gtk.Widget notification) {
@@ -126,6 +131,13 @@ namespace Credentials {
 
             var keys_panel = new Credentials.KeyListPanel ();
             this.add_titled (keys_panel, "keys", _("Keys"));
+        }
+
+        public async void filter_items (string[] words,
+                                        GLib.Cancellable cancellable)
+        {
+            var panel = (ListPanel) this.visible_child;
+            yield panel.filter_items (words, cancellable);
         }
     }
 }

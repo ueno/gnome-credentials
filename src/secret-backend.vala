@@ -69,6 +69,30 @@ namespace Credentials {
                 return 1;
             return 0;
         }
+
+        public override bool match (string[] words) {
+            string[] attributes = {};
+            attributes += this._content.get_label ();
+            var _attributes = this._content.get_attributes ();
+            var iter = GLib.HashTableIter<string,string> (_attributes);
+            string value;
+            while (iter.next (null, out value)) {
+                attributes += value;
+            }
+
+            foreach (var attribute in attributes) {
+                var matched = true;
+                foreach (var word in words) {
+                    if (attribute.casefold ().str (word.casefold ()) == null) {
+                        matched = false;
+                        break;
+                    }
+                }
+                if (matched)
+                    return true;
+            }
+            return false;
+        }
     }
 
     class SecretCollection : Collection {
