@@ -5,19 +5,25 @@ gnome-credentials is an attempt to implement the new "Passwords and
 Keys" application design:
 https://raw.githubusercontent.com/gnome-design-team/gnome-mockups/master/passwords-and-keys/passwords-and-keys.png
 
-The GPGME library is required for GnuPG support.
+Currently only passwords and GnuPG keys are supported.  For GnuPG
+keys, the GPGME library is required:
+https://www.gnupg.org/related_software/swlist.html#gpgme
 
 Still very much work in progress.
 
 License
 =======
 
-Some files under 'data' are taken from gtk-js-app:
-https://github.com/gcampax/gtk-js-app
-which is licensed under the 3-clause BSD license (see the file 'COPYING').
+GPL 2.0 or later (see the file COPYING).
 
-Other files are licensed under GPL 2.0 or later (see the file 'COPYINGv2').
+Derived code from other projects are:
 
-src/secret-*.vala are based on Seahorse (seahorse/gkr/*.vala), and
-src/list-box-helper.vala is based on gnome-control-center
-(gnome-control-center/shell/list-box-helper.c).
+- the libsecret backend (src/secret-*.vala) is based on Seahorse
+  (seahorse/gkr/*.vala)
+
+- src/list-box-helper.vala is based on gnome-control-center
+  (gnome-control-center/shell/list-box-helper.c)
+
+- The format_date() function in src/utils.vala is based on Nautilus
+  (the nautilus_file_get_date_as_string() function in
+  libnautilus-private/nautilus-file.c)
