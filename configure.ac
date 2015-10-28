@@ -48,6 +48,8 @@ PKG_CHECK_MODULES([GIO], [gio-2.0], ,
   [AC_MSG_ERROR([can't find gio-2.0])])
 AM_PATH_GPGME_PTHREAD
 
+LIBGD_INIT([notification vapi])
+
 AC_ARG_ENABLE(dogtail,
               [AS_HELP_STRING([--enable-dogtail],
                               [test using dogtail [default=yes]])],,
@@ -88,6 +90,7 @@ AC_CONFIG_FILES([
   data/Makefile
   data/icons/Makefile
   gpgme-glib/Makefile
+  libgd/Makefile
   src/Makefile
   tests/Makefile
   po/Makefile.in

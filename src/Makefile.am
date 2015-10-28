@@ -19,20 +19,25 @@ gnome_credentials_SOURCES =			\
 
 gnome_credentials_LDADD =				\
 	$(DEPS_LIBS)					\
-	$(top_builddir)/gpgme-glib/libgpgme-glib.la
+	$(top_builddir)/gpgme-glib/libgpgme-glib.la	\
+	$(top_builddir)/libgd/libgd.la
 
 gresource_file = $(top_srcdir)/data/org.gnome.Credentials.gresource.xml
 
-AM_CPPFLAGS = -include config.h $(DEPS_CFLAGS)
+AM_CPPFLAGS = -include config.h $(DEPS_CFLAGS) -I$(top_srcdir)/libgd
 AM_VALAFLAGS =					\
 	--target-glib=2.38			\
 	--vapidir=$(srcdir)			\
 	--vapidir=$(top_srcdir)/gpgme-glib	\
+	--vapidir=$(top_builddir)/gpgme-glib	\
+	--vapidir=$(top_srcdir)/libgd		\
+	--vapidir=$(top_builddir)/libgd		\
 	--pkg config				\
 	--pkg gtk+-3.0				\
 	--pkg pango				\
 	--pkg libsecret-1			\
 	--pkg gpgme-glib			\
+	--pkg gd-1.0				\
 	--pkg posix				\
 	--gresources $(gresource_file)
 
