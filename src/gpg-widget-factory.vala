@@ -14,6 +14,10 @@ namespace Credentials {
             Object (item: item, use_header_bar: 1);
         }
 
+        construct {
+            name_entry.set_text (GLib.Environment.get_real_name ());
+        }
+
         public override void response (int res) {
             if (res == Gtk.ResponseType.OK) {
                 var window = (Gtk.Window) this.get_toplevel ();
@@ -284,6 +288,8 @@ namespace Credentials {
             key_type_combobox.set_attributes (renderer, "text", 1);
             key_type_combobox.changed.connect (on_key_type_changed);
             key_type_combobox.set_active (0);
+
+            name_entry.set_text (GLib.Environment.get_real_name ());
         }
 
 
@@ -363,10 +369,6 @@ namespace Credentials {
 
         public override Gtk.Dialog create_editor_dialog (Item item) {
             return new GpgEditorDialog ((GpgItem) item);
-        }
-
-        public override Gtk.Dialog create_generator_dialog (Generator generator) {
-            return new GpgGeneratorDialog ((GpgCollection) generator);
         }
     }
 }

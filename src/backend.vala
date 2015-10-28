@@ -14,17 +14,6 @@ namespace Credentials {
         }
     }
 
-    interface Parameters : GLib.Object {
-    }
-
-    delegate void ProgressCallback (string label, double fraction);
-
-    interface Generator : GLib.Object {
-        public abstract string item_type { get; }
-        public abstract void set_progress_callback (ProgressCallback callback);
-        public abstract async void generate_item (Parameters parameters, GLib.Cancellable? cancellable) throws GLib.Error;
-    }
-
     abstract class Collection : GLib.Object {
         public string name { construct set; get; }
         public Backend backend { construct set; get; }
@@ -53,5 +42,16 @@ namespace Credentials {
         public signal void collection_removed (Collection collection);
 
         public abstract int compare (Backend other);
+    }
+
+    interface Parameters : GLib.Object {
+    }
+
+    delegate void ProgressCallback (string label, double fraction);
+
+    interface ItemGenerator : Collection {
+        public abstract string item_type { get; }
+        public abstract void set_progress_callback (ProgressCallback callback);
+        public abstract async void generate_item (Parameters parameters, GLib.Cancellable? cancellable) throws GLib.Error;
     }
 }

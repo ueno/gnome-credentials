@@ -152,9 +152,5 @@ namespace Credentials {
         public override Gtk.Dialog create_editor_dialog (Item item) {
             return new SecretEditorDialog ((SecretItem) item);
         }
-
-        public override Gtk.Dialog create_generator_dialog (Generator generator) {
-            return_val_if_reached (null);
-        }
     }
 }

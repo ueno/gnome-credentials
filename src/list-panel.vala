@@ -8,9 +8,6 @@ namespace Credentials {
         GLib.ListStore _filtered_store;
         Backend[] _backends;
         GLib.HashTable<Backend,WidgetFactory> _factories;
-        Generator[] _generators;
-        GLib.Menu _generator_menu;
-        Gtk.Popover _generator_popover;
 
         construct {
             this._store = new GLib.ListStore (typeof (Item));
@@ -18,11 +15,6 @@ namespace Credentials {
             this._backends = {};
             this._factories = new GLib.HashTable<Backend,WidgetFactory> (null,
                                                                          null);
-            this._generators = {};
-            this._generator_menu = new GLib.Menu ();
-            this._generator_popover = new Gtk.Popover (null);
-            this._generator_popover.bind_model (this._generator_menu, "key");
-            map.connect (on_map);
 
             list_box.bind_model (this._store, this.create_item_widget);
             list_box.set_header_func (list_box_update_header_func);
@@ -57,15 +49,6 @@ namespace Credentials {
             else
                 this.visible_child_name = "listing";
             list_box_adjust_scrolling (list_box);
-        }
-
-        void on_map () {
-            Window toplevel = (Window) this.get_toplevel ();
-            toplevel.new_button.set_popover (this._generator_popover);
-
-            var group = new GLib.SimpleActionGroup ();
-            ((GLib.ActionMap) group).add_action_entries (actions, this);
-            toplevel.insert_action_group ("key", group);
         }
 
         protected void register_backend (Backend backend,
@@ -127,56 +110,14 @@ namespace Credentials {
             list_box_adjust_scrolling (list_box);
         }
 
-        void activate_generate (GLib.SimpleAction action,
-                                GLib.Variant? parameter)
-        {
-            var index = parameter.get_uint32 ();
-
-            var generator = this._generators[index];
-            var factory = generator.get_data<WidgetFactory> (
-                "credentials-widget-factory");
-            var dialog = factory.create_generator_dialog (generator);
-            return_if_fail (dialog != null);
-            dialog.response.connect_after ((res) => {
-                    dialog.destroy ();
-                });
-            dialog.set_transient_for ((Gtk.Window) this.get_toplevel ());
-            dialog.show ();
-        }
-
-        static const GLib.ActionEntry[] actions = {
-            { "generate", activate_generate, "u", null, null }
-        };
-
-        void register_generator (Generator generator, Backend backend) {
-            var index = this._generators.length;
-            this._generators += generator;
-
-            var item = new GLib.MenuItem (
-                _("Generate %s").printf (generator.item_type), null);
-            item.set_action_and_target ("generate", "u", index);
-            this._generator_menu.append_item (item);
-
-            var factory = this._factories.lookup (backend);
-            generator.set_data<WidgetFactory> ("credentials-widget-factory",
-                                               factory);
-        }
-
         async void load () {
             this._store.remove_all ();
-            this._generators = {};
-            this._generator_menu.remove_all ();
             foreach (var backend in this._backends) {
                 try {
                     yield backend.load_collections ();
                 } catch (GLib.Error e) {
                     warning ("cannot load collections: %s", e.message);
                     continue;
-                }
-                var collections = backend.get_collections ();
-                foreach (var collection in collections) {
-                    if (collection is Generator)
-                        register_generator ((Generator) collection, backend);
                 }
             }
         }

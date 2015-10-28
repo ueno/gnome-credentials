@@ -133,7 +133,7 @@ namespace Credentials {
         }
     }
 
-    class GpgCollection : Collection, Generator {
+    class GpgCollection : Collection, ItemGenerator {
         public GGpg.Protocol protocol { construct set; get; }
         GLib.HashTable<string,GpgItem> _items;
 
