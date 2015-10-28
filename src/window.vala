@@ -23,9 +23,6 @@ namespace Credentials {
         public Gtk.MenuButton new_button;
 
         [GtkChild]
-        public Gtk.MenuButton menu_button;
-
-        [GtkChild]
         Gtk.ToggleButton search_active_button;
 
         public bool search_active { get; set; default = false; }

@@ -37,25 +37,6 @@
 	  </packing>
 	</child>
 	<child>
-	  <object class="GtkMenuButton" id="menu_button">
-            <property name="can_focus">False</property>
-            <property name="visible">False</property>
-	    <property name="use_popover">True</property>
-            <style>
-              <class name="image-button"/>
-            </style>
-            <child>
-              <object class="GtkImage" id="menu_button_image">
-		<property name="visible">True</property>
-		<property name="icon-name">open-menu-symbolic</property>
-              </object>
-            </child>
-	  </object>
-	  <packing>
-            <property name="pack-type">end</property>
-	  </packing>
-	</child>
-	<child>
 	  <object class="GtkToggleButton" id="search_active_button">
             <property name="can_focus">True</property>
             <property name="visible">True</property>

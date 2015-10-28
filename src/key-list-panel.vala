@@ -11,7 +11,6 @@ namespace Credentials {
         void on_map () {
             Window toplevel = (Window) this.get_toplevel ();
             toplevel.unlock_button.set_visible (false);
-            toplevel.menu_button.set_visible (true);
             toplevel.new_button.set_visible (true);
         }
     }
