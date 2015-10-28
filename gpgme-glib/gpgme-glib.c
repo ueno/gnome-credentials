@@ -1932,3 +1932,65 @@ g_gpg_ctx_export_finish (GGpgCtx *ctx, GAsyncResult *result, GError **error)
   g_return_val_if_fail (g_task_is_valid (result, ctx), FALSE);
   return g_task_propagate_boolean (G_TASK (result), error);
 }
+
+struct GGpgImportSource
+{
+  struct GGpgSource source;
+  GGpgData *keydata;
+};
+
+static void
+g_gpg_import_source_finalize (GSource *_source)
+{
+  struct GGpgImportSource *source = (struct GGpgImportSource *) _source;
+  g_object_unref (source->keydata);
+}
+
+static void
+_g_gpg_ctx_import_begin (GGpgCtx *ctx,
+                         struct GGpgImportSource *source,
+                         GTask *task,
+                         GCancellable *cancellable)
+{
+  gpgme_error_t err;
+
+  err = gpgme_op_import_start (ctx->pointer, source->keydata->pointer);
+  if (err)
+    {
+      g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
+                               "%s", gpgme_strerror (err));
+      return;
+    }
+
+  if (cancellable)
+    g_cancellable_connect (cancellable, G_CALLBACK (_g_gpg_source_cancel),
+                           source, NULL);
+
+  g_task_attach_source (task, (GSource *) source, _g_gpg_source_func);
+  g_source_unref ((GSource *) source);
+}
+
+void
+g_gpg_ctx_import (GGpgCtx *ctx,
+                  GGpgData *keydata,
+                  GCancellable *cancellable,
+                  GAsyncReadyCallback callback,
+                  gpointer user_data)
+{
+  GTask *task;
+  struct GGpgImportSource *source;
+
+  task = g_task_new (ctx, cancellable, callback, user_data);
+  source = G_GPG_SOURCE_NEW (struct GGpgImportSource, ctx);
+  source->keydata = g_object_ref (keydata);
+  g_task_set_task_data (task, source,
+                        (GDestroyNotify) g_gpg_import_source_finalize);
+  _g_gpg_ctx_import_begin (ctx, source, task, cancellable);
+}
+
+gboolean
+g_gpg_ctx_import_finish (GGpgCtx *ctx, GAsyncResult *result, GError **error)
+{
+  g_return_val_if_fail (g_task_is_valid (result, ctx), FALSE);
+  return g_task_propagate_boolean (G_TASK (result), error);
+}

@@ -109,6 +109,14 @@ void g_gpg_ctx_export (GGpgCtx *ctx,
 gboolean g_gpg_ctx_export_finish (GGpgCtx *ctx, GAsyncResult *result,
                                   GError **error);
 
+void g_gpg_ctx_import (GGpgCtx *ctx,
+                       GGpgData *keydata,
+                       GCancellable *cancellable,
+                       GAsyncReadyCallback callback,
+                       gpointer user_data);
+gboolean g_gpg_ctx_import_finish (GGpgCtx *ctx, GAsyncResult *result,
+                                  GError **error);
+
 GList *g_gpg_key_get_subkeys (GGpgKey *key);
 GList *g_gpg_key_get_uids (GGpgKey *key);
 
