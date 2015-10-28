@@ -138,6 +138,7 @@ namespace Credentials {
             case GGpg.StatusCode.KEY_CREATED:
             case GGpg.StatusCode.ALREADY_SIGNED:
             case GGpg.StatusCode.MISSING_PASSPHRASE:
+            case GGpg.StatusCode.PINENTRY_LAUNCHED:
                 return true;
             default:
                 this.state = transit (this.state, status, args);
