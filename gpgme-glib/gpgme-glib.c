@@ -1281,31 +1281,287 @@ g_gpg_ctx_keylist_end (GGpgCtx *ctx, GError **error)
   return TRUE;
 }
 
-/* A lock to synchronize gpgme_wait() calls.  Only one thread should
-   ever call gpgme_wait() at any time.  */
-G_LOCK_DEFINE (wait_lock);
+struct GGpgSource;
 
-struct GetKeyData
+struct GGpgSourceFd
+{
+  gint fd;
+  GIOCondition events;
+  gpointer tag;
+  gpgme_io_cb_t fnc;
+  void *fnc_data;
+  struct GGpgSource *source;
+};
+
+typedef enum
+  {
+    G_GPG_SOURCE_STATE_NONE,
+    G_GPG_SOURCE_STATE_START,
+    G_GPG_SOURCE_STATE_DONE
+  }
+GGpgSourceState;
+
+struct GGpgSource
+{
+  GSource base;
+  GPtrArray *fds;
+  GGpgSourceState state;
+  gpgme_error_t err;
+  GGpgCtx *ctx;
+  GMutex lock;
+};
+
+static gboolean
+g_gpg_source_prepare (GSource *_source, gint *timeout)
+{
+  struct GGpgSource *source = (struct GGpgSource *) _source;
+
+  if (source->state == G_GPG_SOURCE_STATE_DONE)
+    return TRUE;
+
+  *timeout = -1;
+  return FALSE;
+}
+
+static gboolean
+g_gpg_source_check (GSource *_source)
+{
+  struct GGpgSource *source = (struct GGpgSource *) _source;
+  gint index;
+
+  if (source->state == G_GPG_SOURCE_STATE_DONE)
+    return TRUE;
+
+  for (index = 0; index < source->fds->len; index++)
+    {
+      struct GGpgSourceFd *fd = g_ptr_array_index (source->fds, index);
+      if (fd->tag)
+        {
+          GIOCondition revents = g_source_query_unix_fd (_source, fd->tag);
+          if (revents != 0)
+            return TRUE;
+        }
+    }
+
+  return FALSE;
+}
+
+static gboolean
+g_gpg_source_dispatch (GSource *_source,
+                       GSourceFunc callback,
+                       gpointer user_data)
+{
+  struct GGpgSource *source = (struct GGpgSource *) _source;
+  gint index;
+
+  g_return_val_if_fail (callback, FALSE);
+
+  for (index = 0; index < source->fds->len; index++)
+    {
+      struct GGpgSourceFd *fd = g_ptr_array_index (source->fds, index);
+      if (fd->tag)
+        {
+          GIOCondition revents = g_source_query_unix_fd (_source, fd->tag);
+          if (revents != 0)
+            fd->fnc (fd->fnc_data, fd->fd);
+        }
+    }
+
+  return callback (user_data);
+}
+
+static void
+g_gpg_source_finalize (GSource *_source)
+{
+  struct GGpgSource *source = (struct GGpgSource *) _source;
+  gint index;
+
+  for (index = 0; index < source->fds->len; index++)
+    {
+      struct GGpgSourceFd *fd = g_ptr_array_index (source->fds, index);
+      if (fd->tag)
+        {
+          g_source_remove_unix_fd (_source, fd->tag);
+          fd->tag = NULL;
+        }
+    }
+  g_ptr_array_free (source->fds, TRUE);
+  g_mutex_clear (&source->lock);
+  g_object_unref (source->ctx);
+}
+
+static GSourceFuncs g_gpg_source_funcs =
+  {
+    g_gpg_source_prepare,
+    g_gpg_source_check,
+    g_gpg_source_dispatch,
+    g_gpg_source_finalize
+  };
+
+static gpgme_error_t
+g_gpg_add_io_cb (void *data, int fd, int dir, gpgme_io_cb_t fnc, void *fnc_data,
+                 void **r_tag)
+{
+  struct GGpgSource *source = data;
+  struct GGpgSourceFd *to_add;
+
+  to_add = g_new0 (struct GGpgSourceFd, 1);
+  to_add->fd = fd;
+  if (dir)
+    to_add->events = G_IO_IN | G_IO_HUP | G_IO_ERR;
+  else
+    to_add->events = G_IO_OUT | G_IO_ERR;
+  to_add->tag = NULL;
+  to_add->fnc = fnc;
+  to_add->fnc_data = fnc_data;
+  to_add->source = source;
+
+  g_mutex_lock (&source->lock);
+  g_ptr_array_add (source->fds, to_add);
+  if (source->state == G_GPG_SOURCE_STATE_START)
+    to_add->tag = g_source_add_unix_fd ((GSource *) source, to_add->fd,
+                                        to_add->events);
+  g_mutex_unlock (&source->lock);
+  *r_tag = to_add;
+
+  return 0;
+}
+
+static void
+g_gpg_remove_io_cb (void *tag)
+{
+  struct GGpgSourceFd *fd = tag;
+  struct GGpgSource *source = fd->source;
+
+  if (!fd->tag)
+    return;
+
+  g_mutex_lock (&source->lock);
+  if (fd->tag)
+    {
+      g_source_remove_unix_fd ((GSource *) source, fd->tag);
+      fd->tag = NULL;
+    }
+  fd->fd = -1;
+  g_mutex_unlock (&source->lock);
+}
+
+static void
+g_gpg_event_io_cb (void *data, gpgme_event_io_t type, void *type_data)
+{
+  struct GGpgSource *source = data;
+
+  switch (type)
+    {
+    case GPGME_EVENT_START:
+      source->state = G_GPG_SOURCE_STATE_START;
+      {
+        gint index;
+
+        g_mutex_lock (&source->lock);
+        for (index = 0; index < source->fds->len; index++)
+          {
+            struct GGpgSourceFd *fd = g_ptr_array_index (source->fds, index);
+            fd->tag = g_source_add_unix_fd ((GSource *) source, fd->fd,
+                                            fd->events);
+          }
+        g_mutex_unlock (&source->lock);
+      }
+      break;
+
+    case GPGME_EVENT_DONE:
+      source->state = G_GPG_SOURCE_STATE_DONE;
+      source->err = *(gpgme_error_t *) type_data;
+      {
+        gint index;
+
+        g_mutex_lock (&source->lock);
+        for (index = 0; index < source->fds->len; index++)
+          {
+            struct GGpgSourceFd *fd = g_ptr_array_index (source->fds, index);
+            if (fd->tag)
+              {
+                g_source_remove_unix_fd ((GSource *) source, fd->tag);
+                fd->tag = NULL;
+              }
+          }
+        g_mutex_unlock (&source->lock);
+      }
+
+    default:
+      break;
+    }
+}
+
+static GSource *
+g_gpg_source_new (GGpgCtx *ctx, gsize size)
+{
+  struct GGpgSource *source;
+  struct gpgme_io_cbs io_cbs;
+
+  source = (struct GGpgSource *) g_source_new (&g_gpg_source_funcs, size);
+  g_source_set_can_recurse ((GSource *) source, TRUE);
+  source->fds = g_ptr_array_new_with_free_func (g_free);
+  g_mutex_init (&source->lock);
+  source->ctx = g_object_ref (ctx);
+
+  io_cbs.add = g_gpg_add_io_cb;
+  io_cbs.add_priv = source;
+  io_cbs.remove = g_gpg_remove_io_cb;
+  io_cbs.event = g_gpg_event_io_cb;
+  io_cbs.event_priv = source;
+  gpgme_set_io_cbs (ctx->pointer, &io_cbs);
+
+  return (GSource *) source;
+}
+
+static gboolean
+_g_gpg_source_func (gpointer user_data)
+{
+  GTask *task = user_data;
+  struct GGpgSource *source = g_task_get_task_data (task);
+
+  if (source->state == G_GPG_SOURCE_STATE_DONE)
+    {
+      if (source->err)
+        g_task_return_new_error (task, G_GPG_ERROR,
+                                 gpgme_err_code (source->err),
+                                 "%s", gpgme_strerror (source->err));
+      else
+        g_task_return_boolean (task, TRUE);
+      g_object_unref (task);
+      return G_SOURCE_REMOVE;
+    }
+  return G_SOURCE_CONTINUE;
+}
+
+static void
+_g_gpg_source_cancel (GCancellable *cancellable, struct GGpgSource *source)
+{
+  gpgme_cancel (source->ctx->pointer);
+}
+
+struct GGpgGetKeyData
 {
   gchar *fpr;
   gint secret;
 };
 
 static void
-get_key_data_free (struct GetKeyData *data)
+g_gpg_get_key_data_free (struct GGpgGetKeyData *data)
 {
   g_free (data->fpr);
   g_free (data);
 }
 
 static void
-get_key_thread (GTask *task,
+g_gpg_get_key_thread (GTask *task,
                 gpointer source_object,
                 gpointer task_data,
                 GCancellable *cancellable)
 {
   GGpgCtx *ctx = source_object;
-  struct GetKeyData *data = task_data;
+  struct GGpgGetKeyData *data = task_data;
   GGpgKey *key;
   gpgme_key_t pointer;
   gpgme_error_t err;
@@ -1328,14 +1584,14 @@ g_gpg_ctx_get_key (GGpgCtx *ctx, const gchar *fpr, gint secret,
                    gpointer user_data)
 {
   GTask *task;
-  struct GetKeyData *data;
+  struct GGpgGetKeyData *data;
 
   task = g_task_new (ctx, cancellable, callback, user_data);
-  data = g_new0 (struct GetKeyData, 1);
+  data = g_new0 (struct GGpgGetKeyData, 1);
   data->fpr = g_strdup (fpr);
   data->secret = secret;
-  g_task_set_task_data (task, data, (GDestroyNotify) get_key_data_free);
-  g_task_run_in_thread (task, get_key_thread);
+  g_task_set_task_data (task, data, (GDestroyNotify) g_gpg_get_key_data_free);
+  g_task_run_in_thread (task, g_gpg_get_key_thread);
   g_object_unref (task);
 }
 
@@ -1354,36 +1610,36 @@ g_gpg_ctx_get_key_finish (GGpgCtx *ctx, GAsyncResult *result, GError **error)
   return g_task_propagate_pointer (G_TASK (result), error);
 }
 
-struct GenkeyData
+#define G_GPG_SOURCE_NEW(t,c) ((t *) g_gpg_source_new (c, sizeof (t)))
+
+struct GGpgGenkeySource
 {
+  struct GGpgSource source;
   gchar *parms;
   GGpgData *pubkey;
   GGpgData *seckey;
 };
 
 static void
-genkey_data_free (struct GenkeyData *data)
+g_gpg_genkey_source_finalize (GSource *_source)
 {
-  g_free (data->parms);
-  g_clear_object (&data->pubkey);
-  g_clear_object (&data->seckey);
-  g_free (data);
+  struct GGpgGenkeySource *source = (struct GGpgGenkeySource *) _source;
+  g_free (source->parms);
+  g_clear_object (&source->pubkey);
+  g_clear_object (&source->seckey);
 }
 
 static void
-genkey_thread (GTask *task,
-               gpointer source_object,
-               gpointer task_data,
-               GCancellable *cancellable)
+_g_gpg_ctx_genkey_begin (GGpgCtx *ctx,
+                         struct GGpgGenkeySource *source,
+                         GTask *task,
+                         GCancellable *cancellable)
 {
-  GGpgCtx *ctx = source_object;
-  struct GenkeyData *data = task_data;
   gpgme_error_t err;
-  gpgme_ctx_t waited;
 
-  err = gpgme_op_genkey_start (ctx->pointer, data->parms,
-                               data->pubkey ? data->pubkey->pointer : NULL,
-                               data->seckey ? data->seckey->pointer : NULL);
+  err = gpgme_op_genkey_start (ctx->pointer, source->parms,
+                               source->pubkey ? source->pubkey->pointer : NULL,
+                               source->seckey ? source->seckey->pointer : NULL);
   if (err)
     {
       g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
@@ -1392,24 +1648,11 @@ genkey_thread (GTask *task,
     }
 
   if (cancellable)
-    g_cancellable_connect (cancellable, G_CALLBACK (gpgme_cancel),
-                           ctx->pointer, NULL);
+    g_cancellable_connect (cancellable, G_CALLBACK (_g_gpg_source_cancel),
+                           source, NULL);
 
-  G_LOCK (wait_lock);
-  waited = gpgme_wait (ctx->pointer, &err, 1);
-  G_UNLOCK (wait_lock);
-
-  if (waited && err)
-    {
-      g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
-                               "%s", gpgme_strerror (err));
-      return;
-    }
-
-  if (g_task_return_error_if_cancelled (task))
-    return;
-
-  g_task_return_boolean (task, TRUE);
+  g_task_attach_source (task, (GSource *) source, _g_gpg_source_func);
+  g_source_unref ((GSource *) source);
 }
 
 /**
@@ -1431,16 +1674,16 @@ g_gpg_ctx_genkey (GGpgCtx *ctx, const gchar *parms,
                   gpointer user_data)
 {
   GTask *task;
-  struct GenkeyData *data;
+  struct GGpgGenkeySource *source;
 
   task = g_task_new (ctx, cancellable, callback, user_data);
-  data = g_new0 (struct GenkeyData, 1);
-  data->parms = g_strdup (parms);
-  data->pubkey = pubkey ? g_object_ref (pubkey) : NULL;
-  data->seckey = seckey ? g_object_ref (seckey) : NULL;
-  g_task_set_task_data (task, data, (GDestroyNotify) genkey_data_free);
-  g_task_run_in_thread (task, genkey_thread);
-  g_object_unref (task);
+  source = G_GPG_SOURCE_NEW (struct GGpgGenkeySource, ctx);
+  source->parms = g_strdup (parms);
+  source->pubkey = pubkey ? g_object_ref (pubkey) : NULL;
+  source->seckey = seckey ? g_object_ref (seckey) : NULL;
+  g_task_set_task_data (task, source,
+                        (GDestroyNotify) g_gpg_genkey_source_finalize);
+  _g_gpg_ctx_genkey_begin (ctx, source, task, cancellable);
 }
 
 gboolean
@@ -1450,32 +1693,30 @@ g_gpg_ctx_genkey_finish (GGpgCtx *ctx, GAsyncResult *result, GError **error)
   return g_task_propagate_boolean (G_TASK (result), error);
 }
 
-struct DeleteData
+struct GGpgDeleteSource
 {
+  struct GGpgSource source;
   GGpgKey *key;
   gint allow_secret;
 };
 
 static void
-delete_data_free (struct DeleteData *data)
+g_gpg_delete_source_finalize (GSource *_source)
 {
-  g_object_unref (data->key);
-  g_free (data);
+  struct GGpgDeleteSource *source = (struct GGpgDeleteSource *) _source;
+  g_object_unref (source->key);
 }
 
 static void
-delete_thread (GTask *task,
-               gpointer source_object,
-               gpointer task_data,
-               GCancellable *cancellable)
+_g_gpg_ctx_delete_begin (GGpgCtx *ctx,
+                         struct GGpgDeleteSource *source,
+                         GTask *task,
+                         GCancellable *cancellable)
 {
-  GGpgCtx *ctx = source_object;
-  struct DeleteData *data = task_data;
   gpgme_error_t err;
-  gpgme_ctx_t waited;
 
-  err = gpgme_op_delete_start (ctx->pointer, data->key->pointer,
-                               data->allow_secret);
+  err = gpgme_op_delete_start (ctx->pointer, source->key->pointer,
+                               source->allow_secret);
   if (err)
     {
       g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
@@ -1484,24 +1725,11 @@ delete_thread (GTask *task,
     }
 
   if (cancellable)
-    g_cancellable_connect (cancellable, G_CALLBACK (gpgme_cancel),
-                           ctx->pointer, NULL);
+    g_cancellable_connect (cancellable, G_CALLBACK (_g_gpg_source_cancel),
+                           source, NULL);
 
-  G_LOCK (wait_lock);
-  waited = gpgme_wait (ctx->pointer, &err, 1);
-  G_UNLOCK (wait_lock);
-
-  if (waited && err)
-    {
-      g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
-                               "%s", gpgme_strerror (err));
-      return;
-    }
-
-  if (g_task_return_error_if_cancelled (task))
-    return;
-
-  g_task_return_boolean (task, TRUE);
+  g_task_attach_source (task, (GSource *) source, _g_gpg_source_func);
+  g_source_unref ((GSource *) source);
 }
 
 void
@@ -1512,15 +1740,15 @@ g_gpg_ctx_delete (GGpgCtx *ctx, GGpgKey *key,
                   gpointer user_data)
 {
   GTask *task;
-  struct DeleteData *data;
+  struct GGpgDeleteSource *source;
 
   task = g_task_new (ctx, cancellable, callback, user_data);
-  data = g_new0 (struct DeleteData, 1);
-  data->key = g_object_ref (key);
-  data->allow_secret = allow_secret;
-  g_task_set_task_data (task, data, (GDestroyNotify) delete_data_free);
-  g_task_run_in_thread (task, delete_thread);
-  g_object_unref (task);
+  source = G_GPG_SOURCE_NEW (struct GGpgDeleteSource, ctx);
+  source->key = g_object_ref (key);
+  source->allow_secret = allow_secret;
+  g_task_set_task_data (task, source,
+                        (GDestroyNotify) g_gpg_delete_source_finalize);
+  _g_gpg_ctx_delete_begin (ctx, source, task, cancellable);
 }
 
 gboolean
@@ -1530,8 +1758,9 @@ g_gpg_ctx_delete_finish (GGpgCtx *ctx, GAsyncResult *result, GError **error)
   return g_task_propagate_boolean (G_TASK (result), error);
 }
 
-struct EditData
+struct GGpgEditSource
 {
+  struct GGpgSource source;
   GGpgKey *key;
   GGpgEditCallback callback;
   gpointer user_data;
@@ -1539,11 +1768,11 @@ struct EditData
 };
 
 static void
-edit_data_free (struct EditData *data)
+g_gpg_edit_source_finalize (GSource *_source)
 {
-  g_object_unref (data->key);
-  g_object_unref (data->out);
-  g_free (data);
+  struct GGpgEditSource *source = (struct GGpgEditSource *) _source;
+  g_object_unref (source->key);
+  g_object_unref (source->out);
 }
 
 static gpgme_error_t
@@ -1551,10 +1780,10 @@ _g_gpg_edit_cb (void *opaque,
                 gpgme_status_code_t status,
                 const char *args, int fd)
 {
-  struct EditData *data = opaque;
+  struct GGpgEditSource *source = opaque;
   GError *error = NULL;
 
-  if (!data->callback (data->user_data, status, args, fd, &error))
+  if (!source->callback (source->user_data, status, args, fd, &error))
     {
       gpgme_err_code_t code = error->code;
 
@@ -1565,18 +1794,15 @@ _g_gpg_edit_cb (void *opaque,
 }
 
 static void
-edit_thread (GTask *task,
-             gpointer source_object,
-             gpointer task_data,
-             GCancellable *cancellable)
+_g_gpg_ctx_edit_begin (GGpgCtx *ctx,
+                       struct GGpgEditSource *source,
+                       GTask *task,
+                       GCancellable *cancellable)
 {
-  GGpgCtx *ctx = source_object;
-  struct EditData *data = task_data;
   gpgme_error_t err;
-  gpgme_ctx_t waited;
 
-  err = gpgme_op_edit_start (ctx->pointer, data->key->pointer, _g_gpg_edit_cb,
-                             data, data->out->pointer);
+  err = gpgme_op_edit_start (ctx->pointer, source->key->pointer, _g_gpg_edit_cb,
+                             source, source->out->pointer);
   if (err)
     {
       g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
@@ -1585,24 +1811,11 @@ edit_thread (GTask *task,
     }
 
   if (cancellable)
-    g_cancellable_connect (cancellable, G_CALLBACK (gpgme_cancel),
-                           ctx->pointer, NULL);
+    g_cancellable_connect (cancellable, G_CALLBACK (_g_gpg_source_cancel),
+                           source, NULL);
 
-  G_LOCK (wait_lock);
-  waited = gpgme_wait (ctx->pointer, &err, 1);
-  G_UNLOCK (wait_lock);
-
-  if (waited && err)
-    {
-      g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
-                               "%s", gpgme_strerror (err));
-      return;
-    }
-
-  if (g_task_return_error_if_cancelled (task))
-    return;
-
-  g_task_return_boolean (task, TRUE);
+  g_task_attach_source (task, (GSource *) source, _g_gpg_source_func);
+  g_source_unref ((GSource *) source);
 }
 
 /**
@@ -1628,17 +1841,17 @@ g_gpg_ctx_edit (GGpgCtx *ctx,
                 gpointer user_data)
 {
   GTask *task;
-  struct EditData *data;
+  struct GGpgEditSource *source;
 
   task = g_task_new (ctx, cancellable, callback, user_data);
-  data = g_new0 (struct EditData, 1);
-  data->key = g_object_ref (key);
-  data->callback = edit_callback;
-  data->user_data = edit_user_data;
-  data->out = g_object_ref (out);
-  g_task_set_task_data (task, data, (GDestroyNotify) edit_data_free);
-  g_task_run_in_thread (task, edit_thread);
-  g_object_unref (task);
+  source = G_GPG_SOURCE_NEW (struct GGpgEditSource, ctx);
+  source->key = g_object_ref (key);
+  source->callback = edit_callback;
+  source->user_data = edit_user_data;
+  source->out = g_object_ref (out);
+  g_task_set_task_data (task, source,
+                        (GDestroyNotify) g_gpg_edit_source_finalize);
+  _g_gpg_ctx_edit_begin (ctx, source, task, cancellable);
 }
 
 gboolean
@@ -1648,36 +1861,34 @@ g_gpg_ctx_edit_finish (GGpgCtx *ctx, GAsyncResult *result, GError **error)
   return g_task_propagate_boolean (G_TASK (result), error);
 }
 
-struct ExportData
+struct GGpgExportSource
 {
+  struct GGpgSource source;
   GGpgKey *key;
   GGpgExportMode mode;
   GGpgData *keydata;
 };
 
 static void
-export_data_free (struct ExportData *data)
+g_gpg_export_source_finalize (GSource *_source)
 {
-  g_free (data->key);
-  g_object_unref (data->keydata);
-  g_free (data);
+  struct GGpgExportSource *source = (struct GGpgExportSource *) _source;
+  g_free (source->key);
+  g_object_unref (source->keydata);
 }
 
 static void
-export_thread (GTask *task,
-               gpointer source_object,
-               gpointer task_data,
-               GCancellable *cancellable)
+_g_gpg_ctx_export_begin (GGpgCtx *ctx,
+                         struct GGpgExportSource *source,
+                         GTask *task,
+                         GCancellable *cancellable)
 {
-  GGpgCtx *ctx = source_object;
-  struct ExportData *data = task_data;
   gpgme_key_t keys[2] = { NULL, NULL };
   gpgme_error_t err;
-  gpgme_ctx_t waited;
 
-  keys[0] = data->key->pointer;
-  err = gpgme_op_export_keys (ctx->pointer, keys, data->mode,
-                              data->keydata->pointer);
+  keys[0] = source->key->pointer;
+  err = gpgme_op_export_keys_start (ctx->pointer, keys, source->mode,
+                                    source->keydata->pointer);
   if (err)
     {
       g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
@@ -1686,24 +1897,11 @@ export_thread (GTask *task,
     }
 
   if (cancellable)
-    g_cancellable_connect (cancellable, G_CALLBACK (gpgme_cancel),
-                           ctx->pointer, NULL);
+    g_cancellable_connect (cancellable, G_CALLBACK (_g_gpg_source_cancel),
+                           source, NULL);
 
-  G_LOCK (wait_lock);
-  waited = gpgme_wait (ctx->pointer, &err, 1);
-  G_UNLOCK (wait_lock);
-
-  if (waited && err)
-    {
-      g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
-                               "%s", gpgme_strerror (err));
-      return;
-    }
-
-  if (g_task_return_error_if_cancelled (task))
-    return;
-
-  g_task_return_boolean (task, TRUE);
+  g_task_attach_source (task, (GSource *) source, _g_gpg_source_func);
+  g_source_unref ((GSource *) source);
 }
 
 void
@@ -1716,16 +1914,16 @@ g_gpg_ctx_export (GGpgCtx *ctx,
                   gpointer user_data)
 {
   GTask *task;
-  struct ExportData *data;
+  struct GGpgExportSource *source;
 
   task = g_task_new (ctx, cancellable, callback, user_data);
-  data = g_new0 (struct ExportData, 1);
-  data->key = g_object_ref (key);
-  data->mode = mode;
-  data->keydata = g_object_ref (keydata);
-  g_task_set_task_data (task, data, (GDestroyNotify) export_data_free);
-  g_task_run_in_thread (task, export_thread);
-  g_object_unref (task);
+  source = G_GPG_SOURCE_NEW (struct GGpgExportSource, ctx);
+  source->key = g_object_ref (key);
+  source->mode = mode;
+  source->keydata = g_object_ref (keydata);
+  g_task_set_task_data (task, source,
+                        (GDestroyNotify) g_gpg_export_source_finalize);
+  _g_gpg_ctx_export_begin (ctx, source, task, cancellable);
 }
 
 gboolean
