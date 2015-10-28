@@ -97,7 +97,7 @@
             <child>
               <object class="GtkSpinButton" id="length_spinbutton">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can_focus">True</property>
                 <property name="editable">True</property>
               </object>
               <packing>
