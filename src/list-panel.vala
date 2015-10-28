@@ -45,6 +45,7 @@ namespace Credentials {
             cancellable.connect (() => {
                     list_box.bind_model (this._store, this.create_item_widget);
                     this.visible_child_name = "listing";
+                    list_box_adjust_scrolling (list_box);
                 });
             for (var i = 0; i < this._store.get_n_items (); i++) {
                 var item = (Item) this._store.get_item (i);
@@ -53,6 +54,8 @@ namespace Credentials {
             }
             if (this._filtered_store.get_n_items () == 0)
                 this.visible_child_name = "unavailable";
+            else
+                this.visible_child_name = "listing";
             list_box_adjust_scrolling (list_box);
         }
 
@@ -117,11 +120,11 @@ namespace Credentials {
         }
 
         void adjust_view () {
-            list_box_adjust_scrolling (list_box);
             if (this._store.get_n_items () == 0)
                 this.visible_child_name = "empty";
             else
                 this.visible_child_name = "listing";
+            list_box_adjust_scrolling (list_box);
         }
 
         void activate_generate (GLib.SimpleAction action,

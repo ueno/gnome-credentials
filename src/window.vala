@@ -70,6 +70,11 @@ namespace Credentials {
                 });
 
             this._cancellable = new GLib.Cancellable ();
+
+            this._area.notify["visible-child"].connect (() => {
+                    this._cancellable.cancel ();
+                    search_active = false;
+                });
         }
 
         void activate_about () {

@@ -1,5 +1,5 @@
 namespace Credentials {
-    const uint MAX_ROWS_VISIBLE = 5;
+    const uint MAX_ROWS_VISIBLE = 10;
 
     static void list_box_update_header_func (Gtk.ListBoxRow row,
                                              Gtk.ListBoxRow? before)
