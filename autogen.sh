@@ -21,6 +21,8 @@ if [ "$#" = 0 -a "x$NOCONFIGURE" = "x" ]; then
         echo "" >&2
 fi
 
+test -f "$srcdir/.gitmodules" && git submodule update --init --recursive
+
 aclocal --install || exit 1
 intltoolize --force --copy --automake || exit 1
 autoreconf --verbose --force --install -Wno-portability || exit 1
