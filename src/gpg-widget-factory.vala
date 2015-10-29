@@ -40,6 +40,7 @@ namespace Credentials {
     class GpgEditorUserIdItem : GLib.Object {
         public int index { construct set; get; }
         public GGpg.UserId? user_id { construct set; get; }
+
         public GpgEditorUserIdItem (int index, GGpg.UserId? user_id) {
             Object (index: index, user_id: user_id);
         }
@@ -60,10 +61,12 @@ namespace Credentials {
 
         Gtk.Widget create_user_id_widget (GLib.Object object) {
             var user_id_item = (GpgEditorUserIdItem) object;
-            if (user_id_item.index < 0) {
+            if (user_id_item.index == 0) {
                 var box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 10);
                 var gicon = new GLib.ThemedIcon ("list-add-symbolic");
-                var image = new Gtk.Image.from_gicon (gicon, Gtk.IconSize.SMALL_TOOLBAR);
+                var image =
+                    new Gtk.Image.from_gicon (gicon,
+                                              Gtk.IconSize.SMALL_TOOLBAR);
                 var button = new Gtk.Button ();
                 button.set_image (image);
                 button.relief = Gtk.ReliefStyle.NONE;
@@ -83,7 +86,9 @@ namespace Credentials {
                 var label = new Gtk.Label (user_id_item.user_id.uid);
                 box.pack_start (label, false, false, 10);
                 var gicon = new GLib.ThemedIcon ("window-close-symbolic");
-                var image = new Gtk.Image.from_gicon (gicon, Gtk.IconSize.SMALL_TOOLBAR);
+                var image =
+                    new Gtk.Image.from_gicon (gicon,
+                                              Gtk.IconSize.SMALL_TOOLBAR);
                 var button = new Gtk.Button ();
                 button.set_image (image);
                 button.relief = Gtk.ReliefStyle.NONE;
@@ -97,7 +102,7 @@ namespace Credentials {
                                                user_id_item.user_id.uid);
                     confirm_dialog.response.connect ((res) => {
                             if (res == Gtk.ResponseType.OK)
-                                edit_del_uid (user_id_item.index + 1);
+                                edit_del_uid (user_id_item.index);
                             confirm_dialog.destroy ();
                         });
                     confirm_dialog.show ();
@@ -125,11 +130,11 @@ namespace Credentials {
 
         void update_user_id_list () {
             this._store.remove_all ();
-            int position = 0;
+            int index = 1;
             foreach (var uid in item.get_uids ()) {
-                var item = new GpgEditorUserIdItem (position, uid);
+                var item = new GpgEditorUserIdItem (index, uid);
                 this._store.append (item);
-                position++;
+                index++;
             }
 
             this._store.append (new GpgEditorUserIdItem (-1, null));
