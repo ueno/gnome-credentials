@@ -31,9 +31,6 @@
         <property name="visible">True</property>
         <property name="can_focus">True</property>
         <property name="can_default">True</property>
-        <style>
-          <class name="suggested-action"/>
-        </style>
       </object>
     </child>
     <child internal-child="vbox">
@@ -194,7 +191,7 @@
     </child>
     <action-widgets>
       <action-widget response="cancel">cancel_button</action-widget>
-      <action-widget response="ok">generate_button</action-widget>
+      <action-widget response="ok" default="true">generate_button</action-widget>
     </action-widgets>
   </template>
 </interface>
