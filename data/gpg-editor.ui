@@ -30,114 +30,70 @@
     </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox1">
+	<property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="margin_start">10</property>
-        <property name="margin_end">10</property>
-        <property name="margin_top">10</property>
-        <property name="margin_bottom">10</property>
         <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
 	<child>
-	  <object class="GtkBox" id="box1">
+	  <object class="GtkScrolledWindow" id="scrolled_window">
 	    <property name="visible">True</property>
-	    <property name="orientation">vertical</property>
+            <property name="can_focus">False</property>
+	    <property name="hscrollbar_policy">never</property>
+	    <property name="vexpand">True</property>
+	    <property name="height_request">280</property>
 	    <child>
-	      <object class="GtkFrame" id="frame1">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="shadow_type">in</property>
-		<property name="vexpand">True</property>
-		<property name="width-request">400</property>
-		<child>
-		  <object class="GtkListBox" id="user_id_list_box">
-		    <property name="visible">True</property>
-		    <property name="selection-mode">none</property>
-		  </object>
-		</child>
-	      </object>
-	    </child>
-	    <child>
-	      <object class="GtkToolbar" id="search_toolbar">
+	      <object class="GtkBox" id="dialog-vbox2">
 		<property name="visible">True</property>
 		<property name="can_focus">False</property>
-		<property name="toolbar_style">icons</property>
-		<property name="show_arrow">False</property>
-		<property name="icon_size">1</property>
-		<style>
-		  <class name="inline-toolbar"/>
-		</style>
+		<property name="margin_start">10</property>
+		<property name="margin_end">10</property>
+		<property name="margin_top">10</property>
+		<property name="margin_bottom">10</property>
+		<property name="orientation">vertical</property>
+		<property name="spacing">2</property>
 		<child>
-		  <object class="GtkToolItem" id="add_remove_item">
+		  <object class="GtkBox" id="box1">
 		    <property name="visible">True</property>
+		    <property name="orientation">vertical</property>
 		    <child>
-		      <object class="GtkBox" id="add_remove_box">
+		      <object class="GtkFrame" id="frame1">
 			<property name="visible">True</property>
+			<property name="can_focus">True</property>
+			<property name="shadow_type">in</property>
+			<property name="vexpand">False</property>
+			<property name="width-request">400</property>
 			<child>
-			  <object class="GtkButton" id="add_uid_button">
+			  <object class="GtkListBox" id="user_id_list_box">
 			    <property name="visible">True</property>
-			    <child internal-child="accessible">
-			      <object class="AtkObject" id="add_button_a11y">
-				<property name="accessible-name" translatable="yes">Add User ID</property>
-			      </object>
-			    </child>
-			    <child>
-			      <object class="GtkImage" id="add_image">
-				<property name="visible">True</property>
-				<property name="icon-name">list-add-symbolic</property>
-				<property name="icon-size">1</property>
-			      </object>
-			    </child>
-			  </object>
-			</child>
-			<child>
-			  <object class="GtkButton" id="remove_uid_button">
-			    <property name="visible">True</property>
-			    <child internal-child="accessible">
-			      <object class="AtkObject" id="remove_button_a11y">
-				<property name="accessible-name" translatable="yes">Remove User ID</property>
-			      </object>
-			    </child>
-			    <child>
-			      <object class="GtkImage" id="remove_image">
-				<property name="visible">True</property>
-				<property name="icon-name">list-remove-symbolic</property>
-				<property name="icon-size">1</property>
-			      </object>
-			    </child>
+			    <property name="selection-mode">none</property>
 			  </object>
 			</child>
 		      </object>
 		    </child>
 		  </object>
+		  <packing>
+		    <property name="expand">False</property>
+		    <property name="fill">True</property>
+		    <property name="position">0</property>
+		  </packing>
+		</child>
+		<child>
+		  <object class="GtkGrid" id="properties_grid">
+		    <property name="visible">True</property>
+		    <property name="can_focus">False</property>
+		    <property name="row_spacing">10</property>
+		    <property name="column_spacing">10</property>
+		  </object>
+		  <packing>
+		    <property name="expand">True</property>
+		    <property name="fill">True</property>
+		    <property name="padding">10</property>
+		    <property name="position">1</property>
+		  </packing>
 		</child>
 	      </object>
-	      <packing>
-		<property name="expand">False</property>
-		<property name="fill">True</property>
-		<property name="position">1</property>
-	      </packing>
 	    </child>
 	  </object>
-	  <packing>
-	    <property name="expand">False</property>
-	    <property name="fill">True</property>
-	    <property name="position">0</property>
-	  </packing>
-        </child>
-        <child>
-          <object class="GtkGrid" id="properties_grid">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="row_spacing">10</property>
-            <property name="column_spacing">10</property>
-          </object>
-          <packing>
-            <property name="expand">True</property>
-            <property name="fill">True</property>
-            <property name="padding">10</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
+	</child>
       </object>
     </child>
     <action-widgets>
