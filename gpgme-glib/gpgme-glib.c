@@ -839,6 +839,10 @@ g_gpg_key_sig_class_init (GGpgKeySigClass *klass)
   key_sig_pspecs[KEY_SIG_PROP_POINTER] =
     g_param_spec_pointer ("pointer", NULL, NULL,
                           G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+  key_sig_pspecs[KEY_SIG_PROP_USER_ID] =
+    g_param_spec_object ("user-id", NULL, NULL,
+                         G_GPG_TYPE_USER_ID,
+                         G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
   key_sig_pspecs[KEY_SIG_PROP_FLAGS] =
     g_param_spec_flags ("flags", NULL, NULL,
                         G_GPG_TYPE_KEY_SIG_FLAGS,
