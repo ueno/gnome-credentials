@@ -782,6 +782,15 @@ typedef enum
   }
 GGpgSignatureSummaryFlags;
 
+typedef enum
+  {
+    G_GPG_ENCRYPT_FLAG_ALWAYS_TRUST = 1 << 0,
+    G_GPG_ENCRYPT_FLAG_NO_ENCRYPT_TO = 1 << 1,
+    G_GPG_ENCRYPT_FLAG_PREPARE = 1 << 2,
+    G_GPG_ENCRYPT_FLAG_EXPECT_SIGN = 1 << 3
+  }
+GGpgEncryptFlags;
+
 G_END_DECLS
 
 #endif  /* GPGME_GLIB_ENUMS_H_ */

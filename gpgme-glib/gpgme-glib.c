@@ -3447,3 +3447,93 @@ g_gpg_ctx_sign_result (GGpgCtx *ctx)
   return g_object_new (G_GPG_TYPE_SIGN_RESULT, "pointer", sign_result,
                        NULL);
 }
+
+struct GGpgEncryptSource
+{
+  struct GGpgSource source;
+  gpgme_key_t *recipients;
+  GGpgEncryptFlags flags;
+  GGpgData *plain;
+  GGpgData *cipher;
+};
+
+static void
+g_gpg_encrypt_source_finalize (GSource *_source)
+{
+  struct GGpgEncryptSource *source = (struct GGpgEncryptSource *) _source;
+  gpgme_key_t *recipients = source->recipients;
+
+  for (; *recipients; recipients++)
+    gpgme_key_unref (*recipients);
+  g_free (recipients);
+
+  g_object_unref (source->cipher);
+  g_object_unref (source->plain);
+}
+
+static void
+_g_gpg_ctx_encrypt_begin (GGpgCtx *ctx,
+                          struct GGpgEncryptSource *source,
+                          GTask *task,
+                          GCancellable *cancellable)
+{
+  gpgme_error_t err;
+
+  err = gpgme_op_encrypt_start (ctx->pointer, source->recipients,
+                                source->flags,
+                                source->plain->pointer,
+                                source->cipher->pointer);
+  if (err)
+    {
+      g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
+                               "%s", gpgme_strerror (err));
+      return;
+    }
+
+  if (cancellable)
+    g_cancellable_connect (cancellable, G_CALLBACK (_g_gpg_source_cancel),
+                           source, NULL);
+
+  g_task_attach_source (task, (GSource *) source, _g_gpg_source_func);
+  g_source_unref ((GSource *) source);
+}
+
+void
+g_gpg_ctx_encrypt (GGpgCtx *ctx, GGpgKey **recipients,
+                   GGpgData *plain, GGpgData *cipher,
+                   GGpgEncryptFlags flags,
+                   GCancellable *cancellable,
+                   GAsyncReadyCallback callback,
+                   gpointer user_data)
+{
+  GTask *task;
+  struct GGpgEncryptSource *source;
+  GPtrArray *array;
+
+  array = g_ptr_array_new ();
+  for (; *recipients; recipients++)
+    {
+      GGpgKey *recipient = *recipients;
+
+      gpgme_key_ref (recipient->pointer);
+      g_ptr_array_add (array, recipient->pointer);
+    }
+  g_ptr_array_add (array, NULL);
+
+  task = g_task_new (ctx, cancellable, callback, user_data);
+  source = G_GPG_SOURCE_NEW (struct GGpgEncryptSource, ctx);
+  source->recipients = (gpgme_key_t *) g_ptr_array_free (array, FALSE);
+  source->plain = g_object_ref (plain);
+  source->cipher = g_object_ref (cipher);
+  source->flags = flags;
+  g_task_set_task_data (task, source,
+                        (GDestroyNotify) g_gpg_encrypt_source_finalize);
+  _g_gpg_ctx_encrypt_begin (ctx, source, task, cancellable);
+}
+
+gboolean
+g_gpg_ctx_encrypt_finish (GGpgCtx *ctx, GAsyncResult *result, GError **error)
+{
+  g_return_val_if_fail (g_task_is_valid (result, ctx), FALSE);
+  return g_task_propagate_boolean (G_TASK (result), error);
+}

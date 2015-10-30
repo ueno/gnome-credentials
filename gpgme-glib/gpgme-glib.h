@@ -197,6 +197,15 @@ void g_gpg_ctx_sign (GGpgCtx *ctx, GGpgData *plain, GGpgData *sig,
 gboolean g_gpg_ctx_sign_finish (GGpgCtx *ctx, GAsyncResult *result,
                                 GError **error);
 
+void g_gpg_ctx_encrypt (GGpgCtx *ctx, GGpgKey **recipients,
+                        GGpgData *plain, GGpgData *cipher,
+                        GGpgEncryptFlags flags,
+                        GCancellable *cancellable,
+                        GAsyncReadyCallback callback,
+                        gpointer user_data);
+gboolean g_gpg_ctx_encrypt_finish (GGpgCtx *ctx, GAsyncResult *result,
+                                   GError **error);
+
 GList *g_gpg_key_get_subkeys (GGpgKey *key);
 GList *g_gpg_key_get_uids (GGpgKey *key);
 
