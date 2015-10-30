@@ -492,8 +492,8 @@ struct _GGpgSubkey
 {
   GObject parent;
   gpgme_subkey_t pointer;
+  GGpgKey *owner;
   GGpgSubkeyFlags flags;
-  GGpgKey *key;
 };
 
 G_DEFINE_TYPE (GGpgSubkey, g_gpg_subkey, G_TYPE_OBJECT)
@@ -501,7 +501,7 @@ G_DEFINE_TYPE (GGpgSubkey, g_gpg_subkey, G_TYPE_OBJECT)
 enum {
   SUBKEY_PROP_0,
   SUBKEY_PROP_POINTER,
-  SUBKEY_PROP_KEY,
+  SUBKEY_PROP_OWNER,
   SUBKEY_PROP_FLAGS,
   SUBKEY_PROP_PUBKEY_ALGO,
   SUBKEY_PROP_LENGTH,
@@ -529,8 +529,8 @@ g_gpg_subkey_set_property (GObject *object,
       subkey->pointer = g_value_get_pointer (value);
       break;
 
-    case SUBKEY_PROP_KEY:
-      subkey->key = g_value_dup_object (value);
+    case SUBKEY_PROP_OWNER:
+      subkey->owner = g_value_dup_object (value);
       break;
 
     default:
@@ -594,7 +594,7 @@ g_gpg_subkey_dispose (GObject *object)
 {
   GGpgSubkey *subkey = G_GPG_SUBKEY (object);
 
-  g_clear_object (&subkey->key);
+  g_clear_object (&subkey->owner);
 
   G_OBJECT_CLASS (g_gpg_subkey_parent_class)->dispose (object);
 }
@@ -645,8 +645,8 @@ g_gpg_subkey_class_init (GGpgSubkeyClass *klass)
   subkey_pspecs[SUBKEY_PROP_POINTER] =
     g_param_spec_pointer ("pointer", NULL, NULL,
                           G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
-  subkey_pspecs[SUBKEY_PROP_KEY] =
-    g_param_spec_object ("key", NULL, NULL,
+  subkey_pspecs[SUBKEY_PROP_OWNER] =
+    g_param_spec_object ("owner", NULL, NULL,
                          G_GPG_TYPE_KEY,
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
   subkey_pspecs[SUBKEY_PROP_FLAGS] =
@@ -696,8 +696,8 @@ struct _GGpgKeySig
 {
   GObject parent;
   gpgme_key_sig_t pointer;
+  GGpgUserId *owner;
   GGpgKeySigFlags flags;
-  GGpgUserId *user_id;
 };
 
 G_DEFINE_TYPE (GGpgKeySig, g_gpg_key_sig, G_TYPE_OBJECT)
@@ -705,7 +705,7 @@ G_DEFINE_TYPE (GGpgKeySig, g_gpg_key_sig, G_TYPE_OBJECT)
 enum {
   KEY_SIG_PROP_0,
   KEY_SIG_PROP_POINTER,
-  KEY_SIG_PROP_USER_ID,
+  KEY_SIG_PROP_OWNER,
   KEY_SIG_PROP_FLAGS,
   KEY_SIG_PROP_PUBKEY_ALGO,
   KEY_SIG_PROP_KEYID,
@@ -735,8 +735,8 @@ g_gpg_key_sig_set_property (GObject *object,
       key_sig->pointer = g_value_get_pointer (value);
       break;
 
-    case KEY_SIG_PROP_USER_ID:
-      key_sig->user_id = g_value_dup_object (value);
+    case KEY_SIG_PROP_OWNER:
+      key_sig->owner = g_value_dup_object (value);
       break;
 
     default:
@@ -806,7 +806,7 @@ g_gpg_key_sig_dispose (GObject *object)
 {
   GGpgKeySig *key_sig = G_GPG_KEY_SIG (object);
 
-  g_clear_object (&key_sig->user_id);
+  g_clear_object (&key_sig->owner);
 
   G_OBJECT_CLASS (g_gpg_key_sig_parent_class)->dispose (object);
 }
@@ -843,8 +843,8 @@ g_gpg_key_sig_class_init (GGpgKeySigClass *klass)
   key_sig_pspecs[KEY_SIG_PROP_POINTER] =
     g_param_spec_pointer ("pointer", NULL, NULL,
                           G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
-  key_sig_pspecs[KEY_SIG_PROP_USER_ID] =
-    g_param_spec_object ("user-id", NULL, NULL,
+  key_sig_pspecs[KEY_SIG_PROP_OWNER] =
+    g_param_spec_object ("owner", NULL, NULL,
                          G_GPG_TYPE_USER_ID,
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
   key_sig_pspecs[KEY_SIG_PROP_FLAGS] =
@@ -893,8 +893,8 @@ struct _GGpgUserId
 {
   GObject parent;
   gpgme_user_id_t pointer;
+  GGpgKey *owner;
   GGpgUserIdFlags flags;
-  GGpgKey *key;
 };
 
 G_DEFINE_TYPE (GGpgUserId, g_gpg_user_id, G_TYPE_OBJECT);
@@ -902,7 +902,7 @@ G_DEFINE_TYPE (GGpgUserId, g_gpg_user_id, G_TYPE_OBJECT);
 enum {
   USER_ID_PROP_0,
   USER_ID_PROP_POINTER,
-  USER_ID_PROP_KEY,
+  USER_ID_PROP_OWNER,
   USER_ID_PROP_FLAGS,
   USER_ID_PROP_VALIDITY,
   USER_ID_PROP_UID,
@@ -928,8 +928,8 @@ g_gpg_user_id_set_property (GObject *object,
       user_id->pointer = g_value_get_pointer (value);
       break;
 
-    case USER_ID_PROP_KEY:
-      user_id->key = g_value_dup_object (value);
+    case USER_ID_PROP_OWNER:
+      user_id->owner = g_value_dup_object (value);
       break;
 
     default:
@@ -983,7 +983,7 @@ g_gpg_user_id_dispose (GObject *object)
 {
   GGpgUserId *user_id = G_GPG_USER_ID (object);
 
-  g_clear_object (&user_id->key);
+  g_clear_object (&user_id->owner);
 
   G_OBJECT_CLASS (g_gpg_user_id_parent_class)->dispose (object);
 }
@@ -1015,8 +1015,8 @@ g_gpg_user_id_class_init (GGpgUserIdClass *klass)
   user_id_pspecs[USER_ID_PROP_POINTER] =
     g_param_spec_pointer ("pointer", NULL, NULL,
                           G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
-  user_id_pspecs[USER_ID_PROP_KEY] =
-    g_param_spec_object ("key", NULL, NULL,
+  user_id_pspecs[USER_ID_PROP_OWNER] =
+    g_param_spec_object ("owner", NULL, NULL,
                          G_GPG_TYPE_KEY,
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
   user_id_pspecs[USER_ID_PROP_FLAGS] =
@@ -1061,7 +1061,7 @@ g_gpg_user_id_get_signatures (GGpgUserId *user_id)
     {
       GGpgKeySig *signature =
         g_object_new (G_GPG_TYPE_KEY_SIG, "pointer", signatures,
-                      "user-id", user_id, NULL);
+                      "owner", user_id, NULL);
       result = g_list_append (result, signature);
     }
   return result;
@@ -1253,7 +1253,8 @@ g_gpg_key_get_subkeys (GGpgKey *key)
   for (; subkeys; subkeys = subkeys->next)
     {
       GGpgSubkey *subkey =
-        g_object_new (G_GPG_TYPE_SUBKEY, "pointer", subkeys, "key", key, NULL);
+        g_object_new (G_GPG_TYPE_SUBKEY, "pointer", subkeys, "owner", key,
+                      NULL);
       result = g_list_append (result, subkey);
     }
   return result;
@@ -1275,7 +1276,7 @@ g_gpg_key_get_uids (GGpgKey *key)
   for (; uids; uids = uids->next)
     {
       GGpgUserId *uid =
-        g_object_new (G_GPG_TYPE_USER_ID, "pointer", uids, "key", key, NULL);
+        g_object_new (G_GPG_TYPE_USER_ID, "pointer", uids, "owner", key, NULL);
       result = g_list_append (result, uid);
     }
   return result;
@@ -2131,7 +2132,7 @@ struct _GGpgRecipient
 {
   GObject parent;
   gpgme_recipient_t pointer;
-  GGpgDecryptResult *decrypt_result;
+  GGpgDecryptResult *owner;
 };
 
 G_DEFINE_TYPE (GGpgRecipient, g_gpg_recipient, G_TYPE_OBJECT)
@@ -2139,7 +2140,7 @@ G_DEFINE_TYPE (GGpgRecipient, g_gpg_recipient, G_TYPE_OBJECT)
 enum {
   RECIPIENT_PROP_0,
   RECIPIENT_PROP_POINTER,
-  RECIPIENT_PROP_DECRYPT_RESULT,
+  RECIPIENT_PROP_OWNER,
   RECIPIENT_LAST_PROP
 };
 
@@ -2159,8 +2160,8 @@ g_gpg_recipient_set_property (GObject *object,
       recipient->pointer = g_value_get_pointer (value);
       break;
 
-    case RECIPIENT_PROP_DECRYPT_RESULT:
-      recipient->decrypt_result = g_value_dup_object (value);
+    case RECIPIENT_PROP_OWNER:
+      recipient->owner = g_value_dup_object (value);
       break;
 
     default:
@@ -2174,7 +2175,9 @@ g_gpg_recipient_dispose (GObject *object)
 {
   GGpgRecipient *recipient = G_GPG_RECIPIENT (object);
 
-  g_clear_object (&recipient->decrypt_result);
+  g_clear_object (&recipient->owner);
+
+  G_OBJECT_CLASS (g_gpg_recipient_parent_class)->dispose (object);
 }
 
 static void
@@ -2189,8 +2192,8 @@ g_gpg_recipient_class_init (GGpgRecipientClass *klass)
     g_param_spec_pointer ("pointer", NULL, NULL,
                           G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
 
-  recipient_pspecs[RECIPIENT_PROP_DECRYPT_RESULT] =
-    g_param_spec_object ("decrypt-result", NULL, NULL,
+  recipient_pspecs[RECIPIENT_PROP_OWNER] =
+    g_param_spec_object ("owner", NULL, NULL,
                          G_GPG_TYPE_DECRYPT_RESULT,
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
 
