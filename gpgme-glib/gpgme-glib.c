@@ -506,7 +506,7 @@ enum {
   SUBKEY_PROP_PUBKEY_ALGO,
   SUBKEY_PROP_LENGTH,
   SUBKEY_PROP_FINGERPRINT,
-  SUBKEY_PROP_TIMESTAMP,
+  SUBKEY_PROP_CREATED,
   SUBKEY_PROP_EXPIRES,
   SUBKEY_PROP_CARD_NUMBER,
   SUBKEY_PROP_CURVE,
@@ -565,7 +565,7 @@ g_gpg_subkey_get_property (GObject *object,
       g_value_set_string (value, subkey->pointer->fpr);
       break;
 
-    case SUBKEY_PROP_TIMESTAMP:
+    case SUBKEY_PROP_CREATED:
       g_value_set_int64 (value, subkey->pointer->timestamp);
       break;
 
@@ -655,8 +655,7 @@ g_gpg_subkey_class_init (GGpgSubkeyClass *klass)
                         G_PARAM_READABLE);
   subkey_pspecs[SUBKEY_PROP_PUBKEY_ALGO] =
     g_param_spec_enum ("pubkey-algo", NULL, NULL,
-                       G_GPG_TYPE_PUBKEY_ALGO,
-                       G_GPG_PK_RSA,
+                       G_GPG_TYPE_PUBKEY_ALGO, G_GPG_PK_NONE,
                        G_PARAM_READABLE);
   subkey_pspecs[SUBKEY_PROP_LENGTH] =
     g_param_spec_uint ("length", NULL, NULL,
@@ -666,8 +665,8 @@ g_gpg_subkey_class_init (GGpgSubkeyClass *klass)
     g_param_spec_string ("fingerprint", NULL, NULL,
                          NULL,
                          G_PARAM_READABLE);
-  subkey_pspecs[SUBKEY_PROP_TIMESTAMP] =
-    g_param_spec_int64 ("timestamp", NULL, NULL,
+  subkey_pspecs[SUBKEY_PROP_CREATED] =
+    g_param_spec_int64 ("created", NULL, NULL,
                         0, G_MAXINT64, 0,
                         G_PARAM_READABLE);
   subkey_pspecs[SUBKEY_PROP_EXPIRES] =
@@ -708,8 +707,8 @@ enum {
   KEY_SIG_PROP_OWNER,
   KEY_SIG_PROP_FLAGS,
   KEY_SIG_PROP_PUBKEY_ALGO,
-  KEY_SIG_PROP_KEYID,
-  KEY_SIG_PROP_TIMESTAMP,
+  KEY_SIG_PROP_KEY_ID,
+  KEY_SIG_PROP_CREATED,
   KEY_SIG_PROP_EXPIRES,
   KEY_SIG_PROP_UID,
   KEY_SIG_PROP_NAME,
@@ -763,11 +762,11 @@ g_gpg_key_sig_get_property (GObject *object,
       g_value_set_enum (value, key_sig->pointer->pubkey_algo);
       break;
 
-    case KEY_SIG_PROP_KEYID:
+    case KEY_SIG_PROP_KEY_ID:
       g_value_set_string (value, key_sig->pointer->keyid);
       break;
 
-    case KEY_SIG_PROP_TIMESTAMP:
+    case KEY_SIG_PROP_CREATED:
       g_value_set_int64 (value, key_sig->pointer->timestamp);
       break;
 
@@ -849,18 +848,16 @@ g_gpg_key_sig_class_init (GGpgKeySigClass *klass)
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
   key_sig_pspecs[KEY_SIG_PROP_FLAGS] =
     g_param_spec_flags ("flags", NULL, NULL,
-                        G_GPG_TYPE_KEY_SIG_FLAGS,
-                        0,
+                        G_GPG_TYPE_KEY_SIG_FLAGS, 0,
                         G_PARAM_READABLE);
   key_sig_pspecs[KEY_SIG_PROP_PUBKEY_ALGO] =
     g_param_spec_enum ("pubkey-algo", NULL, NULL,
-                       G_GPG_TYPE_PUBKEY_ALGO,
-                       G_GPG_PK_RSA,
+                       G_GPG_TYPE_PUBKEY_ALGO, G_GPG_PK_NONE,
                        G_PARAM_READABLE);
-  key_sig_pspecs[KEY_SIG_PROP_KEYID] =
-    g_param_spec_string ("keyid", NULL, NULL, "", G_PARAM_READABLE);
-  key_sig_pspecs[KEY_SIG_PROP_TIMESTAMP] =
-    g_param_spec_int64 ("timestamp", NULL, NULL,
+  key_sig_pspecs[KEY_SIG_PROP_KEY_ID] =
+    g_param_spec_string ("key-id", NULL, NULL, "", G_PARAM_READABLE);
+  key_sig_pspecs[KEY_SIG_PROP_CREATED] =
+    g_param_spec_int64 ("created", NULL, NULL,
                         0, G_MAXINT64, 0,
                         G_PARAM_READABLE);
   key_sig_pspecs[KEY_SIG_PROP_EXPIRES] =
@@ -2217,6 +2214,7 @@ G_DEFINE_TYPE (GGpgDecryptResult, g_gpg_decrypt_result, G_TYPE_OBJECT)
 enum {
   DECRYPT_RESULT_PROP_0,
   DECRYPT_RESULT_PROP_POINTER,
+  DECRYPT_RESULT_PROP_FILENAME,
   DECRYPT_RESULT_LAST_PROP
 };
 
@@ -2247,6 +2245,26 @@ g_gpg_decrypt_result_set_property (GObject *object,
 }
 
 static void
+g_gpg_decrypt_result_get_property (GObject *object,
+                                   guint property_id,
+                                   GValue *value,
+                                   GParamSpec *pspec)
+{
+  GGpgDecryptResult *decrypt_result = G_GPG_DECRYPT_RESULT (object);
+
+  switch (property_id)
+    {
+    case DECRYPT_RESULT_PROP_FILENAME:
+      g_value_set_string (value, decrypt_result->pointer->file_name);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
 g_gpg_decrypt_result_finalize (GObject *object)
 {
   GGpgDecryptResult *decrypt_result = G_GPG_DECRYPT_RESULT (object);
@@ -2262,11 +2280,17 @@ g_gpg_decrypt_result_class_init (GGpgDecryptResultClass *klass)
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
   object_class->set_property = g_gpg_decrypt_result_set_property;
+  object_class->get_property = g_gpg_decrypt_result_get_property;
   object_class->finalize = g_gpg_decrypt_result_finalize;
 
   decrypt_result_pspecs[DECRYPT_RESULT_PROP_POINTER] =
     g_param_spec_pointer ("pointer", NULL, NULL,
                           G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+
+  decrypt_result_pspecs[DECRYPT_RESULT_PROP_FILENAME] =
+    g_param_spec_string ("filename", NULL, NULL,
+                         "",
+                         G_PARAM_READABLE);
 
   g_object_class_install_properties (object_class, DECRYPT_RESULT_LAST_PROP,
                                      decrypt_result_pspecs);
@@ -2382,40 +2406,47 @@ g_gpg_ctx_decrypt_result (GGpgCtx *ctx)
                        NULL);
 }
 
-struct _GGpgSigNotation
+struct _GGpgSignatureNotation
 {
   GObject parent;
   gpgme_sig_notation_t pointer;
   GGpgSignature *owner;
+  gchar *name;
+  gchar *value;
+  GGpgSignatureNotationFlags flags;
 };
 
-G_DEFINE_TYPE (GGpgSigNotation, g_gpg_sig_notation, G_TYPE_OBJECT)
+G_DEFINE_TYPE (GGpgSignatureNotation, g_gpg_signature_notation, G_TYPE_OBJECT)
 
 enum {
-  SIG_NOTATION_PROP_0,
-  SIG_NOTATION_PROP_POINTER,
-  SIG_NOTATION_PROP_OWNER,
-  SIG_NOTATION_LAST_PROP
+  SIGNATURE_NOTATION_PROP_0,
+  SIGNATURE_NOTATION_PROP_POINTER,
+  SIGNATURE_NOTATION_PROP_OWNER,
+  SIGNATURE_NOTATION_PROP_NAME,
+  SIGNATURE_NOTATION_PROP_VALUE,
+  SIGNATURE_NOTATION_PROP_FLAGS,
+  SIGNATURE_NOTATION_LAST_PROP
 };
 
-static GParamSpec *sig_notation_pspecs[SIG_NOTATION_LAST_PROP] = { NULL, };
+static GParamSpec *signature_notation_pspecs[SIGNATURE_NOTATION_LAST_PROP] =
+  { NULL, };
 
 static void
-g_gpg_sig_notation_set_property (GObject *object,
-                                 guint property_id,
-                                 const GValue *value,
-                                 GParamSpec *pspec)
+g_gpg_signature_notation_set_property (GObject *object,
+                                       guint property_id,
+                                       const GValue *value,
+                                       GParamSpec *pspec)
 {
-  GGpgSigNotation *sig_notation = G_GPG_SIG_NOTATION (object);
+  GGpgSignatureNotation *signature_notation = G_GPG_SIGNATURE_NOTATION (object);
 
   switch (property_id)
     {
-    case SIG_NOTATION_PROP_POINTER:
-      sig_notation->pointer = g_value_get_pointer (value);
+    case SIGNATURE_NOTATION_PROP_POINTER:
+      signature_notation->pointer = g_value_get_pointer (value);
       break;
 
-    case SIG_NOTATION_PROP_OWNER:
-      sig_notation->owner = g_value_dup_object (value);
+    case SIGNATURE_NOTATION_PROP_OWNER:
+      signature_notation->owner = g_value_dup_object (value);
       break;
 
     default:
@@ -2425,37 +2456,102 @@ g_gpg_sig_notation_set_property (GObject *object,
 }
 
 static void
-g_gpg_sig_notation_dispose (GObject *object)
+g_gpg_signature_notation_get_property (GObject *object,
+                                       guint property_id,
+                                       GValue *value,
+                                       GParamSpec *pspec)
 {
-  GGpgSigNotation *sig_notation = G_GPG_SIG_NOTATION (object);
+  GGpgSignatureNotation *signature_notation = G_GPG_SIGNATURE_NOTATION (object);
 
-  g_clear_object (&sig_notation->owner);
+  switch (property_id)
+    {
+    case SIGNATURE_NOTATION_PROP_NAME:
+      g_value_set_string (value, signature_notation->name);
+      break;
 
-  G_OBJECT_CLASS (g_gpg_sig_notation_parent_class)->dispose (object);
+    case SIGNATURE_NOTATION_PROP_VALUE:
+      g_value_set_string (value, signature_notation->value);
+      break;
+
+    case SIGNATURE_NOTATION_PROP_FLAGS:
+      g_value_set_flags (value, signature_notation->pointer->flags);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
 }
 
 static void
-g_gpg_sig_notation_class_init (GGpgSigNotationClass *klass)
+g_gpg_signature_notation_dispose (GObject *object)
+{
+  GGpgSignatureNotation *signature_notation = G_GPG_SIGNATURE_NOTATION (object);
+
+  g_clear_object (&signature_notation->owner);
+
+  G_OBJECT_CLASS (g_gpg_signature_notation_parent_class)->dispose (object);
+}
+
+static void
+g_gpg_signature_notation_finalize (GObject *object)
+{
+  GGpgSignatureNotation *signature_notation = G_GPG_SIGNATURE_NOTATION (object);
+
+  g_free (signature_notation->name);
+  g_free (signature_notation->value);
+
+  G_OBJECT_CLASS (g_gpg_signature_notation_parent_class)->finalize (object);
+}
+
+static void
+g_gpg_signature_notation_constructed (GObject *object)
+{
+  GGpgSignatureNotation *signature_notation = G_GPG_SIGNATURE_NOTATION (object);
+
+  G_OBJECT_CLASS (g_gpg_signature_notation_parent_class)->constructed (object);
+
+  signature_notation->name =
+    g_strndup (signature_notation->pointer->name,
+               signature_notation->pointer->name_len);
+  signature_notation->value =
+    g_strndup (signature_notation->pointer->value,
+               signature_notation->pointer->value_len);
+}
+
+static void
+g_gpg_signature_notation_class_init (GGpgSignatureNotationClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-  object_class->set_property = g_gpg_sig_notation_set_property;
-  object_class->dispose = g_gpg_sig_notation_dispose;
+  object_class->set_property = g_gpg_signature_notation_set_property;
+  object_class->get_property = g_gpg_signature_notation_get_property;
+  object_class->dispose = g_gpg_signature_notation_dispose;
+  object_class->finalize = g_gpg_signature_notation_finalize;
+  object_class->constructed = g_gpg_signature_notation_constructed;
 
-  sig_notation_pspecs[SIG_NOTATION_PROP_POINTER] =
+  signature_notation_pspecs[SIGNATURE_NOTATION_PROP_POINTER] =
     g_param_spec_pointer ("pointer", NULL, NULL,
                           G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
-  sig_notation_pspecs[SIG_NOTATION_PROP_OWNER] =
+  signature_notation_pspecs[SIGNATURE_NOTATION_PROP_OWNER] =
     g_param_spec_object ("owner", NULL, NULL,
                          G_GPG_TYPE_SIGNATURE,
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+  signature_notation_pspecs[SIGNATURE_NOTATION_PROP_NAME] =
+    g_param_spec_string ("name", NULL, NULL, "", G_PARAM_READABLE);
+  signature_notation_pspecs[SIGNATURE_NOTATION_PROP_VALUE] =
+    g_param_spec_string ("value", NULL, NULL, "", G_PARAM_READABLE);
+  signature_notation_pspecs[SIGNATURE_NOTATION_PROP_FLAGS] =
+    g_param_spec_flags ("flags", NULL, NULL,
+                        G_GPG_TYPE_SIGNATURE_NOTATION_FLAGS, 0,
+                        G_PARAM_READABLE);
 
-  g_object_class_install_properties (object_class, SIG_NOTATION_LAST_PROP,
-                                     sig_notation_pspecs);
+  g_object_class_install_properties (object_class, SIGNATURE_NOTATION_LAST_PROP,
+                                     signature_notation_pspecs);
 }
 
 static void
-g_gpg_sig_notation_init (GGpgSigNotation *sig_notation)
+g_gpg_signature_notation_init (GGpgSignatureNotation *signature_notation)
 {
 }
 
@@ -2464,6 +2560,8 @@ struct _GGpgSignature
   GObject parent;
   gpgme_signature_t pointer;
   GGpgVerifyResult *owner;
+  GGpgSignatureStatus status;
+  GGpgSignatureFlags flags;
 };
 
 G_DEFINE_TYPE (GGpgSignature, g_gpg_signature, G_TYPE_OBJECT)
@@ -2472,6 +2570,15 @@ enum {
   SIGNATURE_PROP_0,
   SIGNATURE_PROP_POINTER,
   SIGNATURE_PROP_OWNER,
+  SIGNATURE_PROP_SUMMARY,
+  SIGNATURE_PROP_FINGERPRINT,
+  SIGNATURE_PROP_STATUS,
+  SIGNATURE_PROP_CREATED,
+  SIGNATURE_PROP_EXPIRES,
+  SIGNATURE_PROP_FLAGS,
+  SIGNATURE_PROP_VALIDITY,
+  SIGNATURE_PROP_PUBKEY_ALGO,
+  SIGNATURE_PROP_HASH_ALGO,
   SIGNATURE_LAST_PROP
 };
 
@@ -2502,6 +2609,58 @@ g_gpg_signature_set_property (GObject *object,
 }
 
 static void
+g_gpg_signature_get_property (GObject *object,
+                              guint property_id,
+                              GValue *value,
+                              GParamSpec *pspec)
+{
+  GGpgSignature *signature = G_GPG_SIGNATURE (object);
+
+  switch (property_id)
+    {
+    case SIGNATURE_PROP_SUMMARY:
+      g_value_set_flags (value, signature->pointer->summary);
+      break;
+
+    case SIGNATURE_PROP_FINGERPRINT:
+      g_value_set_string (value, signature->pointer->fpr);
+      break;
+
+    case SIGNATURE_PROP_STATUS:
+      g_value_set_enum (value, signature->status);
+      break;
+
+    case SIGNATURE_PROP_CREATED:
+      g_value_set_int64 (value, signature->pointer->timestamp);
+      break;
+
+    case SIGNATURE_PROP_EXPIRES:
+      g_value_set_int64 (value, signature->pointer->exp_timestamp);
+      break;
+
+    case SIGNATURE_PROP_FLAGS:
+      g_value_set_flags (value, signature->flags);
+      break;
+
+    case SIGNATURE_PROP_VALIDITY:
+      g_value_set_enum (value, signature->pointer->validity);
+      break;
+
+    case SIGNATURE_PROP_PUBKEY_ALGO:
+      g_value_set_enum (value, signature->pointer->pubkey_algo);
+      break;
+
+    case SIGNATURE_PROP_HASH_ALGO:
+      g_value_set_enum (value, signature->pointer->hash_algo);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
 g_gpg_signature_dispose (GObject *object)
 {
   GGpgSignature *signature = G_GPG_SIGNATURE (object);
@@ -2512,12 +2671,73 @@ g_gpg_signature_dispose (GObject *object)
 }
 
 static void
+g_gpg_signature_constructed (GObject *object)
+{
+  GGpgSignature *signature = G_GPG_SIGNATURE (object);
+
+  G_OBJECT_CLASS (g_gpg_signature_parent_class)->constructed (object);
+
+  switch (gpg_err_code (signature->pointer->status))
+    {
+    case G_GPG_ERROR_NO_ERROR:
+      signature->status = G_GPG_SIGNATURE_STATUS_GOOD;
+      break;
+
+    case G_GPG_ERROR_BAD_SIGNATURE:
+      signature->status = G_GPG_SIGNATURE_STATUS_BAD;
+      break;
+
+    case G_GPG_ERROR_NO_PUBKEY:
+      signature->status = G_GPG_SIGNATURE_STATUS_NOKEY;
+      break;
+
+    case G_GPG_ERROR_NO_DATA:
+      signature->status = G_GPG_SIGNATURE_STATUS_NOSIG;
+      break;
+
+    case G_GPG_ERROR_SIG_EXPIRED:
+      signature->status = G_GPG_SIGNATURE_STATUS_GOOD_EXP;
+      break;
+
+    case G_GPG_ERROR_KEY_EXPIRED:
+      signature->status = G_GPG_SIGNATURE_STATUS_GOOD_EXPKEY;
+      break;
+
+    default:
+      signature->status = G_GPG_SIGNATURE_STATUS_ERROR;
+      break;
+    }
+
+  signature->flags = 0;
+  if (signature->pointer->wrong_key_usage)
+    signature->flags |= G_GPG_SIGNATURE_FLAG_WRONG_KEY_USAGE;
+  if (signature->pointer->chain_model)
+    signature->flags |= G_GPG_SIGNATURE_FLAG_CHAIN_MODEL;
+
+  switch (signature->pointer->pka_trust)
+    {
+    case 1:
+      signature->flags |= G_GPG_SIGNATURE_FLAG_PKA_TRUST_BAD;
+      break;
+
+    case 2:
+      signature->flags |= G_GPG_SIGNATURE_FLAG_PKA_TRUST_GOOD;
+      break;
+
+    default:
+      break;
+    }
+}
+
+static void
 g_gpg_signature_class_init (GGpgSignatureClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
   object_class->set_property = g_gpg_signature_set_property;
+  object_class->get_property = g_gpg_signature_get_property;
   object_class->dispose = g_gpg_signature_dispose;
+  object_class->constructed = g_gpg_signature_constructed;
 
   signature_pspecs[SIGNATURE_PROP_POINTER] =
     g_param_spec_pointer ("pointer", NULL, NULL,
@@ -2527,6 +2747,43 @@ g_gpg_signature_class_init (GGpgSignatureClass *klass)
     g_param_spec_object ("owner", NULL, NULL,
                          G_GPG_TYPE_VERIFY_RESULT,
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+
+  signature_pspecs[SIGNATURE_PROP_SUMMARY] =
+    g_param_spec_flags ("summary", NULL, NULL,
+                        G_GPG_TYPE_SIGNATURE_SUMMARY_FLAGS, 0,
+                        G_PARAM_READABLE);
+  signature_pspecs[SIGNATURE_PROP_FINGERPRINT] =
+    g_param_spec_string ("fingerprint", NULL, NULL,
+                         NULL,
+                         G_PARAM_READABLE);
+  signature_pspecs[SIGNATURE_PROP_STATUS] =
+    g_param_spec_enum ("status", NULL, NULL,
+                       G_GPG_TYPE_SIGNATURE_STATUS, 0,
+                       G_PARAM_READABLE);
+  signature_pspecs[SIGNATURE_PROP_CREATED] =
+    g_param_spec_int64 ("created", NULL, NULL,
+                        0, G_MAXINT64, 0,
+                        G_PARAM_READABLE);
+  signature_pspecs[SIGNATURE_PROP_EXPIRES] =
+    g_param_spec_int64 ("expires", NULL, NULL,
+                        0, G_MAXINT64, 0,
+                        G_PARAM_READABLE);
+  signature_pspecs[SIGNATURE_PROP_FLAGS] =
+    g_param_spec_flags ("flags", NULL, NULL,
+                        G_GPG_TYPE_SIGNATURE_FLAGS, 0,
+                        G_PARAM_READABLE);
+  signature_pspecs[SIGNATURE_PROP_VALIDITY] =
+    g_param_spec_enum ("validity", NULL, NULL,
+                       G_GPG_TYPE_VALIDITY, G_GPG_VALIDITY_UNKNOWN,
+                       G_PARAM_READABLE);
+  signature_pspecs[SIGNATURE_PROP_PUBKEY_ALGO] =
+    g_param_spec_enum ("pubkey-algo", NULL, NULL,
+                       G_GPG_TYPE_PUBKEY_ALGO, G_GPG_PK_NONE,
+                       G_PARAM_READABLE);
+  signature_pspecs[SIGNATURE_PROP_HASH_ALGO] =
+    g_param_spec_enum ("hash-algo", NULL, NULL,
+                       G_GPG_TYPE_HASH_ALGO, G_GPG_MD_NONE,
+                       G_PARAM_READABLE);
 
   g_object_class_install_properties (object_class, SIGNATURE_LAST_PROP,
                                      signature_pspecs);
@@ -2541,8 +2798,8 @@ g_gpg_signature_init (GGpgSignature *signature)
  * g_gpg_signature_get_notations:
  * @signature: a #GGpgSignature
  *
- * Returns: (transfer full) (element-type GGpgSigNotation): a list of
- * #GGpgSigNotation
+ * Returns: (transfer full) (element-type GGpgSignatureNotation): a
+ * list of #GGpgSignatureNotation
  */
 GList *
 g_gpg_signature_get_notations (GGpgSignature *signature)
@@ -2552,7 +2809,7 @@ g_gpg_signature_get_notations (GGpgSignature *signature)
 
   for (; notations; notations = notations->next)
     {
-      GGpgSigNotation *notation =
+      GGpgSignatureNotation *notation =
         g_object_new (G_GPG_TYPE_SUBKEY, "pointer", notations,
                       "owner", signature, NULL);
       result = g_list_append (result, notation);
@@ -2571,6 +2828,7 @@ G_DEFINE_TYPE (GGpgVerifyResult, g_gpg_verify_result, G_TYPE_OBJECT)
 enum {
   VERIFY_RESULT_PROP_0,
   VERIFY_RESULT_PROP_POINTER,
+  VERIFY_RESULT_PROP_FILENAME,
   VERIFY_RESULT_LAST_PROP
 };
 
@@ -2601,6 +2859,26 @@ g_gpg_verify_result_set_property (GObject *object,
 }
 
 static void
+g_gpg_verify_result_get_property (GObject *object,
+                                  guint property_id,
+                                  GValue *value,
+                                  GParamSpec *pspec)
+{
+  GGpgVerifyResult *verify_result = G_GPG_VERIFY_RESULT (object);
+
+  switch (property_id)
+    {
+    case VERIFY_RESULT_PROP_FILENAME:
+      g_value_set_string (value, verify_result->pointer->file_name);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
 g_gpg_verify_result_finalize (GObject *object)
 {
   GGpgVerifyResult *verify_result = G_GPG_VERIFY_RESULT (object);
@@ -2616,11 +2894,17 @@ g_gpg_verify_result_class_init (GGpgVerifyResultClass *klass)
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
   object_class->set_property = g_gpg_verify_result_set_property;
+  object_class->get_property = g_gpg_verify_result_get_property;
   object_class->finalize = g_gpg_verify_result_finalize;
 
   verify_result_pspecs[VERIFY_RESULT_PROP_POINTER] =
     g_param_spec_pointer ("pointer", NULL, NULL,
                           G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+
+  verify_result_pspecs[VERIFY_RESULT_PROP_FILENAME] =
+    g_param_spec_string ("filename", NULL, NULL,
+                         "",
+                         G_PARAM_READABLE);
 
   g_object_class_install_properties (object_class, VERIFY_RESULT_LAST_PROP,
                                      verify_result_pspecs);

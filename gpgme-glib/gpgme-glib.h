@@ -39,9 +39,9 @@ G_DECLARE_FINAL_TYPE (GGpgRecipient, g_gpg_recipient, G_GPG, RECIPIENT,
 G_DECLARE_FINAL_TYPE (GGpgDecryptResult, g_gpg_decrypt_result,
                       G_GPG, DECRYPT_RESULT, GObject)
 
-#define G_GPG_TYPE_SIG_NOTATION (g_gpg_sig_notation_get_type ())
-G_DECLARE_FINAL_TYPE (GGpgSigNotation, g_gpg_sig_notation,
-                      G_GPG, SIG_NOTATION, GObject)
+#define G_GPG_TYPE_SIGNATURE_NOTATION (g_gpg_signature_notation_get_type ())
+G_DECLARE_FINAL_TYPE (GGpgSignatureNotation, g_gpg_signature_notation,
+                      G_GPG, SIGNATURE_NOTATION, GObject)
 
 #define G_GPG_TYPE_SIGNATURE (g_gpg_signature_get_type ())
 G_DECLARE_FINAL_TYPE (GGpgSignature, g_gpg_signature,
