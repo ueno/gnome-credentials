@@ -292,6 +292,8 @@ struct _GGpgCtx
   gpgme_ctx_t pointer;
   gpointer progress_user_data;
   GDestroyNotify progress_destroy_data;
+  GPtrArray *signers;
+  GMutex lock;
 };
 
 G_DEFINE_TYPE (GGpgCtx, g_gpg_ctx, G_TYPE_OBJECT)
@@ -409,6 +411,10 @@ g_gpg_ctx_finalize (GObject *object)
   if (ctx->progress_destroy_data)
     g_clear_pointer (&ctx->progress_user_data, ctx->progress_destroy_data);
 
+  g_mutex_clear (&ctx->lock);
+
+  g_ptr_array_unref (ctx->signers);
+
   G_OBJECT_CLASS (g_gpg_ctx_parent_class)->finalize (object);
 }
 
@@ -453,6 +459,8 @@ g_gpg_ctx_class_init (GGpgCtxClass *klass)
 static void
 g_gpg_ctx_init (GGpgCtx *ctx)
 {
+  g_mutex_init (&ctx->lock);
+  ctx->signers = g_ptr_array_new_with_free_func (g_object_unref);
 }
 
 GGpgCtx *
@@ -3073,5 +3081,369 @@ g_gpg_ctx_verify_result (GGpgCtx *ctx)
   verify_result = gpgme_op_verify_result (ctx->pointer);
   g_return_val_if_fail (verify_result, NULL);
   return g_object_new (G_GPG_TYPE_VERIFY_RESULT, "pointer", verify_result,
+                       NULL);
+}
+
+void
+g_gpg_ctx_add_signer (GGpgCtx *ctx, GGpgKey *key)
+{
+  g_mutex_lock (&ctx->lock);
+  g_ptr_array_add (ctx->signers, g_object_ref (key));
+  gpgme_signers_add (ctx->pointer, key->pointer);
+  g_mutex_unlock (&ctx->lock);
+}
+
+guint
+g_gpg_ctx_get_n_signers (GGpgCtx *ctx)
+{
+  return ctx->signers->len;
+}
+
+/**
+ * g_gpg_ctx_get_signer:
+ * @ctx: a #GGpgCtx
+ * @index: the index
+ *
+ * Returns: (transfer none): a #GGpgKey
+ */
+GGpgKey *
+g_gpg_ctx_get_signer (GGpgCtx *ctx, guint index)
+{
+  return g_ptr_array_index (ctx->signers, index);
+}
+
+void
+g_gpg_ctx_clear_signers (GGpgCtx *ctx)
+{
+  g_mutex_lock (&ctx->lock);
+  g_ptr_array_remove_range (ctx->signers, 0, ctx->signers->len);
+  g_mutex_unlock (&ctx->lock);
+}
+
+struct _GGpgNewSignature
+{
+  GObject parent;
+  gpgme_new_signature_t pointer;
+  GGpgSignResult *owner;
+};
+
+G_DEFINE_TYPE (GGpgNewSignature, g_gpg_new_signature, G_TYPE_OBJECT)
+
+enum {
+  NEW_SIGNATURE_PROP_0,
+  NEW_SIGNATURE_PROP_POINTER,
+  NEW_SIGNATURE_PROP_OWNER,
+  NEW_SIGNATURE_PROP_MODE,
+  NEW_SIGNATURE_PROP_PUBKEY_ALGO,
+  NEW_SIGNATURE_PROP_HASH_ALGO,
+  NEW_SIGNATURE_PROP_CLASS,
+  NEW_SIGNATURE_PROP_CREATED,
+  NEW_SIGNATURE_PROP_FINGERPRINT,
+  NEW_SIGNATURE_LAST_PROP
+};
+
+static GParamSpec *new_signature_pspecs[NEW_SIGNATURE_LAST_PROP] = { NULL, };
+
+static void
+g_gpg_new_signature_set_property (GObject *object,
+                                  guint property_id,
+                                  const GValue *value,
+                                  GParamSpec *pspec)
+{
+  GGpgNewSignature *new_signature = G_GPG_NEW_SIGNATURE (object);
+
+  switch (property_id)
+    {
+    case NEW_SIGNATURE_PROP_POINTER:
+      new_signature->pointer = g_value_get_pointer (value);
+      break;
+
+    case NEW_SIGNATURE_PROP_OWNER:
+      new_signature->owner = g_value_dup_object (value);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+g_gpg_new_signature_get_property (GObject *object,
+                                  guint property_id,
+                                  GValue *value,
+                                  GParamSpec *pspec)
+{
+  GGpgNewSignature *new_signature = G_GPG_NEW_SIGNATURE (object);
+
+  switch (property_id)
+    {
+    case NEW_SIGNATURE_PROP_MODE:
+      g_value_set_enum (value, new_signature->pointer->type);
+      break;
+
+    case NEW_SIGNATURE_PROP_PUBKEY_ALGO:
+      g_value_set_enum (value, new_signature->pointer->pubkey_algo);
+      break;
+
+    case NEW_SIGNATURE_PROP_HASH_ALGO:
+      g_value_set_enum (value, new_signature->pointer->hash_algo);
+      break;
+
+    case NEW_SIGNATURE_PROP_CLASS:
+      g_value_set_uint (value, new_signature->pointer->sig_class);
+      break;
+
+    case NEW_SIGNATURE_PROP_CREATED:
+      g_value_set_int64 (value, new_signature->pointer->timestamp);
+      break;
+
+    case NEW_SIGNATURE_PROP_FINGERPRINT:
+      g_value_set_string (value, new_signature->pointer->fpr);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+g_gpg_new_signature_dispose (GObject *object)
+{
+  GGpgNewSignature *new_signature = G_GPG_NEW_SIGNATURE (object);
+
+  g_clear_object (&new_signature->owner);
+
+  G_OBJECT_CLASS (g_gpg_new_signature_parent_class)->dispose (object);
+}
+
+static void
+g_gpg_new_signature_class_init (GGpgNewSignatureClass *klass)
+{
+  GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+  object_class->set_property = g_gpg_new_signature_set_property;
+  object_class->get_property = g_gpg_new_signature_get_property;
+  object_class->dispose = g_gpg_new_signature_dispose;
+
+  new_signature_pspecs[NEW_SIGNATURE_PROP_POINTER] =
+    g_param_spec_pointer ("pointer", NULL, NULL,
+                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+
+  new_signature_pspecs[NEW_SIGNATURE_PROP_OWNER] =
+    g_param_spec_object ("owner", NULL, NULL,
+                         G_GPG_TYPE_VERIFY_RESULT,
+                         G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+
+  new_signature_pspecs[NEW_SIGNATURE_PROP_MODE] =
+    g_param_spec_enum ("mode", NULL, NULL,
+                       G_GPG_TYPE_SIGN_MODE, G_GPG_SIGN_MODE_NORMAL,
+                       G_PARAM_READABLE);
+  new_signature_pspecs[NEW_SIGNATURE_PROP_PUBKEY_ALGO] =
+    g_param_spec_enum ("pubkey-algo", NULL, NULL,
+                       G_GPG_TYPE_PUBKEY_ALGO, G_GPG_PK_NONE,
+                       G_PARAM_READABLE);
+  new_signature_pspecs[NEW_SIGNATURE_PROP_HASH_ALGO] =
+    g_param_spec_enum ("hash-algo", NULL, NULL,
+                       G_GPG_TYPE_HASH_ALGO, G_GPG_MD_NONE,
+                       G_PARAM_READABLE);
+  new_signature_pspecs[NEW_SIGNATURE_PROP_CLASS] =
+    g_param_spec_uint ("class", NULL, NULL,
+                       0, G_MAXUINT, 0,
+                       G_PARAM_READABLE);
+  new_signature_pspecs[NEW_SIGNATURE_PROP_CREATED] =
+    g_param_spec_int64 ("created", NULL, NULL,
+                        0, G_MAXINT64, 0,
+                        G_PARAM_READABLE);
+  new_signature_pspecs[NEW_SIGNATURE_PROP_FINGERPRINT] =
+    g_param_spec_string ("fingerprint", NULL, NULL,
+                         NULL,
+                         G_PARAM_READABLE);
+
+  g_object_class_install_properties (object_class, NEW_SIGNATURE_LAST_PROP,
+                                     new_signature_pspecs);
+}
+
+static void
+g_gpg_new_signature_init (GGpgNewSignature *new_signature)
+{
+}
+
+struct _GGpgSignResult
+{
+  GObject parent;
+  gpgme_sign_result_t pointer;
+};
+
+G_DEFINE_TYPE (GGpgSignResult, g_gpg_sign_result, G_TYPE_OBJECT)
+
+enum {
+  SIGN_RESULT_PROP_0,
+  SIGN_RESULT_PROP_POINTER,
+  SIGN_RESULT_LAST_PROP
+};
+
+static GParamSpec *sign_result_pspecs[SIGN_RESULT_LAST_PROP] = { NULL, };
+
+static void
+g_gpg_sign_result_set_property (GObject *object,
+                                guint property_id,
+                                const GValue *value,
+                                GParamSpec *pspec)
+{
+  GGpgSignResult *sign_result = G_GPG_SIGN_RESULT (object);
+
+  switch (property_id)
+    {
+    case SIGN_RESULT_PROP_POINTER:
+      {
+        gpgme_sign_result_t pointer = g_value_get_pointer (value);
+        gpgme_result_ref (pointer);
+        sign_result->pointer = pointer;
+      }
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+g_gpg_sign_result_finalize (GObject *object)
+{
+  GGpgSignResult *sign_result = G_GPG_SIGN_RESULT (object);
+
+  gpgme_result_unref (sign_result->pointer);
+
+  G_OBJECT_CLASS (g_gpg_sign_result_parent_class)->finalize (object);
+}
+
+static void
+g_gpg_sign_result_class_init (GGpgSignResultClass *klass)
+{
+  GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+  object_class->set_property = g_gpg_sign_result_set_property;
+  object_class->finalize = g_gpg_sign_result_finalize;
+
+  sign_result_pspecs[SIGN_RESULT_PROP_POINTER] =
+    g_param_spec_pointer ("pointer", NULL, NULL,
+                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+
+  g_object_class_install_properties (object_class, SIGN_RESULT_LAST_PROP,
+                                     sign_result_pspecs);
+}
+
+static void
+g_gpg_sign_result_init (GGpgSignResult *sign_result)
+{
+}
+
+/**
+ * g_gpg_sign_result_get_signatures:
+ * @sign_result: a #GGpgSignResult
+ *
+ * Returns: (transfer full) (element-type GGpgNewSignature): a list of
+ * #GGpgNewSignature
+ */
+GList *
+g_gpg_sign_result_get_signatures (GGpgSignResult *sign_result)
+{
+  gpgme_new_signature_t signatures = sign_result->pointer->signatures;
+  GList *result = NULL;
+
+  for (; signatures; signatures = signatures->next)
+    {
+      GGpgNewSignature *signature =
+        g_object_new (G_GPG_TYPE_NEW_SIGNATURE, "pointer", signatures,
+                      "owner", sign_result, NULL);
+      result = g_list_append (result, signature);
+    }
+  return result;
+}
+
+struct GGpgSignSource
+{
+  struct GGpgSource source;
+  GGpgData *plain;
+  GGpgData *sig;
+  GGpgSignMode mode;
+};
+
+static void
+g_gpg_sign_source_finalize (GSource *_source)
+{
+  struct GGpgSignSource *source = (struct GGpgSignSource *) _source;
+  g_object_unref (source->plain);
+  g_object_unref (source->sig);
+}
+
+static void
+_g_gpg_ctx_sign_begin (GGpgCtx *ctx,
+                       struct GGpgSignSource *source,
+                       GTask *task,
+                       GCancellable *cancellable)
+{
+  gpgme_error_t err;
+
+  err = gpgme_op_sign_start (ctx->pointer, source->plain->pointer,
+                             source->sig->pointer, source->mode);
+  if (err)
+    {
+      g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
+                               "%s", gpgme_strerror (err));
+      return;
+    }
+
+  if (cancellable)
+    g_cancellable_connect (cancellable, G_CALLBACK (_g_gpg_source_cancel),
+                           source, NULL);
+
+  g_task_attach_source (task, (GSource *) source, _g_gpg_source_func);
+  g_source_unref ((GSource *) source);
+}
+
+void
+g_gpg_ctx_sign (GGpgCtx *ctx, GGpgData *plain, GGpgData *sig, GGpgSignMode mode,
+                GCancellable *cancellable,
+                GAsyncReadyCallback callback,
+                gpointer user_data)
+{
+  GTask *task;
+  struct GGpgSignSource *source;
+
+  task = g_task_new (ctx, cancellable, callback, user_data);
+  source = G_GPG_SOURCE_NEW (struct GGpgSignSource, ctx);
+  source->plain = g_object_ref (plain);
+  source->sig = g_object_ref (sig);
+  source->mode = mode;
+  g_task_set_task_data (task, source,
+                        (GDestroyNotify) g_gpg_sign_source_finalize);
+  _g_gpg_ctx_sign_begin (ctx, source, task, cancellable);
+}
+
+gboolean
+g_gpg_ctx_sign_finish (GGpgCtx *ctx, GAsyncResult *result, GError **error)
+{
+  g_return_val_if_fail (g_task_is_valid (result, ctx), FALSE);
+  return g_task_propagate_boolean (G_TASK (result), error);
+}
+
+/**
+ * g_gpg_ctx_sign_result:
+ * @ctx: a #GGpgCtx
+ *
+ * Returns: (transfer full): a #GGpgSignResult
+ */
+GGpgSignResult *
+g_gpg_ctx_sign_result (GGpgCtx *ctx)
+{
+  gpgme_sign_result_t sign_result;
+
+  sign_result = gpgme_op_sign_result (ctx->pointer);
+  g_return_val_if_fail (sign_result, NULL);
+  return g_object_new (G_GPG_TYPE_SIGN_RESULT, "pointer", sign_result,
                        NULL);
 }

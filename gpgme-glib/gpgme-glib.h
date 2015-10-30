@@ -51,6 +51,14 @@ G_DECLARE_FINAL_TYPE (GGpgSignature, g_gpg_signature,
 G_DECLARE_FINAL_TYPE (GGpgVerifyResult, g_gpg_verify_result,
                       G_GPG, VERIFY_RESULT, GObject)
 
+#define G_GPG_TYPE_NEW_SIGNATURE (g_gpg_new_signature_get_type ())
+G_DECLARE_FINAL_TYPE (GGpgNewSignature, g_gpg_new_signature,
+                      G_GPG, NEW_SIGNATURE, GObject)
+
+#define G_GPG_TYPE_SIGN_RESULT (g_gpg_sign_result_get_type ())
+G_DECLARE_FINAL_TYPE (GGpgSignResult, g_gpg_sign_result,
+                      G_GPG, SIGN_RESULT, GObject)
+
 void g_gpg_check_version (const gchar *version);
 
 GGpgData *g_gpg_data_new (void);
@@ -73,6 +81,10 @@ void g_gpg_ctx_set_progress_callback (GGpgCtx *ctx,
                                       GGpgProgressCallback callback,
                                       gpointer user_data,
                                       GDestroyNotify destroy_data);
+void g_gpg_ctx_add_signer (GGpgCtx *ctx, GGpgKey *key);
+guint g_gpg_ctx_get_n_signers (GGpgCtx *ctx);
+GGpgKey *g_gpg_ctx_get_signer (GGpgCtx *ctx, guint index);
+void g_gpg_ctx_clear_signers (GGpgCtx *ctx);
 
 gboolean g_gpg_ctx_keylist_start (GGpgCtx *ctx, const gchar *pattern,
                                   gboolean secret_only, GError **error);
@@ -176,6 +188,14 @@ void g_gpg_ctx_decrypt_verify (GGpgCtx *ctx, GGpgData *cipher, GGpgData *plain,
                                gpointer user_data);
 gboolean g_gpg_ctx_decrypt_verify_finish (GGpgCtx *ctx, GAsyncResult *result,
                                           GError **error);
+
+void g_gpg_ctx_sign (GGpgCtx *ctx, GGpgData *plain, GGpgData *sig,
+                     GGpgSignMode mode,
+                     GCancellable *cancellable,
+                     GAsyncReadyCallback callback,
+                     gpointer user_data);
+gboolean g_gpg_ctx_sign_finish (GGpgCtx *ctx, GAsyncResult *result,
+                                GError **error);
 
 GList *g_gpg_key_get_subkeys (GGpgKey *key);
 GList *g_gpg_key_get_uids (GGpgKey *key);

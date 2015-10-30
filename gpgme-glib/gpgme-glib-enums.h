@@ -81,11 +81,11 @@ GGpgSignatureStatus;
 
 typedef enum
   {
-    G_GPG_SIG_MODE_NORMAL = 0,
-    G_GPG_SIG_MODE_DETACH = 1,
-    G_GPG_SIG_MODE_CLEAR  = 2
+    G_GPG_SIGN_MODE_NORMAL = 0,
+    G_GPG_SIGN_MODE_DETACH = 1,
+    G_GPG_SIGN_MODE_CLEAR  = 2
   }
-GGpgSigMode;
+GGpgSignMode;
 
 typedef enum
   {
