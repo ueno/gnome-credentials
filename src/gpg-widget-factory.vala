@@ -137,7 +137,7 @@ namespace Credentials {
                 index++;
             }
 
-            this._store.append (new GpgEditorUserIdItem (-1, null));
+            this._store.append (new GpgEditorUserIdItem (0, null));
             list_box_adjust_scrolling (user_id_list_box);
         }
 
