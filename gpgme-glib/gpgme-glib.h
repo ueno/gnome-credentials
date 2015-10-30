@@ -32,10 +32,24 @@ G_DECLARE_FINAL_TYPE (GGpgSubkey, g_gpg_subkey, G_GPG, SUBKEY, GObject)
 G_DECLARE_FINAL_TYPE (GGpgKey, g_gpg_key, G_GPG, KEY, GObject)
 
 #define G_GPG_TYPE_RECIPIENT (g_gpg_recipient_get_type ())
-G_DECLARE_FINAL_TYPE (GGpgRecipient, g_gpg_recipient, G_GPG, RECIPIENT, GObject)
+G_DECLARE_FINAL_TYPE (GGpgRecipient, g_gpg_recipient, G_GPG, RECIPIENT,
+                      GObject)
 
 #define G_GPG_TYPE_DECRYPT_RESULT (g_gpg_decrypt_result_get_type ())
-G_DECLARE_FINAL_TYPE (GGpgDecryptResult, g_gpg_decrypt_result, G_GPG, DECRYPT_RESULT, GObject)
+G_DECLARE_FINAL_TYPE (GGpgDecryptResult, g_gpg_decrypt_result,
+                      G_GPG, DECRYPT_RESULT, GObject)
+
+#define G_GPG_TYPE_SIG_NOTATION (g_gpg_sig_notation_get_type ())
+G_DECLARE_FINAL_TYPE (GGpgSigNotation, g_gpg_sig_notation,
+                      G_GPG, SIG_NOTATION, GObject)
+
+#define G_GPG_TYPE_SIGNATURE (g_gpg_signature_get_type ())
+G_DECLARE_FINAL_TYPE (GGpgSignature, g_gpg_signature,
+                      G_GPG, SIGNATURE, GObject)
+
+#define G_GPG_TYPE_VERIFY_RESULT (g_gpg_verify_result_get_type ())
+G_DECLARE_FINAL_TYPE (GGpgVerifyResult, g_gpg_verify_result,
+                      G_GPG, VERIFY_RESULT, GObject)
 
 void g_gpg_check_version (const gchar *version);
 
@@ -141,8 +155,20 @@ void g_gpg_ctx_decrypt (GGpgCtx *ctx,
                         gpointer user_data);
 gboolean g_gpg_ctx_decrypt_finish (GGpgCtx *ctx, GAsyncResult *result,
                                    GError **error);
-
+GGpgDecryptResult *g_gpg_ctx_decrypt_result (GGpgCtx *ctx);
 GList *g_gpg_decrypt_result_get_recipients (GGpgDecryptResult *decrypt_result);
+
+void g_gpg_ctx_verify (GGpgCtx *ctx, GGpgData *sig, GGpgData *signed_text,
+                       GGpgData *plain,
+                       GCancellable *cancellable,
+                       GAsyncReadyCallback callback,
+                       gpointer user_data);
+gboolean g_gpg_ctx_verify_finish (GGpgCtx *ctx, GAsyncResult *result,
+                                  GError **error);
+GGpgVerifyResult *g_gpg_ctx_verify_result (GGpgCtx *ctx);
+
+GList *g_gpg_verify_result_get_signatures (GGpgVerifyResult *verify_result);
+GList *g_gpg_signature_get_notations (GGpgSignature *signature);
 
 GList *g_gpg_key_get_subkeys (GGpgKey *key);
 GList *g_gpg_key_get_uids (GGpgKey *key);

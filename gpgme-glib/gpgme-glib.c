@@ -2365,6 +2365,12 @@ g_gpg_ctx_decrypt_finish (GGpgCtx *ctx, GAsyncResult *result, GError **error)
   return g_task_propagate_boolean (G_TASK (result), error);
 }
 
+/**
+ * g_gpg_ctx_decrypt_result:
+ * @ctx: a #GGpgCtx
+ *
+ * Returns: (transfer full): a #GGpgDecryptResult
+ */
 GGpgDecryptResult *
 g_gpg_ctx_decrypt_result (GGpgCtx *ctx)
 {
@@ -2373,5 +2379,364 @@ g_gpg_ctx_decrypt_result (GGpgCtx *ctx)
   decrypt_result = gpgme_op_decrypt_result (ctx->pointer);
   g_return_val_if_fail (decrypt_result, NULL);
   return g_object_new (G_GPG_TYPE_DECRYPT_RESULT, "pointer", decrypt_result,
+                       NULL);
+}
+
+struct _GGpgSigNotation
+{
+  GObject parent;
+  gpgme_sig_notation_t pointer;
+  GGpgSignature *owner;
+};
+
+G_DEFINE_TYPE (GGpgSigNotation, g_gpg_sig_notation, G_TYPE_OBJECT)
+
+enum {
+  SIG_NOTATION_PROP_0,
+  SIG_NOTATION_PROP_POINTER,
+  SIG_NOTATION_PROP_OWNER,
+  SIG_NOTATION_LAST_PROP
+};
+
+static GParamSpec *sig_notation_pspecs[SIG_NOTATION_LAST_PROP] = { NULL, };
+
+static void
+g_gpg_sig_notation_set_property (GObject *object,
+                                 guint property_id,
+                                 const GValue *value,
+                                 GParamSpec *pspec)
+{
+  GGpgSigNotation *sig_notation = G_GPG_SIG_NOTATION (object);
+
+  switch (property_id)
+    {
+    case SIG_NOTATION_PROP_POINTER:
+      sig_notation->pointer = g_value_get_pointer (value);
+      break;
+
+    case SIG_NOTATION_PROP_OWNER:
+      sig_notation->owner = g_value_dup_object (value);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+g_gpg_sig_notation_dispose (GObject *object)
+{
+  GGpgSigNotation *sig_notation = G_GPG_SIG_NOTATION (object);
+
+  g_clear_object (&sig_notation->owner);
+
+  G_OBJECT_CLASS (g_gpg_sig_notation_parent_class)->dispose (object);
+}
+
+static void
+g_gpg_sig_notation_class_init (GGpgSigNotationClass *klass)
+{
+  GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+  object_class->set_property = g_gpg_sig_notation_set_property;
+  object_class->dispose = g_gpg_sig_notation_dispose;
+
+  sig_notation_pspecs[SIG_NOTATION_PROP_POINTER] =
+    g_param_spec_pointer ("pointer", NULL, NULL,
+                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+  sig_notation_pspecs[SIG_NOTATION_PROP_OWNER] =
+    g_param_spec_object ("owner", NULL, NULL,
+                         G_GPG_TYPE_SIGNATURE,
+                         G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+
+  g_object_class_install_properties (object_class, SIG_NOTATION_LAST_PROP,
+                                     sig_notation_pspecs);
+}
+
+static void
+g_gpg_sig_notation_init (GGpgSigNotation *sig_notation)
+{
+}
+
+struct _GGpgSignature
+{
+  GObject parent;
+  gpgme_signature_t pointer;
+  GGpgVerifyResult *owner;
+};
+
+G_DEFINE_TYPE (GGpgSignature, g_gpg_signature, G_TYPE_OBJECT)
+
+enum {
+  SIGNATURE_PROP_0,
+  SIGNATURE_PROP_POINTER,
+  SIGNATURE_PROP_OWNER,
+  SIGNATURE_LAST_PROP
+};
+
+static GParamSpec *signature_pspecs[SIGNATURE_LAST_PROP] = { NULL, };
+
+static void
+g_gpg_signature_set_property (GObject *object,
+                              guint property_id,
+                              const GValue *value,
+                              GParamSpec *pspec)
+{
+  GGpgSignature *signature = G_GPG_SIGNATURE (object);
+
+  switch (property_id)
+    {
+    case SIGNATURE_PROP_POINTER:
+      signature->pointer = g_value_get_pointer (value);
+      break;
+
+    case SIGNATURE_PROP_OWNER:
+      signature->owner = g_value_dup_object (value);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+g_gpg_signature_dispose (GObject *object)
+{
+  GGpgSignature *signature = G_GPG_SIGNATURE (object);
+
+  g_clear_object (&signature->owner);
+
+  G_OBJECT_CLASS (g_gpg_signature_parent_class)->dispose (object);
+}
+
+static void
+g_gpg_signature_class_init (GGpgSignatureClass *klass)
+{
+  GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+  object_class->set_property = g_gpg_signature_set_property;
+  object_class->dispose = g_gpg_signature_dispose;
+
+  signature_pspecs[SIGNATURE_PROP_POINTER] =
+    g_param_spec_pointer ("pointer", NULL, NULL,
+                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+
+  signature_pspecs[SIGNATURE_PROP_OWNER] =
+    g_param_spec_object ("owner", NULL, NULL,
+                         G_GPG_TYPE_VERIFY_RESULT,
+                         G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+
+  g_object_class_install_properties (object_class, SIGNATURE_LAST_PROP,
+                                     signature_pspecs);
+}
+
+static void
+g_gpg_signature_init (GGpgSignature *signature)
+{
+}
+
+/**
+ * g_gpg_signature_get_notations:
+ * @signature: a #GGpgSignature
+ *
+ * Returns: (transfer full) (element-type GGpgSigNotation): a list of
+ * #GGpgSigNotation
+ */
+GList *
+g_gpg_signature_get_notations (GGpgSignature *signature)
+{
+  gpgme_sig_notation_t notations = signature->pointer->notations;
+  GList *result = NULL;
+
+  for (; notations; notations = notations->next)
+    {
+      GGpgSigNotation *notation =
+        g_object_new (G_GPG_TYPE_SUBKEY, "pointer", notations,
+                      "owner", signature, NULL);
+      result = g_list_append (result, notation);
+    }
+  return result;
+}
+
+struct _GGpgVerifyResult
+{
+  GObject parent;
+  gpgme_verify_result_t pointer;
+};
+
+G_DEFINE_TYPE (GGpgVerifyResult, g_gpg_verify_result, G_TYPE_OBJECT)
+
+enum {
+  VERIFY_RESULT_PROP_0,
+  VERIFY_RESULT_PROP_POINTER,
+  VERIFY_RESULT_LAST_PROP
+};
+
+static GParamSpec *verify_result_pspecs[VERIFY_RESULT_LAST_PROP] = { NULL, };
+
+static void
+g_gpg_verify_result_set_property (GObject *object,
+                                   guint property_id,
+                                   const GValue *value,
+                                   GParamSpec *pspec)
+{
+  GGpgVerifyResult *verify_result = G_GPG_VERIFY_RESULT (object);
+
+  switch (property_id)
+    {
+    case VERIFY_RESULT_PROP_POINTER:
+      {
+        gpgme_verify_result_t pointer = g_value_get_pointer (value);
+        gpgme_result_ref (pointer);
+        verify_result->pointer = pointer;
+      }
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+g_gpg_verify_result_finalize (GObject *object)
+{
+  GGpgVerifyResult *verify_result = G_GPG_VERIFY_RESULT (object);
+
+  gpgme_result_unref (verify_result->pointer);
+
+  G_OBJECT_CLASS (g_gpg_verify_result_parent_class)->finalize (object);
+}
+
+static void
+g_gpg_verify_result_class_init (GGpgVerifyResultClass *klass)
+{
+  GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+  object_class->set_property = g_gpg_verify_result_set_property;
+  object_class->finalize = g_gpg_verify_result_finalize;
+
+  verify_result_pspecs[VERIFY_RESULT_PROP_POINTER] =
+    g_param_spec_pointer ("pointer", NULL, NULL,
+                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+
+  g_object_class_install_properties (object_class, VERIFY_RESULT_LAST_PROP,
+                                     verify_result_pspecs);
+}
+
+static void
+g_gpg_verify_result_init (GGpgVerifyResult *verify_result)
+{
+}
+
+/**
+ * g_gpg_verify_result_get_signatures:
+ * @verify_result: a #GGpgVerifyResult
+ *
+ * Returns: (transfer full) (element-type GGpgSignature): a list of
+ * #GGpgSignature
+ */
+GList *
+g_gpg_verify_result_get_signatures (GGpgVerifyResult *verify_result)
+{
+  gpgme_signature_t signatures = verify_result->pointer->signatures;
+  GList *result = NULL;
+
+  for (; signatures; signatures = signatures->next)
+    {
+      GGpgSignature *signature =
+        g_object_new (G_GPG_TYPE_SIGNATURE, "pointer", signatures,
+                      "owner", verify_result, NULL);
+      result = g_list_append (result, signature);
+    }
+  return result;
+}
+
+struct GGpgVerifySource
+{
+  struct GGpgSource source;
+  GGpgData *sig;
+  GGpgData *signed_text;
+  GGpgData *plain;
+};
+
+static void
+g_gpg_verify_source_finalize (GSource *_source)
+{
+  struct GGpgVerifySource *source = (struct GGpgVerifySource *) _source;
+  g_object_unref (source->sig);
+  g_object_unref (source->signed_text);
+  g_object_unref (source->plain);
+}
+
+static void
+_g_gpg_ctx_verify_begin (GGpgCtx *ctx,
+                         struct GGpgVerifySource *source,
+                         GTask *task,
+                         GCancellable *cancellable)
+{
+  gpgme_error_t err;
+
+  err = gpgme_op_verify_start (ctx->pointer, source->sig->pointer,
+                               source->signed_text->pointer,
+                               source->plain->pointer);
+  if (err)
+    {
+      g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
+                               "%s", gpgme_strerror (err));
+      return;
+    }
+
+  if (cancellable)
+    g_cancellable_connect (cancellable, G_CALLBACK (_g_gpg_source_cancel),
+                           source, NULL);
+
+  g_task_attach_source (task, (GSource *) source, _g_gpg_source_func);
+  g_source_unref ((GSource *) source);
+}
+
+void
+g_gpg_ctx_verify (GGpgCtx *ctx, GGpgData *sig, GGpgData *signed_text,
+                  GGpgData *plain,
+                  GCancellable *cancellable,
+                  GAsyncReadyCallback callback,
+                  gpointer user_data)
+{
+  GTask *task;
+  struct GGpgVerifySource *source;
+
+  task = g_task_new (ctx, cancellable, callback, user_data);
+  source = G_GPG_SOURCE_NEW (struct GGpgVerifySource, ctx);
+  source->sig = g_object_ref (sig);
+  source->signed_text = g_object_ref (signed_text);
+  source->plain = g_object_ref (plain);
+  g_task_set_task_data (task, source,
+                        (GDestroyNotify) g_gpg_verify_source_finalize);
+  _g_gpg_ctx_verify_begin (ctx, source, task, cancellable);
+}
+
+gboolean
+g_gpg_ctx_verify_finish (GGpgCtx *ctx, GAsyncResult *result, GError **error)
+{
+  g_return_val_if_fail (g_task_is_valid (result, ctx), FALSE);
+  return g_task_propagate_boolean (G_TASK (result), error);
+}
+
+/**
+ * g_gpg_ctx_verify_result:
+ * @ctx: a #GGpgCtx
+ *
+ * Returns: (transfer full): a #GGpgVerifyResult
+ */
+GGpgVerifyResult *
+g_gpg_ctx_verify_result (GGpgCtx *ctx)
+{
+  gpgme_verify_result_t verify_result;
+
+  verify_result = gpgme_op_verify_result (ctx->pointer);
+  g_return_val_if_fail (verify_result, NULL);
+  return g_object_new (G_GPG_TYPE_VERIFY_RESULT, "pointer", verify_result,
                        NULL);
 }
