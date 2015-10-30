@@ -493,6 +493,7 @@ struct _GGpgSubkey
   GObject parent;
   gpgme_subkey_t pointer;
   GGpgSubkeyFlags flags;
+  GGpgKey *key;
 };
 
 G_DEFINE_TYPE (GGpgSubkey, g_gpg_subkey, G_TYPE_OBJECT)
@@ -500,6 +501,7 @@ G_DEFINE_TYPE (GGpgSubkey, g_gpg_subkey, G_TYPE_OBJECT)
 enum {
   SUBKEY_PROP_0,
   SUBKEY_PROP_POINTER,
+  SUBKEY_PROP_KEY,
   SUBKEY_PROP_FLAGS,
   SUBKEY_PROP_PUBKEY_ALGO,
   SUBKEY_PROP_LENGTH,
@@ -525,6 +527,10 @@ g_gpg_subkey_set_property (GObject *object,
     {
     case SUBKEY_PROP_POINTER:
       subkey->pointer = g_value_get_pointer (value);
+      break;
+
+    case SUBKEY_PROP_KEY:
+      subkey->key = g_value_dup_object (value);
       break;
 
     default:
@@ -584,6 +590,14 @@ g_gpg_subkey_get_property (GObject *object,
 }
 
 static void
+g_gpg_subkey_dispose (GObject *object)
+{
+  GGpgSubkey *subkey = G_GPG_SUBKEY (object);
+
+  g_clear_object (&subkey->key);
+}
+
+static void
 g_gpg_subkey_constructed (GObject *object)
 {
   GGpgSubkey *subkey = G_GPG_SUBKEY (object);
@@ -623,11 +637,16 @@ g_gpg_subkey_class_init (GGpgSubkeyClass *klass)
 
   object_class->set_property = g_gpg_subkey_set_property;
   object_class->get_property = g_gpg_subkey_get_property;
+  object_class->dispose = g_gpg_subkey_dispose;
   object_class->constructed = g_gpg_subkey_constructed;
 
   subkey_pspecs[SUBKEY_PROP_POINTER] =
     g_param_spec_pointer ("pointer", NULL, NULL,
                           G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+  subkey_pspecs[SUBKEY_PROP_KEY] =
+    g_param_spec_object ("key", NULL, NULL,
+                         G_GPG_TYPE_KEY,
+                         G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
   subkey_pspecs[SUBKEY_PROP_FLAGS] =
     g_param_spec_flags ("flags", NULL, NULL,
                         G_GPG_TYPE_SUBKEY_FLAGS, 0,
@@ -676,6 +695,7 @@ struct _GGpgKeySig
   GObject parent;
   gpgme_key_sig_t pointer;
   GGpgKeySigFlags flags;
+  GGpgUserId *user_id;
 };
 
 G_DEFINE_TYPE (GGpgKeySig, g_gpg_key_sig, G_TYPE_OBJECT)
@@ -683,6 +703,7 @@ G_DEFINE_TYPE (GGpgKeySig, g_gpg_key_sig, G_TYPE_OBJECT)
 enum {
   KEY_SIG_PROP_0,
   KEY_SIG_PROP_POINTER,
+  KEY_SIG_PROP_USER_ID,
   KEY_SIG_PROP_FLAGS,
   KEY_SIG_PROP_PUBKEY_ALGO,
   KEY_SIG_PROP_KEYID,
@@ -710,6 +731,10 @@ g_gpg_key_sig_set_property (GObject *object,
     {
     case KEY_SIG_PROP_POINTER:
       key_sig->pointer = g_value_get_pointer (value);
+      break;
+
+    case KEY_SIG_PROP_USER_ID:
+      key_sig->user_id = g_value_dup_object (value);
       break;
 
     default:
@@ -775,6 +800,14 @@ g_gpg_key_sig_get_property (GObject *object,
 }
 
 static void
+g_gpg_key_sig_dispose (GObject *object)
+{
+  GGpgKeySig *key_sig = G_GPG_KEY_SIG (object);
+
+  g_clear_object (&key_sig->user_id);
+}
+
+static void
 g_gpg_key_sig_constructed (GObject *object)
 {
   GGpgKeySig *key_sig = G_GPG_KEY_SIG (object);
@@ -800,6 +833,7 @@ g_gpg_key_sig_class_init (GGpgKeySigClass *klass)
 
   object_class->set_property = g_gpg_key_sig_set_property;
   object_class->get_property = g_gpg_key_sig_get_property;
+  object_class->dispose = g_gpg_key_sig_dispose;
   object_class->constructed = g_gpg_key_sig_constructed;
 
   key_sig_pspecs[KEY_SIG_PROP_POINTER] =
@@ -852,6 +886,7 @@ struct _GGpgUserId
   GObject parent;
   gpgme_user_id_t pointer;
   GGpgUserIdFlags flags;
+  GGpgKey *key;
 };
 
 G_DEFINE_TYPE (GGpgUserId, g_gpg_user_id, G_TYPE_OBJECT);
@@ -859,6 +894,7 @@ G_DEFINE_TYPE (GGpgUserId, g_gpg_user_id, G_TYPE_OBJECT);
 enum {
   USER_ID_PROP_0,
   USER_ID_PROP_POINTER,
+  USER_ID_PROP_KEY,
   USER_ID_PROP_FLAGS,
   USER_ID_PROP_VALIDITY,
   USER_ID_PROP_UID,
@@ -882,6 +918,10 @@ g_gpg_user_id_set_property (GObject *object,
     {
     case USER_ID_PROP_POINTER:
       user_id->pointer = g_value_get_pointer (value);
+      break;
+
+    case USER_ID_PROP_KEY:
+      user_id->key = g_value_dup_object (value);
       break;
 
     default:
@@ -931,6 +971,14 @@ g_gpg_user_id_get_property (GObject *object,
 }
 
 static void
+g_gpg_user_id_dispose (GObject *object)
+{
+  GGpgUserId *user_id = G_GPG_USER_ID (object);
+
+  g_clear_object (&user_id->key);
+}
+
+static void
 g_gpg_user_id_constructed (GObject *object)
 {
   GGpgUserId *user_id = G_GPG_USER_ID (object);
@@ -951,11 +999,16 @@ g_gpg_user_id_class_init (GGpgUserIdClass *klass)
 
   object_class->set_property = g_gpg_user_id_set_property;
   object_class->get_property = g_gpg_user_id_get_property;
+  object_class->dispose = g_gpg_user_id_dispose;
   object_class->constructed = g_gpg_user_id_constructed;
 
   user_id_pspecs[USER_ID_PROP_POINTER] =
     g_param_spec_pointer ("pointer", NULL, NULL,
                           G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+  user_id_pspecs[USER_ID_PROP_KEY] =
+    g_param_spec_object ("key", NULL, NULL,
+                         G_GPG_TYPE_KEY,
+                         G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
   user_id_pspecs[USER_ID_PROP_FLAGS] =
     g_param_spec_flags ("flags", NULL, NULL,
                         G_GPG_TYPE_USER_ID_FLAGS, 0,
@@ -986,7 +1039,7 @@ g_gpg_user_id_init (GGpgUserId *user_id)
  * g_gpg_user_id_get_signatures:
  * @user_id: a #GGpgUserId
  *
- * Returns: (transfer container) (element-type GGpgKeySig): a list of #GGpgKeySig
+ * Returns: (transfer full) (element-type GGpgKeySig): a list of #GGpgKeySig
  */
 GList *
 g_gpg_user_id_get_signatures (GGpgUserId *user_id)
@@ -997,7 +1050,8 @@ g_gpg_user_id_get_signatures (GGpgUserId *user_id)
   for (; signatures; signatures = signatures->next)
     {
       GGpgKeySig *signature =
-        g_object_new (G_GPG_TYPE_KEY_SIG, "pointer", signatures, NULL);
+        g_object_new (G_GPG_TYPE_KEY_SIG, "pointer", signatures,
+                      "user-id", user_id, NULL);
       result = g_list_append (result, signature);
     }
   return result;
@@ -1177,7 +1231,7 @@ g_gpg_key_init (GGpgKey *key)
  * g_gpg_key_get_subkeys:
  * @key: a #GGpgKey
  *
- * Returns: (transfer container) (element-type GGpgSubkey): a list of
+ * Returns: (transfer full) (element-type GGpgSubkey): a list of
  * #GGpgSubkey
  */
 GList *
@@ -1189,7 +1243,7 @@ g_gpg_key_get_subkeys (GGpgKey *key)
   for (; subkeys; subkeys = subkeys->next)
     {
       GGpgSubkey *subkey =
-        g_object_new (G_GPG_TYPE_SUBKEY, "pointer", subkeys, NULL);
+        g_object_new (G_GPG_TYPE_SUBKEY, "pointer", subkeys, "key", key, NULL);
       result = g_list_append (result, subkey);
     }
   return result;
@@ -1199,7 +1253,7 @@ g_gpg_key_get_subkeys (GGpgKey *key)
  * g_gpg_key_get_uids:
  * @key: a #GGpgKey
  *
- * Returns: (transfer container) (element-type GGpgUserId): a list of
+ * Returns: (transfer full) (element-type GGpgUserId): a list of
  * #GGpgUserId
  */
 GList *
@@ -1211,7 +1265,7 @@ g_gpg_key_get_uids (GGpgKey *key)
   for (; uids; uids = uids->next)
     {
       GGpgUserId *uid =
-        g_object_new (G_GPG_TYPE_USER_ID, "pointer", uids, NULL);
+        g_object_new (G_GPG_TYPE_USER_ID, "pointer", uids, "key", key, NULL);
       result = g_list_append (result, uid);
     }
   return result;
