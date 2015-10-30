@@ -595,6 +595,8 @@ g_gpg_subkey_dispose (GObject *object)
   GGpgSubkey *subkey = G_GPG_SUBKEY (object);
 
   g_clear_object (&subkey->key);
+
+  G_OBJECT_CLASS (g_gpg_subkey_parent_class)->dispose (object);
 }
 
 static void
@@ -805,6 +807,8 @@ g_gpg_key_sig_dispose (GObject *object)
   GGpgKeySig *key_sig = G_GPG_KEY_SIG (object);
 
   g_clear_object (&key_sig->user_id);
+
+  G_OBJECT_CLASS (g_gpg_key_sig_parent_class)->dispose (object);
 }
 
 static void
@@ -980,6 +984,8 @@ g_gpg_user_id_dispose (GObject *object)
   GGpgUserId *user_id = G_GPG_USER_ID (object);
 
   g_clear_object (&user_id->key);
+
+  G_OBJECT_CLASS (g_gpg_user_id_parent_class)->dispose (object);
 }
 
 static void
