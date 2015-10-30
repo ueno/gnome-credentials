@@ -1666,7 +1666,7 @@ g_gpg_ctx_get_key_finish (GGpgCtx *ctx, GAsyncResult *result, GError **error)
 
 #define G_GPG_SOURCE_NEW(t,c) ((t *) g_gpg_source_new (c, sizeof (t)))
 
-struct GGpgGenkeySource
+struct GGpgGenerateKeySource
 {
   struct GGpgSource source;
   gchar *parms;
@@ -1675,19 +1675,20 @@ struct GGpgGenkeySource
 };
 
 static void
-g_gpg_genkey_source_finalize (GSource *_source)
+g_gpg_generate_key_source_finalize (GSource *_source)
 {
-  struct GGpgGenkeySource *source = (struct GGpgGenkeySource *) _source;
+  struct GGpgGenerateKeySource *source =
+    (struct GGpgGenerateKeySource *) _source;
   g_free (source->parms);
   g_clear_object (&source->pubkey);
   g_clear_object (&source->seckey);
 }
 
 static void
-_g_gpg_ctx_genkey_begin (GGpgCtx *ctx,
-                         struct GGpgGenkeySource *source,
-                         GTask *task,
-                         GCancellable *cancellable)
+_g_gpg_ctx_generate_key_begin (GGpgCtx *ctx,
+                               struct GGpgGenerateKeySource *source,
+                               GTask *task,
+                               GCancellable *cancellable)
 {
   gpgme_error_t err;
 
@@ -1710,7 +1711,7 @@ _g_gpg_ctx_genkey_begin (GGpgCtx *ctx,
 }
 
 /**
- * g_gpg_ctx_genkey:
+ * g_gpg_ctx_generate_key:
  * @ctx: a #GGpgCtx
  * @parms: parameters
  * @pubkey: (nullable): data holding generated public key
@@ -1721,27 +1722,28 @@ _g_gpg_ctx_genkey_begin (GGpgCtx *ctx,
  *
  */
 void
-g_gpg_ctx_genkey (GGpgCtx *ctx, const gchar *parms,
-                  GGpgData *pubkey, GGpgData *seckey,
-                  GCancellable *cancellable,
-                  GAsyncReadyCallback callback,
-                  gpointer user_data)
+g_gpg_ctx_generate_key (GGpgCtx *ctx, const gchar *parms,
+                        GGpgData *pubkey, GGpgData *seckey,
+                        GCancellable *cancellable,
+                        GAsyncReadyCallback callback,
+                        gpointer user_data)
 {
   GTask *task;
-  struct GGpgGenkeySource *source;
+  struct GGpgGenerateKeySource *source;
 
   task = g_task_new (ctx, cancellable, callback, user_data);
-  source = G_GPG_SOURCE_NEW (struct GGpgGenkeySource, ctx);
+  source = G_GPG_SOURCE_NEW (struct GGpgGenerateKeySource, ctx);
   source->parms = g_strdup (parms);
   source->pubkey = pubkey ? g_object_ref (pubkey) : NULL;
   source->seckey = seckey ? g_object_ref (seckey) : NULL;
   g_task_set_task_data (task, source,
-                        (GDestroyNotify) g_gpg_genkey_source_finalize);
-  _g_gpg_ctx_genkey_begin (ctx, source, task, cancellable);
+                        (GDestroyNotify) g_gpg_generate_key_source_finalize);
+  _g_gpg_ctx_generate_key_begin (ctx, source, task, cancellable);
 }
 
 gboolean
-g_gpg_ctx_genkey_finish (GGpgCtx *ctx, GAsyncResult *result, GError **error)
+g_gpg_ctx_generate_key_finish (GGpgCtx *ctx, GAsyncResult *result,
+                               GError **error)
 {
   g_return_val_if_fail (g_task_is_valid (result, ctx), FALSE);
   return g_task_propagate_boolean (G_TASK (result), error);

@@ -307,7 +307,7 @@ namespace Credentials {
             if (this._progress_callback != null)
                 ctx.set_progress_callback (this.progress_callback_wrapper);
             try {
-                yield ctx.genkey (
+                yield ctx.generate_key (
                     format_parameters ((GpgGenerateParameters) parameters),
                     null, null,
                     cancellable);

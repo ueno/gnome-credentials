@@ -66,13 +66,13 @@ void g_gpg_ctx_get_key (GGpgCtx *ctx, const gchar *fpr, gint secret,
 GGpgKey *g_gpg_ctx_get_key_finish (GGpgCtx *ctx, GAsyncResult *result,
                                    GError **error);
 
-void g_gpg_ctx_genkey (GGpgCtx *ctx, const gchar *parms,
-                       GGpgData *pubkey, GGpgData *seckey,
-                       GCancellable *cancellable,
-                       GAsyncReadyCallback callback,
-                       gpointer user_data);
-gboolean g_gpg_ctx_genkey_finish (GGpgCtx *ctx, GAsyncResult *result,
-                                  GError **error);
+void g_gpg_ctx_generate_key (GGpgCtx *ctx, const gchar *parms,
+                             GGpgData *pubkey, GGpgData *seckey,
+                             GCancellable *cancellable,
+                             GAsyncReadyCallback callback,
+                             gpointer user_data);
+gboolean g_gpg_ctx_generate_key_finish (GGpgCtx *ctx, GAsyncResult *result,
+                                        GError **error);
 
 void g_gpg_ctx_delete (GGpgCtx *ctx,
                        GGpgKey *key,
