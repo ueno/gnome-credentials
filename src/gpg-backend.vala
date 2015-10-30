@@ -57,7 +57,9 @@ namespace Credentials {
             var pubkey = this._content.get_subkeys ().first ().data;
             var ctx = new GGpg.Ctx ();
             ctx.protocol = ((GpgCollection) collection).protocol;
-            this._content = yield ctx.get_key (pubkey.fingerprint, 1, cancellable);
+            this._content = yield ctx.get_key (pubkey.fingerprint,
+                                               GGpg.GetKeyFlags.SECRET,
+                                               cancellable);
         }
 
         public GLib.List<GGpg.UserId> get_uids () {
@@ -111,7 +113,8 @@ namespace Credentials {
             var ctx = new GGpg.Ctx ();
             ctx.protocol = ((GpgCollection) collection).protocol;
             try {
-                yield ctx.delete (this._content, 1, cancellable);
+                yield ctx.delete (this._content, GGpg.DeleteFlags.ALLOW_SECRET,
+                                  cancellable);
                 collection.item_removed (this);
             } catch (GLib.Error e) {
                 throw e;
@@ -173,7 +176,7 @@ namespace Credentials {
             var ctx = new GGpg.Ctx ();
 
             ctx.protocol = protocol;
-            ctx.keylist_start (null, 1);
+            ctx.keylist_start (null, true);
 
             while (true) {
                 var key = ctx.keylist_next ();

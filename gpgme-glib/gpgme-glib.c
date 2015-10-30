@@ -1279,13 +1279,13 @@ g_gpg_key_get_uids (GGpgKey *key)
  * g_gpg_ctx_keylist_start:
  * @ctx: a #GGpgCtx
  * @pattern: (nullable): a string
- * @secret_only: if non-zero, only list secret keys
+ * @secret_only: if %TRUE, only list secret keys
  * @error: error location
  *
  */
 gboolean
-g_gpg_ctx_keylist_start (GGpgCtx *ctx, const gchar *pattern, gint secret_only,
-                      GError **error)
+g_gpg_ctx_keylist_start (GGpgCtx *ctx, const gchar *pattern,
+                         gboolean secret_only, GError **error)
 {
   gpgme_error_t err;
 
@@ -1602,7 +1602,7 @@ _g_gpg_source_cancel (GCancellable *cancellable, struct GGpgSource *source)
 struct GGpgGetKeyData
 {
   gchar *fpr;
-  gint secret;
+  GGpgGetKeyFlags flags;
 };
 
 static void
@@ -1614,9 +1614,9 @@ g_gpg_get_key_data_free (struct GGpgGetKeyData *data)
 
 static void
 g_gpg_get_key_thread (GTask *task,
-                gpointer source_object,
-                gpointer task_data,
-                GCancellable *cancellable)
+                      gpointer source_object,
+                      gpointer task_data,
+                      GCancellable *cancellable)
 {
   GGpgCtx *ctx = source_object;
   struct GGpgGetKeyData *data = task_data;
@@ -1624,7 +1624,7 @@ g_gpg_get_key_thread (GTask *task,
   gpgme_key_t pointer;
   gpgme_error_t err;
 
-  err = gpgme_get_key (ctx->pointer, data->fpr, &pointer, data->secret);
+  err = gpgme_get_key (ctx->pointer, data->fpr, &pointer, data->flags);
   if (err)
     g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
                              "%s", gpgme_strerror (err));
@@ -1636,7 +1636,7 @@ g_gpg_get_key_thread (GTask *task,
 }
 
 void
-g_gpg_ctx_get_key (GGpgCtx *ctx, const gchar *fpr, gint secret,
+g_gpg_ctx_get_key (GGpgCtx *ctx, const gchar *fpr, GGpgGetKeyFlags flags,
                    GCancellable *cancellable,
                    GAsyncReadyCallback callback,
                    gpointer user_data)
@@ -1647,7 +1647,7 @@ g_gpg_ctx_get_key (GGpgCtx *ctx, const gchar *fpr, gint secret,
   task = g_task_new (ctx, cancellable, callback, user_data);
   data = g_new0 (struct GGpgGetKeyData, 1);
   data->fpr = g_strdup (fpr);
-  data->secret = secret;
+  data->flags = flags;
   g_task_set_task_data (task, data, (GDestroyNotify) g_gpg_get_key_data_free);
   g_task_run_in_thread (task, g_gpg_get_key_thread);
   g_object_unref (task);
@@ -1757,7 +1757,7 @@ struct GGpgDeleteSource
 {
   struct GGpgSource source;
   GGpgKey *key;
-  gint allow_secret;
+  GGpgDeleteFlags flags;
 };
 
 static void
@@ -1776,7 +1776,7 @@ _g_gpg_ctx_delete_begin (GGpgCtx *ctx,
   gpgme_error_t err;
 
   err = gpgme_op_delete_start (ctx->pointer, source->key->pointer,
-                               source->allow_secret);
+                               source->flags);
   if (err)
     {
       g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
@@ -1793,8 +1793,7 @@ _g_gpg_ctx_delete_begin (GGpgCtx *ctx,
 }
 
 void
-g_gpg_ctx_delete (GGpgCtx *ctx, GGpgKey *key,
-                  gint allow_secret,
+g_gpg_ctx_delete (GGpgCtx *ctx, GGpgKey *key, GGpgDeleteFlags flags,
                   GCancellable *cancellable,
                   GAsyncReadyCallback callback,
                   gpointer user_data)
@@ -1805,7 +1804,7 @@ g_gpg_ctx_delete (GGpgCtx *ctx, GGpgKey *key,
   task = g_task_new (ctx, cancellable, callback, user_data);
   source = G_GPG_SOURCE_NEW (struct GGpgDeleteSource, ctx);
   source->key = g_object_ref (key);
-  source->allow_secret = allow_secret;
+  source->flags = flags;
   g_task_set_task_data (task, source,
                         (GDestroyNotify) g_gpg_delete_source_finalize);
   _g_gpg_ctx_delete_begin (ctx, source, task, cancellable);

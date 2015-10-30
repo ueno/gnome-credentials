@@ -710,7 +710,21 @@ GGpgKeyFlags;
 
 typedef enum
   {
-    G_GPG_CHANGE_PASSWORD_FLAGS = 0
+    G_GPG_GET_KEY_FLAG_NONE = 0,
+    G_GPG_GET_KEY_FLAG_SECRET = 1
+  }
+GGpgGetKeyFlags;
+
+typedef enum
+  {
+    G_GPG_DELETE_FLAG_NONE = 0,
+    G_GPG_DELETE_FLAG_ALLOW_SECRET = 1
+  }
+GGpgDeleteFlags;
+
+typedef enum
+  {
+    G_GPG_CHANGE_PASSWORD_FLAG_NONE = 0
   }
 GGpgChangePasswordFlags;
 

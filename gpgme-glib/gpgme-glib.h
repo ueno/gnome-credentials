@@ -55,11 +55,12 @@ void g_gpg_ctx_set_progress_callback (GGpgCtx *ctx,
                                       GDestroyNotify destroy_data);
 
 gboolean g_gpg_ctx_keylist_start (GGpgCtx *ctx, const gchar *pattern,
-                                  gint secret_only, GError **error);
+                                  gboolean secret_only, GError **error);
 GGpgKey *g_gpg_ctx_keylist_next (GGpgCtx *ctx, GError **error);
 gboolean g_gpg_ctx_keylist_end (GGpgCtx *ctx, GError **error);
 
-void g_gpg_ctx_get_key (GGpgCtx *ctx, const gchar *fpr, gint secret,
+void g_gpg_ctx_get_key (GGpgCtx *ctx, const gchar *fpr,
+                        GGpgGetKeyFlags flags,
                         GCancellable *cancellable,
                         GAsyncReadyCallback callback,
                         gpointer user_data);
@@ -76,7 +77,7 @@ gboolean g_gpg_ctx_generate_key_finish (GGpgCtx *ctx, GAsyncResult *result,
 
 void g_gpg_ctx_delete (GGpgCtx *ctx,
                        GGpgKey *key,
-                       gint allow_secret,
+                       GGpgDeleteFlags flags,
                        GCancellable *cancellable,
                        GAsyncReadyCallback callback,
                        gpointer user_data);
