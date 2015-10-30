@@ -2389,6 +2389,57 @@ g_gpg_ctx_decrypt_finish (GGpgCtx *ctx, GAsyncResult *result, GError **error)
   return g_task_propagate_boolean (G_TASK (result), error);
 }
 
+static void
+_g_gpg_ctx_decrypt_verify_begin (GGpgCtx *ctx,
+                                 struct GGpgDecryptSource *source,
+                                 GTask *task,
+                                 GCancellable *cancellable)
+{
+  gpgme_error_t err;
+
+  err = gpgme_op_decrypt_verify_start (ctx->pointer, source->cipher->pointer,
+                                       source->plain->pointer);
+  if (err)
+    {
+      g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
+                               "%s", gpgme_strerror (err));
+      return;
+    }
+
+  if (cancellable)
+    g_cancellable_connect (cancellable, G_CALLBACK (_g_gpg_source_cancel),
+                           source, NULL);
+
+  g_task_attach_source (task, (GSource *) source, _g_gpg_source_func);
+  g_source_unref ((GSource *) source);
+}
+
+void
+g_gpg_ctx_decrypt_verify (GGpgCtx *ctx, GGpgData *cipher, GGpgData *plain,
+                          GCancellable *cancellable,
+                          GAsyncReadyCallback callback,
+                          gpointer user_data)
+{
+  GTask *task;
+  struct GGpgDecryptSource *source;
+
+  task = g_task_new (ctx, cancellable, callback, user_data);
+  source = G_GPG_SOURCE_NEW (struct GGpgDecryptSource, ctx);
+  source->cipher = g_object_ref (cipher);
+  source->plain = g_object_ref (plain);
+  g_task_set_task_data (task, source,
+                        (GDestroyNotify) g_gpg_decrypt_source_finalize);
+  _g_gpg_ctx_decrypt_verify_begin (ctx, source, task, cancellable);
+}
+
+gboolean
+g_gpg_ctx_decrypt_verify_finish (GGpgCtx *ctx, GAsyncResult *result,
+                                 GError **error)
+{
+  g_return_val_if_fail (g_task_is_valid (result, ctx), FALSE);
+  return g_task_propagate_boolean (G_TASK (result), error);
+}
+
 /**
  * g_gpg_ctx_decrypt_result:
  * @ctx: a #GGpgCtx

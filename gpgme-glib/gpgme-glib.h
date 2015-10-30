@@ -170,6 +170,13 @@ GGpgVerifyResult *g_gpg_ctx_verify_result (GGpgCtx *ctx);
 GList *g_gpg_verify_result_get_signatures (GGpgVerifyResult *verify_result);
 GList *g_gpg_signature_get_notations (GGpgSignature *signature);
 
+void g_gpg_ctx_decrypt_verify (GGpgCtx *ctx, GGpgData *cipher, GGpgData *plain,
+                               GCancellable *cancellable,
+                               GAsyncReadyCallback callback,
+                               gpointer user_data);
+gboolean g_gpg_ctx_decrypt_verify_finish (GGpgCtx *ctx, GAsyncResult *result,
+                                          GError **error);
+
 GList *g_gpg_key_get_subkeys (GGpgKey *key);
 GList *g_gpg_key_get_uids (GGpgKey *key);
 
