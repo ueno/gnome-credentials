@@ -125,6 +125,11 @@ namespace Credentials {
                                    string args,
                                    int fd) throws GLib.Error
         {
+            // The gpg executable returned a status code which is
+            // unknown to GPGME.
+            if ((int) status == -1)
+                return true;
+
             switch (status) {
             case GGpg.StatusCode.EOF:
             case GGpg.StatusCode.GOT_IT:
