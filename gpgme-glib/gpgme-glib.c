@@ -1814,6 +1814,73 @@ g_gpg_ctx_delete_finish (GGpgCtx *ctx, GAsyncResult *result, GError **error)
   return g_task_propagate_boolean (G_TASK (result), error);
 }
 
+struct GGpgChangePasswordSource
+{
+  struct GGpgSource source;
+  GGpgKey *key;
+  GGpgChangePasswordFlags flags;
+};
+
+static void
+g_gpg_change_password_source_finalize (GSource *_source)
+{
+  struct GGpgChangePasswordSource *source =
+    (struct GGpgChangePasswordSource *) _source;
+  g_object_unref (source->key);
+}
+
+static void
+_g_gpg_ctx_change_password_begin (GGpgCtx *ctx,
+                                  struct GGpgChangePasswordSource *source,
+                                  GTask *task,
+                                  GCancellable *cancellable)
+{
+  gpgme_error_t err;
+
+  err = gpgme_op_passwd_start (ctx->pointer, source->key->pointer,
+                               source->flags);
+  if (err)
+    {
+      g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
+                               "%s", gpgme_strerror (err));
+      return;
+    }
+
+  if (cancellable)
+    g_cancellable_connect (cancellable, G_CALLBACK (_g_gpg_source_cancel),
+                           source, NULL);
+
+  g_task_attach_source (task, (GSource *) source, _g_gpg_source_func);
+  g_source_unref ((GSource *) source);
+}
+
+void
+g_gpg_ctx_change_password (GGpgCtx *ctx, GGpgKey *key,
+                           GGpgChangePasswordFlags flags,
+                           GCancellable *cancellable,
+                           GAsyncReadyCallback callback,
+                           gpointer user_data)
+{
+  GTask *task;
+  struct GGpgChangePasswordSource *source;
+
+  task = g_task_new (ctx, cancellable, callback, user_data);
+  source = G_GPG_SOURCE_NEW (struct GGpgChangePasswordSource, ctx);
+  source->key = g_object_ref (key);
+  source->flags = flags;
+  g_task_set_task_data (task, source,
+                        (GDestroyNotify) g_gpg_change_password_source_finalize);
+  _g_gpg_ctx_change_password_begin (ctx, source, task, cancellable);
+}
+
+gboolean
+g_gpg_ctx_change_password_finish (GGpgCtx *ctx, GAsyncResult *result,
+                                  GError **error)
+{
+  g_return_val_if_fail (g_task_is_valid (result, ctx), FALSE);
+  return g_task_propagate_boolean (G_TASK (result), error);
+}
+
 struct GGpgEditSource
 {
   struct GGpgSource source;

@@ -710,6 +710,12 @@ GGpgKeyFlags;
 
 typedef enum
   {
+    G_GPG_CHANGE_PASSWORD_FLAGS = 0
+  }
+GGpgChangePasswordFlags;
+
+typedef enum
+  {
     G_GPG_EXPORT_MODE_EXTERN = 2,
     G_GPG_EXPORT_MODE_MINIMAL = 4
   }

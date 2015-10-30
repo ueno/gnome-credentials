@@ -83,6 +83,15 @@ void g_gpg_ctx_delete (GGpgCtx *ctx,
 gboolean g_gpg_ctx_delete_finish (GGpgCtx *ctx, GAsyncResult *result,
                                   GError **error);
 
+void g_gpg_ctx_change_password (GGpgCtx *ctx,
+                                GGpgKey *key,
+                                GGpgChangePasswordFlags flags,
+                                GCancellable *cancellable,
+                                GAsyncReadyCallback callback,
+                                gpointer user_data);
+gboolean g_gpg_ctx_change_password_finish (GGpgCtx *ctx, GAsyncResult *result,
+                                           GError **error);
+
 typedef gboolean (*GGpgEditCallback) (gpointer user_data,
                                 GGpgStatusCode status,
                                 const gchar *args, gint fd,
