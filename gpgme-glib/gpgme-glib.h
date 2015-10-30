@@ -31,6 +31,12 @@ G_DECLARE_FINAL_TYPE (GGpgSubkey, g_gpg_subkey, G_GPG, SUBKEY, GObject)
 #define G_GPG_TYPE_KEY (g_gpg_key_get_type ())
 G_DECLARE_FINAL_TYPE (GGpgKey, g_gpg_key, G_GPG, KEY, GObject)
 
+#define G_GPG_TYPE_RECIPIENT (g_gpg_recipient_get_type ())
+G_DECLARE_FINAL_TYPE (GGpgRecipient, g_gpg_recipient, G_GPG, RECIPIENT, GObject)
+
+#define G_GPG_TYPE_DECRYPT_RESULT (g_gpg_decrypt_result_get_type ())
+G_DECLARE_FINAL_TYPE (GGpgDecryptResult, g_gpg_decrypt_result, G_GPG, DECRYPT_RESULT, GObject)
+
 void g_gpg_check_version (const gchar *version);
 
 GGpgData *g_gpg_data_new (void);
@@ -126,6 +132,17 @@ void g_gpg_ctx_import (GGpgCtx *ctx,
                        gpointer user_data);
 gboolean g_gpg_ctx_import_finish (GGpgCtx *ctx, GAsyncResult *result,
                                   GError **error);
+
+void g_gpg_ctx_decrypt (GGpgCtx *ctx,
+                        GGpgData *cipher,
+                        GGpgData *plain,
+                        GCancellable *cancellable,
+                        GAsyncReadyCallback callback,
+                        gpointer user_data);
+gboolean g_gpg_ctx_decrypt_finish (GGpgCtx *ctx, GAsyncResult *result,
+                                   GError **error);
+
+GList *g_gpg_decrypt_result_get_recipients (GGpgDecryptResult *decrypt_result);
 
 GList *g_gpg_key_get_subkeys (GGpgKey *key);
 GList *g_gpg_key_get_uids (GGpgKey *key);

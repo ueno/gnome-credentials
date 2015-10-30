@@ -2120,3 +2120,249 @@ g_gpg_ctx_import_finish (GGpgCtx *ctx, GAsyncResult *result, GError **error)
   g_return_val_if_fail (g_task_is_valid (result, ctx), FALSE);
   return g_task_propagate_boolean (G_TASK (result), error);
 }
+
+struct _GGpgRecipient
+{
+  GObject parent;
+  gpgme_recipient_t pointer;
+  GGpgDecryptResult *decrypt_result;
+};
+
+G_DEFINE_TYPE (GGpgRecipient, g_gpg_recipient, G_TYPE_OBJECT)
+
+enum {
+  RECIPIENT_PROP_0,
+  RECIPIENT_PROP_POINTER,
+  RECIPIENT_PROP_DECRYPT_RESULT,
+  RECIPIENT_LAST_PROP
+};
+
+static GParamSpec *recipient_pspecs[RECIPIENT_LAST_PROP] = { NULL, };
+
+static void
+g_gpg_recipient_set_property (GObject *object,
+                              guint property_id,
+                              const GValue *value,
+                              GParamSpec *pspec)
+{
+  GGpgRecipient *recipient = G_GPG_RECIPIENT (object);
+
+  switch (property_id)
+    {
+    case RECIPIENT_PROP_POINTER:
+      recipient->pointer = g_value_get_pointer (value);
+      break;
+
+    case RECIPIENT_PROP_DECRYPT_RESULT:
+      recipient->decrypt_result = g_value_dup_object (value);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+g_gpg_recipient_dispose (GObject *object)
+{
+  GGpgRecipient *recipient = G_GPG_RECIPIENT (object);
+
+  g_clear_object (&recipient->decrypt_result);
+}
+
+static void
+g_gpg_recipient_class_init (GGpgRecipientClass *klass)
+{
+  GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+  object_class->set_property = g_gpg_recipient_set_property;
+  object_class->dispose = g_gpg_recipient_dispose;
+
+  recipient_pspecs[RECIPIENT_PROP_POINTER] =
+    g_param_spec_pointer ("pointer", NULL, NULL,
+                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+
+  recipient_pspecs[RECIPIENT_PROP_DECRYPT_RESULT] =
+    g_param_spec_object ("decrypt-result", NULL, NULL,
+                         G_GPG_TYPE_DECRYPT_RESULT,
+                         G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+
+  g_object_class_install_properties (object_class, RECIPIENT_LAST_PROP,
+                                     recipient_pspecs);
+}
+
+static void
+g_gpg_recipient_init (GGpgRecipient *recipient)
+{
+}
+
+struct _GGpgDecryptResult
+{
+  GObject parent;
+  gpgme_decrypt_result_t pointer;
+};
+
+G_DEFINE_TYPE (GGpgDecryptResult, g_gpg_decrypt_result, G_TYPE_OBJECT)
+
+enum {
+  DECRYPT_RESULT_PROP_0,
+  DECRYPT_RESULT_PROP_POINTER,
+  DECRYPT_RESULT_LAST_PROP
+};
+
+static GParamSpec *decrypt_result_pspecs[DECRYPT_RESULT_LAST_PROP] = { NULL, };
+
+static void
+g_gpg_decrypt_result_set_property (GObject *object,
+                                   guint property_id,
+                                   const GValue *value,
+                                   GParamSpec *pspec)
+{
+  GGpgDecryptResult *decrypt_result = G_GPG_DECRYPT_RESULT (object);
+
+  switch (property_id)
+    {
+    case DECRYPT_RESULT_PROP_POINTER:
+      {
+        gpgme_decrypt_result_t pointer = g_value_get_pointer (value);
+        gpgme_result_ref (pointer);
+        decrypt_result->pointer = pointer;
+      }
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+g_gpg_decrypt_result_finalize (GObject *object)
+{
+  GGpgDecryptResult *decrypt_result = G_GPG_DECRYPT_RESULT (object);
+
+  gpgme_result_unref (decrypt_result->pointer);
+
+  G_OBJECT_CLASS (g_gpg_decrypt_result_parent_class)->finalize (object);
+}
+
+static void
+g_gpg_decrypt_result_class_init (GGpgDecryptResultClass *klass)
+{
+  GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+  object_class->set_property = g_gpg_decrypt_result_set_property;
+  object_class->finalize = g_gpg_decrypt_result_finalize;
+
+  decrypt_result_pspecs[DECRYPT_RESULT_PROP_POINTER] =
+    g_param_spec_pointer ("pointer", NULL, NULL,
+                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+
+  g_object_class_install_properties (object_class, DECRYPT_RESULT_LAST_PROP,
+                                     decrypt_result_pspecs);
+}
+
+static void
+g_gpg_decrypt_result_init (GGpgDecryptResult *decrypt_result)
+{
+}
+
+/**
+ * g_gpg_decrypt_result_get_recipients:
+ * @decrypt_result: a #GGpgDecryptResult
+ *
+ * Returns: (transfer full) (element-type GGpgRecipient): a list of
+ * #GGpgRecipient
+ */
+GList *
+g_gpg_decrypt_result_get_recipients (GGpgDecryptResult *decrypt_result)
+{
+  gpgme_recipient_t recipients = decrypt_result->pointer->recipients;
+  GList *result = NULL;
+
+  for (; recipients; recipients = recipients->next)
+    {
+      GGpgRecipient *recipient =
+        g_object_new (G_GPG_TYPE_RECIPIENT, "pointer", recipients,
+                      "decrypt-result", decrypt_result, NULL);
+      result = g_list_append (result, recipient);
+    }
+  return result;
+}
+
+struct GGpgDecryptSource
+{
+  struct GGpgSource source;
+  GGpgData *cipher;
+  GGpgData *plain;
+};
+
+static void
+g_gpg_decrypt_source_finalize (GSource *_source)
+{
+  struct GGpgDecryptSource *source = (struct GGpgDecryptSource *) _source;
+  g_object_unref (source->cipher);
+  g_object_unref (source->plain);
+}
+
+static void
+_g_gpg_ctx_decrypt_begin (GGpgCtx *ctx,
+                          struct GGpgDecryptSource *source,
+                          GTask *task,
+                          GCancellable *cancellable)
+{
+  gpgme_error_t err;
+
+  err = gpgme_op_decrypt_start (ctx->pointer, source->cipher->pointer,
+                                source->plain->pointer);
+  if (err)
+    {
+      g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
+                               "%s", gpgme_strerror (err));
+      return;
+    }
+
+  if (cancellable)
+    g_cancellable_connect (cancellable, G_CALLBACK (_g_gpg_source_cancel),
+                           source, NULL);
+
+  g_task_attach_source (task, (GSource *) source, _g_gpg_source_func);
+  g_source_unref ((GSource *) source);
+}
+
+void
+g_gpg_ctx_decrypt (GGpgCtx *ctx, GGpgData *cipher, GGpgData *plain,
+                   GCancellable *cancellable,
+                   GAsyncReadyCallback callback,
+                   gpointer user_data)
+{
+  GTask *task;
+  struct GGpgDecryptSource *source;
+
+  task = g_task_new (ctx, cancellable, callback, user_data);
+  source = G_GPG_SOURCE_NEW (struct GGpgDecryptSource, ctx);
+  source->cipher = g_object_ref (cipher);
+  source->plain = g_object_ref (plain);
+  g_task_set_task_data (task, source,
+                        (GDestroyNotify) g_gpg_decrypt_source_finalize);
+  _g_gpg_ctx_decrypt_begin (ctx, source, task, cancellable);
+}
+
+gboolean
+g_gpg_ctx_decrypt_finish (GGpgCtx *ctx, GAsyncResult *result, GError **error)
+{
+  g_return_val_if_fail (g_task_is_valid (result, ctx), FALSE);
+  return g_task_propagate_boolean (G_TASK (result), error);
+}
+
+GGpgDecryptResult *
+g_gpg_ctx_decrypt_result (GGpgCtx *ctx)
+{
+  gpgme_decrypt_result_t decrypt_result;
+
+  decrypt_result = gpgme_op_decrypt_result (ctx->pointer);
+  g_return_val_if_fail (decrypt_result, NULL);
+  return g_object_new (G_GPG_TYPE_DECRYPT_RESULT, "pointer", decrypt_result,
+                       NULL);
+}
