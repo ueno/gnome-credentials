@@ -55,9 +55,17 @@ G_DECLARE_FINAL_TYPE (GGpgVerifyResult, g_gpg_verify_result,
 G_DECLARE_FINAL_TYPE (GGpgNewSignature, g_gpg_new_signature,
                       G_GPG, NEW_SIGNATURE, GObject)
 
+#define G_GPG_TYPE_INVALID_KEY (g_gpg_invalid_key_get_type ())
+G_DECLARE_FINAL_TYPE (GGpgInvalidKey, g_gpg_invalid_key,
+                      G_GPG, INVALID_KEY, GObject)
+
 #define G_GPG_TYPE_SIGN_RESULT (g_gpg_sign_result_get_type ())
 G_DECLARE_FINAL_TYPE (GGpgSignResult, g_gpg_sign_result,
                       G_GPG, SIGN_RESULT, GObject)
+
+#define G_GPG_TYPE_ENCRYPT_RESULT (g_gpg_encrypt_result_get_type ())
+G_DECLARE_FINAL_TYPE (GGpgEncryptResult, g_gpg_encrypt_result,
+                      G_GPG, ENCRYPT_RESULT, GObject)
 
 void g_gpg_check_version (const gchar *version);
 
@@ -196,6 +204,9 @@ void g_gpg_ctx_sign (GGpgCtx *ctx, GGpgData *plain, GGpgData *sig,
                      gpointer user_data);
 gboolean g_gpg_ctx_sign_finish (GGpgCtx *ctx, GAsyncResult *result,
                                 GError **error);
+GGpgSignResult *g_gpg_ctx_sign_result (GGpgCtx *ctx);
+GList *g_gpg_sign_result_get_signatures (GGpgSignResult *sign_result);
+GList *g_gpg_sign_result_get_invalid_signers (GGpgSignResult *sign_result);
 
 void g_gpg_ctx_encrypt (GGpgCtx *ctx, GGpgKey **recipients,
                         GGpgData *plain, GGpgData *cipher,
@@ -205,6 +216,8 @@ void g_gpg_ctx_encrypt (GGpgCtx *ctx, GGpgKey **recipients,
                         gpointer user_data);
 gboolean g_gpg_ctx_encrypt_finish (GGpgCtx *ctx, GAsyncResult *result,
                                    GError **error);
+GGpgEncryptResult *g_gpg_ctx_encrypt_result (GGpgCtx *ctx);
+GList *g_gpg_encrypt_result_get_invalid_recipients (GGpgEncryptResult *encrypt_result);
 
 GList *g_gpg_key_get_subkeys (GGpgKey *key);
 GList *g_gpg_key_get_uids (GGpgKey *key);

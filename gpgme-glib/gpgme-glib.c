@@ -2326,7 +2326,7 @@ g_gpg_decrypt_result_get_recipients (GGpgDecryptResult *decrypt_result)
     {
       GGpgRecipient *recipient =
         g_object_new (G_GPG_TYPE_RECIPIENT, "pointer", recipients,
-                      "decrypt-result", decrypt_result, NULL);
+                      "owner", decrypt_result, NULL);
       result = g_list_append (result, recipient);
     }
   return result;
@@ -3270,6 +3270,108 @@ g_gpg_new_signature_init (GGpgNewSignature *new_signature)
 {
 }
 
+struct _GGpgInvalidKey
+{
+  GObject parent;
+  gpgme_invalid_key_t pointer;
+  GObject *owner;
+};
+
+G_DEFINE_TYPE (GGpgInvalidKey, g_gpg_invalid_key, G_TYPE_OBJECT)
+
+enum {
+  INVALID_KEY_PROP_0,
+  INVALID_KEY_PROP_POINTER,
+  INVALID_KEY_PROP_OWNER,
+  INVALID_KEY_PROP_FINGERPRINT,
+  INVALID_KEY_LAST_PROP
+};
+
+static GParamSpec *invalid_key_pspecs[INVALID_KEY_LAST_PROP] = { NULL, };
+
+static void
+g_gpg_invalid_key_set_property (GObject *object,
+                                guint property_id,
+                                const GValue *value,
+                                GParamSpec *pspec)
+{
+  GGpgInvalidKey *invalid_key = G_GPG_INVALID_KEY (object);
+
+  switch (property_id)
+    {
+    case INVALID_KEY_PROP_POINTER:
+      invalid_key->pointer = g_value_get_pointer (value);
+      break;
+
+    case INVALID_KEY_PROP_OWNER:
+      invalid_key->owner = g_value_dup_object (value);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+g_gpg_invalid_key_get_property (GObject *object,
+                                guint property_id,
+                                GValue *value,
+                                GParamSpec *pspec)
+{
+  GGpgInvalidKey *invalid_key = G_GPG_INVALID_KEY (object);
+  switch (property_id)
+    {
+    case INVALID_KEY_PROP_FINGERPRINT:
+      g_value_set_string (value, invalid_key->pointer->fpr);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+g_gpg_invalid_key_dispose (GObject *object)
+{
+  GGpgInvalidKey *invalid_key = G_GPG_INVALID_KEY (object);
+
+  g_clear_object (&invalid_key->owner);
+
+  G_OBJECT_CLASS (g_gpg_invalid_key_parent_class)->finalize (object);
+}
+
+static void
+g_gpg_invalid_key_class_init (GGpgInvalidKeyClass *klass)
+{
+  GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+  object_class->set_property = g_gpg_invalid_key_set_property;
+  object_class->get_property = g_gpg_invalid_key_get_property;
+  object_class->dispose = g_gpg_invalid_key_dispose;
+
+  invalid_key_pspecs[INVALID_KEY_PROP_POINTER] =
+    g_param_spec_pointer ("pointer", NULL, NULL,
+                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+  invalid_key_pspecs[INVALID_KEY_PROP_OWNER] =
+    g_param_spec_object ("owner", NULL, NULL,
+                         G_TYPE_OBJECT,
+                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+  invalid_key_pspecs[INVALID_KEY_PROP_FINGERPRINT] =
+    g_param_spec_string ("fingerprint", NULL, NULL,
+                         NULL,
+                         G_PARAM_READABLE);
+
+  g_object_class_install_properties (object_class, INVALID_KEY_LAST_PROP,
+                                     invalid_key_pspecs);
+}
+
+static void
+g_gpg_invalid_key_init (GGpgInvalidKey *invalid_key)
+{
+}
+
 struct _GGpgSignResult
 {
   GObject parent;
@@ -3364,6 +3466,29 @@ g_gpg_sign_result_get_signatures (GGpgSignResult *sign_result)
   return result;
 }
 
+/**
+ * g_gpg_sign_result_get_invalid_signers:
+ * @sign_result: a #GGpgSignResult
+ *
+ * Returns: (transfer full) (element-type GGpgInvalidKey): a list of
+ * #GGpgInvalidKey
+ */
+GList *
+g_gpg_sign_result_get_invalid_signers (GGpgSignResult *sign_result)
+{
+  gpgme_invalid_key_t invalid_signers = sign_result->pointer->invalid_signers;
+  GList *result = NULL;
+
+  for (; invalid_signers; invalid_signers = invalid_signers->next)
+    {
+      GGpgInvalidKey *invalid_signer =
+        g_object_new (G_GPG_TYPE_INVALID_KEY, "pointer", invalid_signers,
+                      "owner", sign_result, NULL);
+      result = g_list_append (result, invalid_signer);
+    }
+  return result;
+}
+
 struct GGpgSignSource
 {
   struct GGpgSource source;
@@ -3446,6 +3571,101 @@ g_gpg_ctx_sign_result (GGpgCtx *ctx)
   g_return_val_if_fail (sign_result, NULL);
   return g_object_new (G_GPG_TYPE_SIGN_RESULT, "pointer", sign_result,
                        NULL);
+}
+
+struct _GGpgEncryptResult
+{
+  GObject parent;
+  gpgme_encrypt_result_t pointer;
+};
+
+G_DEFINE_TYPE (GGpgEncryptResult, g_gpg_encrypt_result, G_TYPE_OBJECT)
+
+enum {
+  ENCRYPT_RESULT_PROP_0,
+  ENCRYPT_RESULT_PROP_POINTER,
+  ENCRYPT_RESULT_LAST_PROP
+};
+
+static GParamSpec *encrypt_result_pspecs[ENCRYPT_RESULT_LAST_PROP] = { NULL, };
+
+static void
+g_gpg_encrypt_result_set_property (GObject *object,
+                                   guint property_id,
+                                   const GValue *value,
+                                   GParamSpec *pspec)
+{
+  GGpgEncryptResult *encrypt_result = G_GPG_ENCRYPT_RESULT (object);
+
+  switch (property_id)
+    {
+    case ENCRYPT_RESULT_PROP_POINTER:
+      {
+        gpgme_encrypt_result_t pointer = g_value_get_pointer (value);
+        gpgme_result_ref (pointer);
+        encrypt_result->pointer = pointer;
+      }
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+g_gpg_encrypt_result_finalize (GObject *object)
+{
+  GGpgEncryptResult *encrypt_result = G_GPG_ENCRYPT_RESULT (object);
+
+  gpgme_result_unref (encrypt_result->pointer);
+
+  G_OBJECT_CLASS (g_gpg_encrypt_result_parent_class)->finalize (object);
+}
+
+static void
+g_gpg_encrypt_result_class_init (GGpgEncryptResultClass *klass)
+{
+  GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+  object_class->set_property = g_gpg_encrypt_result_set_property;
+  object_class->finalize = g_gpg_encrypt_result_finalize;
+
+  encrypt_result_pspecs[ENCRYPT_RESULT_PROP_POINTER] =
+    g_param_spec_pointer ("pointer", NULL, NULL,
+                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+
+  g_object_class_install_properties (object_class, ENCRYPT_RESULT_LAST_PROP,
+                                     encrypt_result_pspecs);
+}
+
+static void
+g_gpg_encrypt_result_init (GGpgEncryptResult *encrypt_result)
+{
+}
+
+/**
+ * g_gpg_encrypt_result_get_invalid_recipients:
+ * @encrypt_result: a #GGpgEncryptResult
+ *
+ * Returns: (transfer full) (element-type GGpgInvalidKey): a list of
+ * #GGpgInvalidKey
+ */
+GList *
+g_gpg_encrypt_result_get_invalid_recipients (GGpgEncryptResult *encrypt_result)
+{
+  gpgme_invalid_key_t invalid_recipients =
+    encrypt_result->pointer->invalid_recipients;
+  GList *result = NULL;
+
+  for (; invalid_recipients; invalid_recipients = invalid_recipients->next)
+    {
+      GGpgInvalidKey *invalid_recipient =
+        g_object_new (G_GPG_TYPE_INVALID_KEY, "pointer", invalid_recipients,
+                      "owner", encrypt_result, NULL);
+      result = g_list_append (result, invalid_recipient);
+    }
+  return result;
 }
 
 struct GGpgEncryptSource
@@ -3536,4 +3756,21 @@ g_gpg_ctx_encrypt_finish (GGpgCtx *ctx, GAsyncResult *result, GError **error)
 {
   g_return_val_if_fail (g_task_is_valid (result, ctx), FALSE);
   return g_task_propagate_boolean (G_TASK (result), error);
+}
+
+/**
+ * g_gpg_ctx_encrypt_result:
+ * @ctx: a #GGpgCtx
+ *
+ * Returns: (transfer full): a #GGpgEncryptResult
+ */
+GGpgEncryptResult *
+g_gpg_ctx_encrypt_result (GGpgCtx *ctx)
+{
+  gpgme_encrypt_result_t encrypt_result;
+
+  encrypt_result = gpgme_op_encrypt_result (ctx->pointer);
+  g_return_val_if_fail (encrypt_result, NULL);
+  return g_object_new (G_GPG_TYPE_ENCRYPT_RESULT, "pointer", encrypt_result,
+                       NULL);
 }
