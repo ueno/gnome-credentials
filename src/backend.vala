@@ -1,8 +1,9 @@
 namespace Credentials {
     abstract class Item : GLib.Object {
         public Collection collection { construct set; get; }
-
         public signal void changed ();
+
+        public abstract string get_label ();
 
         public virtual async void delete (GLib.Cancellable? cancellable) throws GLib.Error {
         }
@@ -17,6 +18,7 @@ namespace Credentials {
     abstract class Collection : GLib.Object {
         public string name { construct set; get; }
         public Backend backend { construct set; get; }
+        public abstract string item_type { get; }
         public abstract bool locked { get; }
 
         public abstract async void load_items () throws GLib.Error;
@@ -50,7 +52,6 @@ namespace Credentials {
     delegate void ProgressCallback (string label, double fraction);
 
     interface ItemGenerator : Collection {
-        public abstract string item_type { get; }
         public abstract void set_progress_callback (ProgressCallback callback);
         public abstract async void generate_item (Parameters parameters, GLib.Cancellable? cancellable) throws GLib.Error;
     }

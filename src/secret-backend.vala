@@ -24,7 +24,7 @@ namespace Credentials {
             return this._content.get_modified ();
         }
 
-        public string get_label () {
+        public override string get_label () {
             return this._content.get_label ();
         }
 
@@ -102,6 +102,12 @@ namespace Credentials {
         public Secret.Collection content {
             construct set {
                 this._content = value;
+            }
+        }
+
+        public override string item_type {
+            get {
+                return _("Password");
             }
         }
 

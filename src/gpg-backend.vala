@@ -70,7 +70,7 @@ namespace Credentials {
             Object (collection: collection, content: content);
         }
 
-        public string get_label () {
+        public override string get_label () {
             GGpg.UserId uid = this._content.get_uids ().first ().data;
             if (uid.email != "")
                 return uid.email;
@@ -140,7 +140,7 @@ namespace Credentials {
         public GGpg.Protocol protocol { construct set; get; }
         GLib.HashTable<string,GpgItem> _items;
 
-        public string item_type {
+        public override string item_type {
             get {
                 return _("PGP Key");
             }
