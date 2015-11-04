@@ -6,6 +6,7 @@ namespace Credentials {
 
         public SshItem item { construct set; get; }
 
+        Gtk.Entry _comment_entry;
         uint _set_comment_idle_handler = 0;
 
         public SshEditorDialog (SshItem item) {
@@ -34,7 +35,7 @@ namespace Credentials {
             this._set_comment_idle_handler = GLib.Idle.add (() => {
                     var window = (Gtk.Window) this.get_toplevel ();
                     item.set_comment.begin (
-                        entry.get_text (),
+                        this._comment_entry.get_text (),
                         (obj, res) => {
                             try {
                                 item.set_comment.end (res);
@@ -53,10 +54,10 @@ namespace Credentials {
             var row_index = 0;
             var label = create_name_label (_("Name"));
             properties_grid.attach (label, 0, row_index, 1, 1);
-            var entry = new Gtk.Entry ();
-            entry.set_text (item.get_comment ());
-            entry.notify["text"].connect (set_comment_in_idle);
-            properties_grid.attach (entry, 1, row_index, 1, 1);
+            this._comment_entry = new Gtk.Entry ();
+            this._comment_entry.set_text (item.get_comment ());
+            this._comment_entry.notify["text"].connect (set_comment_in_idle);
+            properties_grid.attach (this._comment_entry, 1, row_index, 1, 1);
             row_index++;
 
             var key_type = item.get_key_type ();
