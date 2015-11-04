@@ -7,12 +7,15 @@ gnome_credentials_SOURCES =			\
 	widget-factory.vala			\
 	list-panel.vala				\
 	password-list-panel.vala		\
+	key-list-panel.vala			\
 	secret-backend.vala			\
 	secret-widget-factory.vala		\
-	key-list-panel.vala			\
 	gpg-backend.vala			\
 	gpg-widget-factory.vala			\
 	gpg-helper.vala				\
+	ssh-backend.vala			\
+	ssh-widget-factory.vala			\
+	ssh-helper.vala				\
 	list-box-helper.vala			\
 	utils.vala				\
 	resources.c
@@ -24,7 +27,9 @@ gnome_credentials_LDADD =				\
 
 gresource_file = $(top_srcdir)/data/org.gnome.Credentials.gresource.xml
 
-AM_CPPFLAGS = -include config.h $(DEPS_CFLAGS) -I$(top_srcdir)/libgd
+AM_CPPFLAGS = -include config.h $(DEPS_CFLAGS) -I$(top_srcdir)/libgd \
+	-DGCR_API_SUBJECT_TO_CHANGE \
+	-DGCK_API_SUBJECT_TO_CHANGE
 AM_VALAFLAGS =					\
 	--target-glib=2.38			\
 	--vapidir=$(srcdir)			\
@@ -33,11 +38,14 @@ AM_VALAFLAGS =					\
 	--vapidir=$(top_srcdir)/libgd		\
 	--vapidir=$(top_builddir)/libgd		\
 	--pkg config				\
-	--pkg gtk+-3.0				\
-	--pkg pango				\
-	--pkg libsecret-1			\
-	--pkg gpgme-glib-1.0			\
+	--pkg extra				\
+	--pkg gcr-3				\
 	--pkg gd-1.0				\
+	--pkg gpgme-glib-1.0			\
+	--pkg gtk+-3.0				\
+	--pkg libsecret-1			\
+	--pkg pango				\
+	--pkg pkcs11				\
 	--pkg posix				\
 	--gresources $(gresource_file)
 
@@ -45,7 +53,7 @@ resource_files = $(shell $(GLIB_COMPILE_RESOURCES) --generate-dependencies --sou
 resources.c: $(gresource_file) $(resource_files)
 	$(AM_V_GEN) $(GLIB_COMPILE_RESOURCES) --target=$@ --sourcedir=$(top_srcdir)/data --generate-source $<
 
-EXTRA_DIST = config.vapi
+EXTRA_DIST = config.vapi extra.vapi
 
 GITIGNOREFILES = *.c *.stamp
 

@@ -1,4 +1,11 @@
 namespace Credentials {
+    static string format_path (string path) {
+        var home_dir = GLib.Environment.get_home_dir ();
+        if (path.has_prefix (home_dir))
+            return GLib.Path.build_filename ("~", path.substring (home_dir.length));
+        return path;
+    }
+
     enum DateFormat {
         REGULAR,
         FULL

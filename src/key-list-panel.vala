@@ -7,7 +7,10 @@ namespace Credentials {
         construct {
             this._generator_action_group = new GLib.SimpleActionGroup ();
 
-            var backend = new GpgBackend ("Gpg");
+            Backend backend = new GpgBackend ("Gpg");
+            WidgetFactory factory = new GpgWidgetFactory ();
+            register_backend (backend, factory);
+
             backend.collection_added.connect ((_collection) => {
                     var collection = (GpgCollection) _collection;
                     if (collection.protocol == GGpg.Protocol.OPENPGP) {
@@ -19,15 +22,16 @@ namespace Credentials {
                     }
                 });
 
-            var factory = new GpgWidgetFactory ();
-            register_backend (backend, factory);
-
             this._generator_menu = new GLib.Menu ();
             var item = new GLib.MenuItem (_("Generate PGP Key"), "openpgp");
             this._generator_menu.append_item (item);
             this._generator_popover = new Gtk.Popover (null);
             this._generator_popover.bind_model (this._generator_menu,
                                                 "generator");
+
+            backend = new SshBackend ("Ssh");
+            factory = new SshWidgetFactory ();
+            register_backend (backend, factory);
 
             map.connect (on_map);
         }
