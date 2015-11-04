@@ -141,8 +141,8 @@ namespace Credentials {
         }
 
         void on_items_changed () {
-            var seen = new GLib.HashTable<string,void*> (GLib.str_hash,
-                                                         GLib.str_equal);
+            var seen = new GLib.GenericSet<string> (GLib.str_hash,
+                                                    GLib.str_equal);
             GLib.List<Secret.Item> items = null;
             if (!_content.get_locked ())
                 items = _content.get_items ();

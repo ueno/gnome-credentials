@@ -171,8 +171,8 @@ namespace Credentials {
         }
 
         public override async void load_items () throws GLib.Error {
-            var seen = new GLib.HashTable<string,void*> (GLib.str_hash,
-                                                         GLib.str_equal);
+            var seen = new GLib.GenericSet<string> (GLib.str_hash,
+                                                    GLib.str_equal);
             var ctx = new GGpg.Ctx ();
 
             ctx.protocol = protocol;
