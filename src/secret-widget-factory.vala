@@ -10,12 +10,16 @@ namespace Credentials {
 
         public SecretItem item { construct set; get; }
 
+        uint _set_label_idle_handler = 0;
+        uint _set_password_idle_handler = 0;
+
         public SecretEditorDialog (SecretItem item) {
             Object (item: item, use_header_bar: 1);
         }
 
         construct {
             label_entry.set_text (item.get_label ());
+            label_entry.notify["text"].connect (set_label_in_idle);
             item.load_secret.begin (null, (obj, res) => {
                     try {
                         item.load_secret.end (res);
@@ -25,9 +29,10 @@ namespace Credentials {
                     }
 
                     var secret = item.get_secret ();
-                    if (secret != null)
+                    if (secret != null) {
                         password_entry.set_text (secret.get_text ());
-                    else {
+                        password_entry.notify["text"].connect (set_password_in_idle);
+                    } else {
                         password_entry.set_text ("");
                         password_entry.set_sensitive (false);
                     }
@@ -36,6 +41,63 @@ namespace Credentials {
                                              password_entry, "visibility",
                                              GLib.BindingFlags.SYNC_CREATE |
                                              GLib.BindingFlags.BIDIRECTIONAL);
+        }
+
+        void set_label_in_idle () {
+            if (this._set_label_idle_handler > 0) {
+                GLib.Source.remove (this._set_label_idle_handler);
+                this._set_label_idle_handler = 0;
+            }
+
+            this._set_label_idle_handler = GLib.Idle.add (() => {
+                    var text = label_entry.get_text ();
+                    if (text != item.get_label ()) {
+                        var window = (Gtk.Window) this.get_toplevel ();
+                        item.set_label.begin (text, null, (obj, res) => {
+                                try {
+                                    item.set_label.end (res);
+                                } catch (GLib.Error e) {
+                                    show_error (window,
+                                                _("Couldn't write label: %s"),
+                                                e.message);
+                                }
+                            });
+                    }
+                    this._set_label_idle_handler = 0;
+                    return GLib.Source.REMOVE;
+                });
+        }
+
+        void set_password_in_idle () {
+            if (this._set_password_idle_handler > 0) {
+                GLib.Source.remove (this._set_password_idle_handler);
+                this._set_password_idle_handler = 0;
+            }
+
+            this._set_password_idle_handler = GLib.Idle.add (() => {
+                    var password = password_entry.get_text ();
+                    var secret = item.get_secret ();
+                    if (secret != null && password != secret.get_text ()) {
+                        var window = (Gtk.Window) this.get_toplevel ();
+                        var new_secret = new Secret.Value (
+                            password,
+                            password.length,
+                            secret.get_content_type ());
+                        item.set_secret.begin (
+                            new_secret, null,
+                            (obj, res) => {
+                                try {
+                                    item.set_secret.end (res);
+                                } catch (GLib.Error e) {
+                                    show_error (window,
+                                                _("Couldn't write password: %s"),
+                                                e.message);
+                                }
+                            });
+                    }
+                    this._set_password_idle_handler = 0;
+                    return GLib.Source.REMOVE;
+                });
         }
 
         void delete_item () {
@@ -64,49 +126,9 @@ namespace Credentials {
             confirm_dialog.show ();
         }
 
-        void save_item () {
-            var window = (Gtk.Window) this.get_toplevel ();
-            var label = label_entry.get_text ();
-            if (label != item.get_label ()) {
-                item.set_label.begin (label, null, (obj, res) => {
-                        try {
-                            item.set_label.end (res);
-                        } catch (GLib.Error e) {
-                            show_error (window,
-                                        _("Couldn't write label: %s"),
-                                        e.message);
-                        }
-                    });
-            }
-
-            var password = password_entry.get_text ();
-            var secret = item.get_secret ();
-            if (secret != null && password != secret.get_text ()) {
-                var new_secret = new Secret.Value (password, password.length,
-                                                   secret.get_content_type ());
-                item.set_secret.begin (
-                    new_secret, null,
-                    (obj, res) => {
-                        try {
-                            item.set_secret.end (res);
-                        } catch (GLib.Error e) {
-                            show_error (window,
-                                        _("Couldn't write password: %s"),
-                                        e.message);
-                        }
-                    });
-            }
-        }
-
         public override void response (int res) {
-            switch (res) {
-            case EditorResponse.DELETE:
+            if (res == EditorResponse.DELETE)
                 delete_item ();
-                break;
-            case EditorResponse.DONE:
-                save_item ();
-                break;
-            }
         }
     }
 
