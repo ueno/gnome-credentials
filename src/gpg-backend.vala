@@ -314,7 +314,7 @@ namespace Credentials {
                     format_parameters ((GpgGenerateParameters) parameters),
                     null, null,
                     cancellable);
-                load_items ();
+                load_items.begin ();
             } catch (GLib.Error e) {
                 throw e;
             }

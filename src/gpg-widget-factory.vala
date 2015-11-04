@@ -313,7 +313,7 @@ namespace Credentials {
                 var window = (Gtk.Window) this.get_toplevel ();
                 var app_window = (Window) window.get_transient_for ();
 
-                collection.generate_item (
+                collection.generate_item.begin (
                     parameters, null,
                     (obj, res) => {
                         try {
