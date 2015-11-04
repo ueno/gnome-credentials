@@ -11,6 +11,28 @@ namespace Credentials {
             Object (collection: collection, content: content);
         }
 
+        async void load_content (GLib.Cancellable? cancellable) throws GLib.Error {
+            var parser = new Gcr.Parser ();
+            var filename = this._content.get_filename ();
+            parser.set_filename (filename);
+            parser.parsed.connect (() => {
+                    this._content = parser.get_parsed ();
+                    changed ();
+                });
+
+            var file = GLib.File.new_for_path (filename);
+                file.read_async.begin (
+                    GLib.Priority.DEFAULT, null, (obj, res) => {
+                        GLib.InputStream stream;
+                        try {
+                            stream = file.read_async.end (res);
+                        } catch (GLib.Error e) {
+                            return;
+                        }
+                        parser.parse_stream_async.begin (stream, null);
+                    });
+        }
+
         public override string get_label () {
             return format_path (this._content.get_filename ());
         }
@@ -21,6 +43,44 @@ namespace Credentials {
 
         public string get_comment () {
             return this._content.get_label ();
+        }
+
+        public async void set_comment (string comment) throws GLib.Error {
+            var mapped = new GLib.MappedFile (this._content.get_filename (),
+                                              false);
+            var bytes = mapped.get_bytes ();
+            var count = 0;
+            var offset = 0;
+            while (offset < bytes.get_size ()) {
+                if (bytes.get (offset++) == ' ') {
+                    count++;
+                    while (offset < bytes.get_size () &&
+                           bytes.get (offset) == ' ')
+                        offset++;
+                }
+                if (count == 2)
+                    break;
+            }
+
+            GLib.ByteArray buffer;
+
+            if (count == 0)
+                throw new GLib.IOError.FAILED ("not an OpenSSH public key");
+
+            buffer = GLib.Bytes.unref_to_array (bytes);
+            if (count == 1)
+                buffer.append (new uint8[1] { ' ' });
+            else if (offset < buffer.len)
+                buffer.remove_range (offset, buffer.len - offset);
+            buffer.append (comment.data);
+
+            var file = GLib.File.new_for_path (this._content.get_filename ());
+            file.replace_contents (buffer.data,
+                                   null,
+                                   true,
+                                   GLib.FileCreateFlags.NONE,
+                                   null);
+            load_content.begin (null);
         }
 
         public ulong get_key_type () {

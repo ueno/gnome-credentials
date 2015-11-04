@@ -6,6 +6,8 @@ namespace Credentials {
 
         public SshItem item { construct set; get; }
 
+        uint _idle_handler = 0;
+
         public SshEditorDialog (SshItem item) {
             Object (item: item, use_header_bar: 1);
         }
@@ -25,16 +27,27 @@ namespace Credentials {
 
         construct {
             var row_index = 0;
-            var label = create_name_label (_("File"));
+            var label = create_name_label (_("Name"));
             properties_grid.attach (label, 0, row_index, 1, 1);
-            label = create_value_label (format_path (item.get_path ()));
-            properties_grid.attach (label, 1, row_index, 1, 1);
-            row_index++;
+            var entry = new Gtk.Entry ();
+            entry.set_text (item.get_comment ());
+            entry.notify["text"].connect ((p) => {
+                    if (this._idle_handler > 0) {
+                        GLib.Source.remove (this._idle_handler);
+                        this._idle_handler = 0;
+                    }
 
-            label = create_name_label (_("Comment"));
-            properties_grid.attach (label, 0, row_index, 1, 1);
-            label = create_value_label (item.get_comment ());
-            properties_grid.attach (label, 1, row_index, 1, 1);
+                    this._idle_handler = GLib.Idle.add (() => {
+                            item.set_comment.begin (
+                                entry.get_text (),
+                                (obj, res) => {
+                                    item.set_comment.end (res);
+                                });
+                            this._idle_handler = 0;
+                            return GLib.Source.REMOVE;
+                        });
+                });
+            properties_grid.attach (entry, 1, row_index, 1, 1);
             row_index++;
 
             var key_type = item.get_key_type ();
@@ -48,6 +61,12 @@ namespace Credentials {
             label = create_name_label (_("Strength"));
             properties_grid.attach (label, 0, row_index, 1, 1);
             label = create_value_label (key_size == 0 ? _("Unknown") : _("%u bits").printf (key_size));
+            properties_grid.attach (label, 1, row_index, 1, 1);
+            row_index++;
+
+            label = create_name_label (_("Location"));
+            properties_grid.attach (label, 0, row_index, 1, 1);
+            label = create_value_label (format_path (item.get_path ()));
             properties_grid.attach (label, 1, row_index, 1, 1);
             row_index++;
 
