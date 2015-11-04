@@ -6,7 +6,7 @@ namespace Credentials {
 
         public SshItem item { construct set; get; }
 
-        uint _idle_handler = 0;
+        uint _set_comment_idle_handler = 0;
 
         public SshEditorDialog (SshItem item) {
             Object (item: item, use_header_bar: 1);
@@ -32,18 +32,18 @@ namespace Credentials {
             var entry = new Gtk.Entry ();
             entry.set_text (item.get_comment ());
             entry.notify["text"].connect ((p) => {
-                    if (this._idle_handler > 0) {
-                        GLib.Source.remove (this._idle_handler);
-                        this._idle_handler = 0;
+                    if (this._set_comment_idle_handler > 0) {
+                        GLib.Source.remove (this._set_comment_idle_handler);
+                        this._set_comment_idle_handler = 0;
                     }
 
-                    this._idle_handler = GLib.Idle.add (() => {
+                    this._set_comment_idle_handler = GLib.Idle.add (() => {
                             item.set_comment.begin (
                                 entry.get_text (),
                                 (obj, res) => {
                                     item.set_comment.end (res);
                                 });
-                            this._idle_handler = 0;
+                            this._set_comment_idle_handler = 0;
                             return GLib.Source.REMOVE;
                         });
                 });
