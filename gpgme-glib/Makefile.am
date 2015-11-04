@@ -25,18 +25,16 @@ CLEANFILES += *-t
 
 if HAVE_INTROSPECTION
 -include $(INTROSPECTION_MAKEFILE)
-INTROSPECTION_GIRS =
+INTROSPECTION_GIRS = Gpgme-1.0.gir
 INTROSPECTION_SCANNER_ARGS = --add-include-path=$(builddir)
 INTROSPECTION_COMPILER_ARGS = --includedir=$(srcdir)
 
-Gpgme.gir: libgpgme-glib.la
-Gpgme_gir_SCANNERFLAGS = --warn-all --pkg-export=gpgme-glib --namespace=Gpgme --identifier-prefix=GGpg --symbol-prefix=g_gpg $(GPGME_GLIB_STATIC_DEPENDENCIES)
-Gpgme_gir_INCLUDES = GLib-2.0 GObject-2.0 Gio-2.0
-Gpgme_gir_CFLAGS = $(libgpgme_glib_la_CFLAGS)
-Gpgme_gir_LIBS = libgpgme-glib.la
-Gpgme_gir_FILES = $(libgpgme_glib_la_sources) $(libgpgme_glib_la_headers)
-
-INTROSPECTION_GIRS += Gpgme.gir
+Gpgme-1.0.gir: libgpgme-glib.la
+Gpgme_1_0_gir_SCANNERFLAGS = --warn-all --pkg-export=gpgme-glib --namespace=Gpgme --identifier-prefix=GGpg --symbol-prefix=g_gpg $(GPGME_GLIB_STATIC_DEPENDENCIES)
+Gpgme_1_0_gir_INCLUDES = GLib-2.0 GObject-2.0 Gio-2.0
+Gpgme_1_0_gir_CFLAGS = $(libgpgme_glib_la_CFLAGS)
+Gpgme_1_0_gir_LIBS = libgpgme-glib.la
+Gpgme_1_0_gir_FILES = $(libgpgme_glib_la_sources) $(libgpgme_glib_la_headers)
 
 CLEANFILES += $(INTROSPECTION_GIRS)
 endif
@@ -44,18 +42,18 @@ endif
 if ENABLE_VAPIGEN
 -include $(VAPIGEN_MAKEFILE)
 
-gpgme-glib.vapi: Gpgme.gir
+gpgme-glib.vapi: Gpgme-1.0.gir
 
 VAPIGEN_VAPIS = gpgme-glib.vapi
 
 gpgme_glib_vapi_DEPS = gio-2.0
 gpgme_glib_vapi_METADATADIRS = $(srcdir)
-gpgme_glib_vapi_FILES = Gpgme.gir
+gpgme_glib_vapi_FILES = Gpgme-1.0.gir
 
 noinst_DATA = $(VAPIGEN_VAPIS)
 
 DISTCLEANFILES += $(VAPIGEN_VAPIS)
-EXTRA_DIST += Gpgme.metadata
+EXTRA_DIST += Gpgme-1.0.metadata
 endif
 
 -include $(top_srcdir)/git.mk
