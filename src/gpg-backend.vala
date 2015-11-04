@@ -98,7 +98,7 @@ namespace Credentials {
             foreach (var attribute in attributes) {
                 var matched = true;
                 foreach (var word in words) {
-                    if (attribute.casefold ().str (word.casefold ()) == null) {
+                    if (attribute.casefold ().index_of (word.casefold ()) == -1) {
                         matched = false;
                         break;
                     }
