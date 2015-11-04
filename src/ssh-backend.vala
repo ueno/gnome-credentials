@@ -62,12 +62,10 @@ namespace Credentials {
                     break;
             }
 
-            GLib.ByteArray buffer;
-
             if (count == 0)
                 throw new GLib.IOError.FAILED ("not an OpenSSH public key");
 
-            buffer = GLib.Bytes.unref_to_array (bytes);
+            var buffer = GLib.Bytes.unref_to_array (bytes);
             if (count == 1)
                 buffer.append (new uint8[1] { ' ' });
             else if (offset < buffer.len)
