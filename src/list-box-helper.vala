@@ -24,7 +24,7 @@ namespace Credentials {
             var total_row_height = 0;
             var i = 0;
             foreach (var child in children) {
-                if (i >= num_max_rows)
+                if (i++ >= num_max_rows)
                     break;
                 int row_height;
                 child.get_preferred_height (out row_height, null);
