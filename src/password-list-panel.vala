@@ -2,9 +2,12 @@ namespace Credentials {
     class PasswordListPanel : ListPanel {
         SecretBackend _backend;
         ulong _notify_has_locked_id = 0;
+        ulong _unlock_button_clicked_id = 0;
 
         construct {
             this._backend = new SecretBackend ("Secret");
+            this._notify_has_locked_id = this._backend.notify["has-locked"].connect (on_notify_has_locked);
+
             register_backend (this._backend, new SecretWidgetFactory ());
             map.connect (on_map);
         }
@@ -45,8 +48,9 @@ namespace Credentials {
                                          toplevel.unlock_button, "visible",
                                          GLib.BindingFlags.DEFAULT |
                                          GLib.BindingFlags.SYNC_CREATE);
-            this._notify_has_locked_id = this._backend.notify["has-locked"].connect (on_notify_has_locked);
-            toplevel.unlock_button.clicked.connect (try_unlock_collections);
+
+            if (this._unlock_button_clicked_id == 0)
+                this._unlock_button_clicked_id = toplevel.unlock_button.clicked.connect (try_unlock_collections);
         }
     }
 }
