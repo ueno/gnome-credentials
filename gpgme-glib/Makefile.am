@@ -42,13 +42,13 @@ endif
 if ENABLE_VAPIGEN
 -include $(VAPIGEN_MAKEFILE)
 
-gpgme-glib.vapi: Gpgme-1.0.gir
+gpgme-glib-1.0.vapi: Gpgme-1.0.gir
 
-VAPIGEN_VAPIS = gpgme-glib.vapi
+VAPIGEN_VAPIS = gpgme-glib-1.0.vapi
 
-gpgme_glib_vapi_DEPS = gio-2.0
-gpgme_glib_vapi_METADATADIRS = $(srcdir)
-gpgme_glib_vapi_FILES = Gpgme-1.0.gir
+gpgme_glib_1_0_vapi_DEPS = gio-2.0
+gpgme_glib_1_0_vapi_METADATADIRS = $(srcdir)
+gpgme_glib_1_0_vapi_FILES = Gpgme-1.0.gir
 
 noinst_DATA = $(VAPIGEN_VAPIS)
 

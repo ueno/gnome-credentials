@@ -36,7 +36,7 @@ AM_VALAFLAGS =					\
 	--pkg gtk+-3.0				\
 	--pkg pango				\
 	--pkg libsecret-1			\
-	--pkg gpgme-glib			\
+	--pkg gpgme-glib-1.0			\
 	--pkg gd-1.0				\
 	--pkg posix				\
 	--gresources $(gresource_file)
