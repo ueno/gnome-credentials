@@ -25,28 +25,37 @@ namespace Credentials {
             return label;
         }
 
+        void set_comment_in_idle () {
+            if (this._set_comment_idle_handler > 0) {
+                GLib.Source.remove (this._set_comment_idle_handler);
+                this._set_comment_idle_handler = 0;
+            }
+
+            this._set_comment_idle_handler = GLib.Idle.add (() => {
+                    var window = (Gtk.Window) this.get_toplevel ();
+                    item.set_comment.begin (
+                        entry.get_text (),
+                        (obj, res) => {
+                            try {
+                                item.set_comment.end (res);
+                            } catch (GLib.Error e) {
+                                show_error (window,
+                                            _("Couldn't write comment: %s"),
+                                            e.message);
+                            }
+                        });
+                    this._set_comment_idle_handler = 0;
+                    return GLib.Source.REMOVE;
+                });
+        }
+
         construct {
             var row_index = 0;
             var label = create_name_label (_("Name"));
             properties_grid.attach (label, 0, row_index, 1, 1);
             var entry = new Gtk.Entry ();
             entry.set_text (item.get_comment ());
-            entry.notify["text"].connect ((p) => {
-                    if (this._set_comment_idle_handler > 0) {
-                        GLib.Source.remove (this._set_comment_idle_handler);
-                        this._set_comment_idle_handler = 0;
-                    }
-
-                    this._set_comment_idle_handler = GLib.Idle.add (() => {
-                            item.set_comment.begin (
-                                entry.get_text (),
-                                (obj, res) => {
-                                    item.set_comment.end (res);
-                                });
-                            this._set_comment_idle_handler = 0;
-                            return GLib.Source.REMOVE;
-                        });
-                });
+            entry.notify["text"].connect (set_comment_in_idle);
             properties_grid.attach (entry, 1, row_index, 1, 1);
             row_index++;
 
