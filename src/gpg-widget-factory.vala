@@ -188,7 +188,7 @@ namespace Credentials {
 
             label = create_name_label (_("Fingerprint"));
             properties_grid.attach (label, 0, row_index, 1, 1);
-            label = create_value_label (pubkey.fingerprint);
+            label = create_value_label (format_fingerprint (pubkey.fingerprint));
             properties_grid.attach (label, 1, row_index, 1, 1);
             row_index++;
 

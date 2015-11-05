@@ -16,6 +16,16 @@ namespace Credentials {
         return (owned) result;
     }
 
+    static string format_fingerprint (string fingerprint) {
+        var builder = new GLib.StringBuilder ();
+        for (var i = 0; i < fingerprint.length / 2; i++) {
+            if (i > 0)
+                builder.append_c (':');
+            builder.append (fingerprint[2 * i : 2 * i + 2]);
+        }
+        return builder.str;
+    }
+
     enum DateFormat {
         REGULAR,
         FULL
