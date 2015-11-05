@@ -6,6 +6,16 @@ namespace Credentials {
         return path;
     }
 
+    static string bytes_to_string (GLib.Bytes bytes) {
+        string *result = GLib.malloc0 (bytes.get_size () + 1);
+        char *dest = (char *) result;
+        GLib.Memory.copy (dest, bytes.get_data (), bytes.get_size ());
+        dest += bytes.get_size ();
+        *dest = '\0';
+
+        return (owned) result;
+    }
+
     enum DateFormat {
         REGULAR,
         FULL

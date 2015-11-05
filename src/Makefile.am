@@ -22,14 +22,14 @@ gnome_credentials_SOURCES =			\
 
 gnome_credentials_LDADD =				\
 	$(DEPS_LIBS)					\
+	$(LIBGCRYPT_LIBS)				\
 	$(top_builddir)/gpgme-glib/libgpgme-glib.la	\
 	$(top_builddir)/libgd/libgd.la
 
 gresource_file = $(top_srcdir)/data/org.gnome.Credentials.gresource.xml
 
-AM_CPPFLAGS = -include config.h $(DEPS_CFLAGS) -I$(top_srcdir)/libgd \
-	-DGCR_API_SUBJECT_TO_CHANGE \
-	-DGCK_API_SUBJECT_TO_CHANGE
+AM_CPPFLAGS = -include config.h $(DEPS_CFLAGS) $(LIBGCRYPT_CFLAGS) \
+	-I$(top_srcdir)/libgd
 AM_VALAFLAGS =					\
 	--target-glib=2.38			\
 	--vapidir=$(srcdir)			\
@@ -38,14 +38,12 @@ AM_VALAFLAGS =					\
 	--vapidir=$(top_srcdir)/libgd		\
 	--vapidir=$(top_builddir)/libgd		\
 	--pkg config				\
-	--pkg extra				\
-	--pkg gcr-3				\
+	--pkg gcrypt				\
 	--pkg gd-1.0				\
 	--pkg gpgme-glib-1.0			\
 	--pkg gtk+-3.0				\
 	--pkg libsecret-1			\
 	--pkg pango				\
-	--pkg pkcs11				\
 	--pkg posix				\
 	--gresources $(gresource_file)
 
@@ -53,7 +51,7 @@ resource_files = $(shell $(GLIB_COMPILE_RESOURCES) --generate-dependencies --sou
 resources.c: $(gresource_file) $(resource_files)
 	$(AM_V_GEN) $(GLIB_COMPILE_RESOURCES) --target=$@ --sourcedir=$(top_srcdir)/data --generate-source $<
 
-EXTRA_DIST = config.vapi extra.vapi
+EXTRA_DIST = config.vapi
 
 GITIGNOREFILES = *.c *.stamp
 

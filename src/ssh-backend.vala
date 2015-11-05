@@ -1,79 +1,44 @@
 namespace Credentials {
     class SshItem : Item {
-        Gcr.Parsed _content;
-        public Gcr.Parsed content {
+        SshPublicKey _content;
+        public SshPublicKey content {
             construct set {
                 this._content = value;
             }
         }
 
-        public SshItem (Collection collection, Gcr.Parsed content) {
+        public SshItem (Collection collection, SshPublicKey content) {
             Object (collection: collection, content: content);
         }
 
         async void load_content (GLib.Cancellable? cancellable) throws GLib.Error {
-            var parser = new Gcr.Parser ();
-            var filename = this._content.get_filename ();
-            parser.set_filename (filename);
-            parser.parsed.connect (() => {
-                    this._content = parser.get_parsed ();
-                    changed ();
-                });
-
-            var file = GLib.File.new_for_path (filename);
-                file.read_async.begin (
-                    GLib.Priority.DEFAULT, null, (obj, res) => {
-                        GLib.InputStream stream;
-                        try {
-                            stream = file.read_async.end (res);
-                        } catch (GLib.Error e) {
-                            return;
-                        }
-                        parser.parse_stream_async.begin (stream, null);
-                    });
+            var mapped = new GLib.MappedFile (this._content.path, false);
+            var bytes = mapped.get_bytes ();
+            this._content = SshPublicKey.parse (this._content.path, bytes);
+            changed ();
         }
 
         public override string get_label () {
-            return format_path (this._content.get_filename ());
+            return format_path (this._content.path);
         }
 
         public string get_path () {
-            return this._content.get_filename ();
+            return this._content.path;
         }
 
         public string get_comment () {
-            return this._content.get_label ();
+            return this._content.comment;
+        }
+
+        public string get_fingerprint () {
+            return this._content.get_fingerprint ();
         }
 
         public async void set_comment (string comment) throws GLib.Error {
-            var mapped = new GLib.MappedFile (this._content.get_filename (),
-                                              false);
-            var bytes = mapped.get_bytes ();
-            var count = 0;
-            var offset = 0;
-            while (offset < bytes.get_size ()) {
-                if (bytes.get (offset++) == ' ') {
-                    count++;
-                    while (offset < bytes.get_size () &&
-                           bytes.get (offset) == ' ')
-                        offset++;
-                }
-                if (count == 2)
-                    break;
-            }
-
-            if (count == 0)
-                throw new GLib.IOError.FAILED ("not an OpenSSH public key");
-
-            var buffer = GLib.Bytes.unref_to_array (bytes);
-            if (count == 1)
-                buffer.append (new uint8[1] { ' ' });
-            else if (offset < buffer.len)
-                buffer.remove_range (offset, buffer.len - offset);
-            buffer.append (comment.data);
-
-            var file = GLib.File.new_for_path (this._content.get_filename ());
-            file.replace_contents (buffer.data,
+            this._content.comment = comment;
+            var bytes = this._content.to_bytes ();
+            var file = GLib.File.new_for_path (this._content.path);
+            file.replace_contents (bytes.get_data (),
                                    null,
                                    true,
                                    GLib.FileCreateFlags.NONE,
@@ -81,15 +46,12 @@ namespace Credentials {
             load_content.begin (null);
         }
 
-        public ulong get_key_type () {
-            var attributes = this._content.get_attributes ();
-            var attribute = attributes.find (CKA.KEY_TYPE);
-            return attribute.get_ulong ();
+        public SshKeyType get_key_type () {
+            return this._content.key_type;
         }
 
         public uint get_key_size () {
-            return SshUtils.compute_key_size (get_key_type (),
-                                              this._content.get_attributes ());
+            return this._content.length;
         }
 
         public override int compare (Item other) {
@@ -97,16 +59,16 @@ namespace Credentials {
             if (difference != 0)
                 return difference;
 
-            var filename = this._content.get_filename ();
-            var other_filename = ((SshItem) other)._content.get_filename ();
+            var path = this._content.path;
+            var other_path = ((SshItem) other)._content.path;
 
-            return GLib.strcmp (filename, other_filename);
+            return GLib.strcmp (path, other_path);
         }
 
         public override bool match (string[] words) {
             string[] attributes = {};
-            attributes += GLib.Path.get_basename (this._content.get_filename ());
-            attributes += this._content.get_label ();
+            attributes += GLib.Path.get_basename (this._content.path);
+            attributes += this._content.comment;
 
             foreach (var attribute in attributes) {
                 var matched = true;
@@ -123,8 +85,7 @@ namespace Credentials {
         }
 
         public override async void delete (GLib.Cancellable? cancellable) throws GLib.Error {
-            var filename = this._content.get_filename ();
-            var file = GLib.File.new_for_path (filename);
+            var file = GLib.File.new_for_path (this._content.path);
             yield file.delete_async (GLib.Priority.DEFAULT, null);
             collection.item_removed (this);
         }
@@ -166,30 +127,22 @@ namespace Credentials {
                 if (!basename.has_suffix (".pub"))
                     continue;
 
-                var parser = new Gcr.Parser ();
                 var filename = GLib.Path.build_filename (path, basename);
-                parser.set_filename (filename);
-                parser.parsed.connect (() => {
-                        add_item (parser.get_parsed ());
-                    });
-
-                var file = GLib.File.new_for_path (filename);
-                file.read_async.begin (
-                    GLib.Priority.DEFAULT, null, (obj, res) => {
-                        GLib.InputStream stream;
-                        try {
-                            stream = file.read_async.end (res);
-                        } catch (GLib.Error e) {
-                            return;
-                        }
-                        parser.parse_stream_async.begin (stream, null);
-                    });
+                var mapped = new GLib.MappedFile (filename, false);
+                var bytes = mapped.get_bytes ();
+                try {
+                    var pubkey = SshPublicKey.parse (filename, bytes);
+                    add_item (pubkey);
+                } catch (GLib.Error e) {
+                    warning ("cannot read public key %s: %s",
+                             filename, e.message);
+                }
             }
         }
 
-        void add_item (Gcr.Parsed parsed) {
-            var item = new SshItem (this, parsed);
-            this._items.insert (parsed.get_filename (), item);
+        void add_item (SshPublicKey pubkey) {
+            var item = new SshItem (this, pubkey);
+            this._items.insert (pubkey.path, item);
             item_added (item);
         }
 
