@@ -1,15 +1,17 @@
 About gnome-credentials
 =======================
 
-gnome-credentials is an attempt to implement the new "Passwords and
-Keys" application design:
+gnome-credentials is a prototyping effort to implement the new
+"Passwords and Keys" application design:
+https://bugzilla.gnome.org/show_bug.cgi?id=711252
 https://raw.githubusercontent.com/gnome-design-team/gnome-mockups/master/passwords-and-keys/passwords-and-keys.png
 
 Currently only passwords and GnuPG keys are supported.  For GnuPG
 keys, the GPGME library is required:
 https://www.gnupg.org/related_software/swlist.html#gpgme
 
-Still very much work in progress.
+The code is largily based on Seahorse and might be merged back to it,
+once the design and features have been finalized.
 
 License
 =======
