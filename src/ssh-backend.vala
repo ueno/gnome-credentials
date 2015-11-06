@@ -1,20 +1,43 @@
 namespace Credentials {
+    errordomain SshError {
+        FAILED,
+        INVALID_FORMAT,
+        NOT_SUPPORTED
+    }
+
     class SshItem : Item {
-        SshPublicKey _content;
-        public SshPublicKey content {
+        SshKey _content;
+        public SshKey content {
             construct set {
                 this._content = value;
             }
         }
 
-        public SshItem (Collection collection, SshPublicKey content) {
+        public SshKeySpec spec {
+            get {
+                return this._content.spec;
+            }
+        }
+
+        public SshKeyType key_type {
+            get {
+                return this._content.spec.key_type;
+            }
+        }
+
+        public uint length {
+            get {
+                return this._content.blob.length;
+            }
+        }
+
+        public SshItem (Collection collection, SshKey content) {
             Object (collection: collection, content: content);
         }
 
         async void load_content (GLib.Cancellable? cancellable) throws GLib.Error {
-            var mapped = new GLib.MappedFile (this._content.path, false);
-            var bytes = mapped.get_bytes ();
-            this._content = SshPublicKey.parse (this._content.path, bytes);
+            this._content = ((SshBackend) collection.backend).parse (
+                this._content.path);
             changed ();
         }
 
@@ -22,12 +45,16 @@ namespace Credentials {
             return format_path (this._content.path);
         }
 
-        public string get_path () {
-            return this._content.path;
+        public string path {
+            get {
+                return this._content.path;
+            }
         }
 
-        public string get_comment () {
-            return this._content.comment;
+        public string comment {
+            get {
+                return this._content.comment;
+            }
         }
 
         public string get_fingerprint () {
@@ -44,14 +71,6 @@ namespace Credentials {
                                    GLib.FileCreateFlags.NONE,
                                    null);
             load_content.begin (null);
-        }
-
-        public SshKeyType get_key_type () {
-            return this._content.key_type;
-        }
-
-        public uint get_key_size () {
-            return this._content.length;
         }
 
         public override int compare (Item other) {
@@ -91,7 +110,23 @@ namespace Credentials {
         }
     }
 
-    class SshCollection : Collection {
+    class SshGenerateParameters : Parameters, GLib.Object {
+        public string path { construct set; get; }
+        public string comment { construct set; get; }
+        public SshKeyType key_type { construct set; get; }
+        public uint length { construct set; get; }
+        public int64 expires { construct set; get; }
+
+        public SshGenerateParameters (string path, string comment,
+                                      SshKeyType key_type,
+                                      uint length)
+        {
+            Object (path: path, comment: comment,
+                    key_type: key_type, length: length);
+        }
+    }
+
+    class SshCollection : Collection, ItemGenerator {
         GLib.HashTable<string,SshItem> _items;
 
         public override string item_type {
@@ -119,6 +154,8 @@ namespace Credentials {
         }
 
         public override async void load_items () throws GLib.Error {
+            var seen = new GLib.GenericSet<string> (GLib.str_hash,
+                                                    GLib.str_equal);
             var dir = GLib.Dir.open (path);
             while (true) {
                 var basename = dir.read_name ();
@@ -128,22 +165,33 @@ namespace Credentials {
                     continue;
 
                 var filename = GLib.Path.build_filename (path, basename);
-                var mapped = new GLib.MappedFile (filename, false);
-                var bytes = mapped.get_bytes ();
+
+                SshKey pubkey;
                 try {
-                    var pubkey = SshPublicKey.parse (filename, bytes);
-                    add_item (pubkey);
+                    pubkey = ((SshBackend) backend).parse (filename);
                 } catch (GLib.Error e) {
                     warning ("cannot read public key %s: %s",
                              filename, e.message);
+                    continue;
+                }
+
+                seen.add (filename);
+                if (!this._items.contains (pubkey.path)) {
+                    var item = new SshItem (this, pubkey);
+                    this._items.insert (pubkey.path, item);
+                    item_added (item);
                 }
             }
-        }
 
-        void add_item (SshPublicKey pubkey) {
-            var item = new SshItem (this, pubkey);
-            this._items.insert (pubkey.path, item);
-            item_added (item);
+            var iter = GLib.HashTableIter<string,SshItem> (this._items);
+            string path;
+            SshItem item;
+            while (iter.next (out path, out item)) {
+                if (!seen.contains (path)) {
+                    iter.remove();
+                    item_removed (item);
+                }
+            }
         }
 
         public override GLib.List<Item> get_items () {
@@ -154,6 +202,40 @@ namespace Credentials {
                 items.append (item);
             }
             return items;
+        }
+
+        string[] parameters_to_arguments (SshGenerateParameters parameters) {
+            var spec = ((SshBackend) backend).get_spec (parameters.key_type);
+            string[] args = { "ssh-keygen", "-q" };
+            args += "-f";
+            args += parameters.path;
+            args += "-b";
+            args += parameters.length.to_string ();
+            args += "-t";
+            args += spec.keygen_argument;
+            args += "-C";
+            args += parameters.comment;
+            return args;
+        }
+
+        public async void generate_item (Parameters parameters,
+                                         GLib.Cancellable? cancellable) throws GLib.Error {
+            var args = parameters_to_arguments (
+                (SshGenerateParameters) parameters);
+            var subprocess =
+                new GLib.Subprocess.newv (args,
+                                          GLib.SubprocessFlags.NONE);
+            try {
+                yield subprocess.wait_async (null);
+                if (subprocess.get_exit_status () != 0)
+                    throw new SshError.FAILED ("cannot generate key");
+                load_items.begin ();
+            } catch (GLib.Error e) {
+                throw e;
+            }
+        }
+
+        public void set_progress_callback (ProgressCallback callback) {
         }
 
         public override int compare (Collection other) {
@@ -169,6 +251,7 @@ namespace Credentials {
 
     class SshBackend : Backend {
         SshCollection _collection;
+        SshKeyParser _parser;
 
         public override bool has_locked {
             get {
@@ -178,6 +261,17 @@ namespace Credentials {
 
         public SshBackend (string name) {
             Object (name: name);
+            this._parser = new SshKeyParser ();
+        }
+
+        public SshKeySpec get_spec (SshKeyType type) {
+            return this._parser.get_spec (type);
+        }
+
+        public SshKey parse (string filename) throws GLib.Error {
+            var mapped = new GLib.MappedFile (filename, false);
+            var bytes = mapped.get_bytes ();
+            return this._parser.parse (filename, bytes);
         }
 
         public override async void load_collections () throws GLib.Error {

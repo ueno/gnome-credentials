@@ -15,7 +15,7 @@ gnome_credentials_SOURCES =			\
 	gpg-helper.vala				\
 	ssh-backend.vala			\
 	ssh-widget-factory.vala			\
-	ssh-helper.vala				\
+	ssh-parser.vala				\
 	list-box-helper.vala			\
 	utils.vala				\
 	resources.c
