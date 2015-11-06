@@ -44,5 +44,9 @@ class Credentials.Application : Gtk.Application
 }
 
 public int main (string[] args) {
+    GCrypt.check_version (GCrypt.VERSION);
+    GCrypt.control (GCrypt.ControlCommand.DISABLE_SECMEM, 0);
+    GCrypt.control (GCrypt.ControlCommand.INITIALIZATION_FINISHED, 0);
+
     return (new Credentials.Application ()).run (args);
 }
