@@ -11,7 +11,7 @@ keys, the GPGME library is required:
 https://www.gnupg.org/related_software/swlist.html#gpgme
 
 The code is largely based on Seahorse, and it will be eventually
-merged back to it, once the design and features have been finalized.
+merged back, once the design and features have been finalized.
 
 License
 =======
