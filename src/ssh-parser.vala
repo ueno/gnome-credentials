@@ -92,28 +92,28 @@ namespace Credentials {
             this._type_to_spec =
                 new GLib.HashTable<SshKeyType,SshKeySpec> (null, null);
 
-            register ("ssh-rsa", new SshKeySpecRSA (), null,
-                      new SshBlobParserRSA ());
-            register ("ssh-dss", new SshKeySpecDSA (), null,
-                      new SshBlobParserDSA ());
+            register ("ssh-rsa", new SshKeySpecRsa (), null,
+                      new SshBlobParserRsa ());
+            register ("ssh-dss", new SshKeySpecDsa (), null,
+                      new SshBlobParserDsa ());
 
             SshCurveSpec curve_spec;
 
-            curve_spec = new SshCurveSpecNISTP256 ();
+            curve_spec = new SshCurveSpecNistp256 ();
             register ("ecdsa-sha2-nistp256",
-                      new SshKeySpecECDSA (), curve_spec,
-                      new SshBlobParserECDSA (curve_spec));
-            curve_spec = new SshCurveSpecNISTP384 ();
+                      new SshKeySpecEcdsa (), curve_spec,
+                      new SshBlobParserEcdsa (curve_spec));
+            curve_spec = new SshCurveSpecNistp384 ();
             register ("ecdsa-sha2-nistp384",
-                      new SshKeySpecECDSA (), curve_spec,
-                      new SshBlobParserECDSA (curve_spec));
-            curve_spec = new SshCurveSpecNISTP521 ();
+                      new SshKeySpecEcdsa (), curve_spec,
+                      new SshBlobParserEcdsa (curve_spec));
+            curve_spec = new SshCurveSpecNistp521 ();
             register ("ecdsa-sha2-nistp521",
-                      new SshKeySpecECDSA (), curve_spec,
-                      new SshBlobParserECDSA (curve_spec));
+                      new SshKeySpecEcdsa (), curve_spec,
+                      new SshBlobParserEcdsa (curve_spec));
 
-            register ("ssh-ed25519", new SshKeySpecED25519 (), null,
-                      new SshBlobParserED25519 ());
+            register ("ssh-ed25519", new SshKeySpecEd25519 (), null,
+                      new SshBlobParserEd25519 ());
         }
 
         public void register (string magic, SshKeySpec spec,
@@ -196,7 +196,7 @@ namespace Credentials {
         }
     }
 
-    class SshKeySpecRSA : SshKeySpec, GLib.Object {
+    class SshKeySpecRsa : SshKeySpec, GLib.Object {
         public SshKeyType key_type { get { return SshKeyType.RSA; } }
         public uint min_length { get { return 1024; } }
         public uint max_length { get { return 4096; } }
@@ -207,13 +207,13 @@ namespace Credentials {
         public string label { get { return _("RSA"); } }
     }
 
-    class SshBlobRSA : SshBlob, GLib.Object {
+    class SshBlobRsa : SshBlob, GLib.Object {
         GCrypt.MPI _public_exponent;
         GCrypt.MPI _modulus;
 
         public uint length { get { return this._modulus.get_nbits (); } }
 
-        public SshBlobRSA (GCrypt.MPI public_exponent, GCrypt.MPI modulus) {
+        public SshBlobRsa (GCrypt.MPI public_exponent, GCrypt.MPI modulus) {
             this._public_exponent = public_exponent.copy ();
             this._modulus = modulus.copy ();
         }
@@ -228,7 +228,7 @@ namespace Credentials {
         }
     }
 
-    class SshBlobParserRSA : SshBlobParser, GLib.Object {
+    class SshBlobParserRsa : SshBlobParser, GLib.Object {
         public SshBlob parse (GLib.Bytes bytes) throws GLib.Error {
             var offset = 0;
 
@@ -236,11 +236,11 @@ namespace Credentials {
             var public_exponent = SshUtils.read_mpi (bytes, ref offset);
             var modulus = SshUtils.read_mpi (bytes, ref offset);
 
-            return new SshBlobRSA (public_exponent, modulus);
+            return new SshBlobRsa (public_exponent, modulus);
         }
     }
 
-    class SshKeySpecDSA : SshKeySpec, GLib.Object {
+    class SshKeySpecDsa : SshKeySpec, GLib.Object {
         public SshKeyType key_type { get { return SshKeyType.DSA; } }
         public uint min_length { get { return 1024; } }
         public uint max_length { get { return 3072; } }
@@ -252,13 +252,13 @@ namespace Credentials {
         public string label { get { return _("DSA"); } }
     }
 
-    class SshBlobDSA : SshBlob, GLib.Object {
+    class SshBlobDsa : SshBlob, GLib.Object {
         GCrypt.MPI _p;
         GCrypt.MPI _q;
         GCrypt.MPI _g;
         GCrypt.MPI _public_key;
 
-        public SshBlobDSA (GCrypt.MPI p, GCrypt.MPI q, GCrypt.MPI g,
+        public SshBlobDsa (GCrypt.MPI p, GCrypt.MPI q, GCrypt.MPI g,
                            GCrypt.MPI public_key)
         {
             this._p = p.copy ();
@@ -281,7 +281,7 @@ namespace Credentials {
         }
     }
 
-    class SshBlobParserDSA : SshBlobParser, GLib.Object {
+    class SshBlobParserDsa : SshBlobParser, GLib.Object {
         public SshBlob parse (GLib.Bytes bytes) throws GLib.Error {
             var offset = 0;
 
@@ -291,11 +291,11 @@ namespace Credentials {
             var g = SshUtils.read_mpi (bytes, ref offset);
             var public_key = SshUtils.read_mpi (bytes, ref offset);
 
-            return new SshBlobDSA (p, q, g, public_key);
+            return new SshBlobDsa (p, q, g, public_key);
         }
     }
 
-    class SshCurveSpecNISTP256 : SshCurveSpec, GLib.Object {
+    class SshCurveSpecNistp256 : SshCurveSpec, GLib.Object {
         public SshCurveType curve_type {
             get {
                 return SshCurveType.X9_62_PRIME256V1;
@@ -306,7 +306,7 @@ namespace Credentials {
         public uint length { get { return 256; } }
     }
 
-    class SshCurveSpecNISTP384 : SshCurveSpec, GLib.Object {
+    class SshCurveSpecNistp384 : SshCurveSpec, GLib.Object {
         public SshCurveType curve_type {
             get {
                 return SshCurveType.SECP384R1;
@@ -317,7 +317,7 @@ namespace Credentials {
         public uint length { get { return 384; } }
     }
 
-    class SshCurveSpecNISTP521 : SshCurveSpec, GLib.Object {
+    class SshCurveSpecNistp521 : SshCurveSpec, GLib.Object {
         public SshCurveType curve_type {
             get {
                 return SshCurveType.SECP521R1;
@@ -328,7 +328,7 @@ namespace Credentials {
         public uint length { get { return 521; } }
     }
 
-    class SshKeySpecECDSA : SshKeySpec, GLib.Object {
+    class SshKeySpecEcdsa : SshKeySpec, GLib.Object {
         public SshKeyType key_type { get { return SshKeyType.ECDSA; } }
         public uint min_length { get { return 256; } }
         public uint max_length { get { return 521; } }
@@ -339,11 +339,11 @@ namespace Credentials {
         public string label { get { return _("ECDSA"); } }
     }
 
-    class SshBlobECDSA : SshBlob, GLib.Object {
+    class SshBlobEcdsa : SshBlob, GLib.Object {
         SshCurveSpec _spec;
         string _point;
 
-        public SshBlobECDSA (SshCurveSpec spec, string point) {
+        public SshBlobEcdsa (SshCurveSpec spec, string point) {
             this._spec = spec;
             this._point = point;
         }
@@ -360,10 +360,10 @@ namespace Credentials {
         }
     }
 
-    class SshBlobParserECDSA : SshBlobParser, GLib.Object {
+    class SshBlobParserEcdsa : SshBlobParser, GLib.Object {
         SshCurveSpec _spec;
 
-        public SshBlobParserECDSA (SshCurveSpec spec) {
+        public SshBlobParserEcdsa (SshCurveSpec spec) {
             this._spec = spec;
         }
 
@@ -375,11 +375,11 @@ namespace Credentials {
             if (name != this._spec.name)
                 throw new SshError.INVALID_FORMAT ("curve name mismatch");
             var point = SshUtils.read_string (bytes, ref offset);
-            return new SshBlobECDSA (this._spec, point);
+            return new SshBlobEcdsa (this._spec, point);
         }
     }
 
-    class SshKeySpecED25519 : SshKeySpec, GLib.Object {
+    class SshKeySpecEd25519 : SshKeySpec, GLib.Object {
         public SshKeyType key_type { get { return SshKeyType.ED25519; } }
         public uint min_length { get { return 256; } }
         public uint max_length { get { return 256; } }
@@ -390,10 +390,10 @@ namespace Credentials {
         public string label { get { return _("Ed25519"); } }
     }
 
-    class SshBlobED25519 : SshBlob, GLib.Object {
+    class SshBlobEd25519 : SshBlob, GLib.Object {
         string _pk;
 
-        public SshBlobED25519 (string pk) {
+        public SshBlobEd25519 (string pk) {
             this._pk = pk;
         }
 
@@ -408,13 +408,13 @@ namespace Credentials {
         }
     }
 
-    class SshBlobParserED25519 : SshBlobParser, GLib.Object {
+    class SshBlobParserEd25519 : SshBlobParser, GLib.Object {
         public SshBlob parse (GLib.Bytes bytes) throws GLib.Error {
             var offset = 0;
 
             SshUtils.read_string (bytes, ref offset);
             var pk = SshUtils.read_string (bytes, ref offset);
-            return new SshBlobED25519 (pk);
+            return new SshBlobEd25519 (pk);
         }
     }
 
