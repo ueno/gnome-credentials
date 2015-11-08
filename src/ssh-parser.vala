@@ -5,13 +5,12 @@ namespace Credentials {
         public SshBlob blob { construct set; get; }
         public string comment { construct set; get; }
         public SshKeySpec spec { construct set; get; }
-        public SshCurveSpec curve_spec { construct set; get; }
 
         public SshKey (string path, string magic, SshBlob blob, string comment,
-                       SshKeySpec spec, SshCurveSpec? curve_spec)
+                       SshKeySpec spec)
         {
             Object (path: path, magic: magic, blob: blob, comment: comment,
-                    spec: spec, curve_spec: curve_spec);
+                    spec: spec);
         }
 
         static const uint8[] SPACE = { ' ' };
@@ -21,7 +20,13 @@ namespace Credentials {
             var buffer = new GLib.ByteArray ();
             buffer.append (magic.data);
             buffer.append (SPACE);
-            buffer.append (GLib.Base64.encode (blob.to_bytes ().get_data ()).data);
+
+            var blob_buffer = new GLib.ByteArray ();
+            SshUtils.write_string (blob_buffer, magic);
+            blob_buffer.append (blob.to_bytes ().get_data ());
+            var blob_bytes = GLib.ByteArray.free_to_bytes (blob_buffer);
+            buffer.append (GLib.Base64.encode (blob_bytes.get_data ()).data);
+
             buffer.append (SPACE);
             buffer.append (comment.data);
             buffer.append (NEWLINE);
@@ -41,15 +46,32 @@ namespace Credentials {
         ED25519
     }
 
-    interface SshKeySpec : GLib.Object {
-        public abstract SshKeyType key_type { get; }
-        public abstract uint min_length { get; }
-        public abstract uint max_length { get; }
-        public abstract uint default_length { get; }
+    struct SshKeySpec {
+        public SshKeyType key_type;
+        public uint min_length;
+        public uint max_length;
+        public uint default_length;
 
-        public abstract string keygen_argument { get; }
-        public abstract string default_filename { get; }
-        public abstract string label { get; }
+        public string keygen_argument;
+        public string default_filename;
+        public string label;
+
+        public SshKeySpec (SshKeyType key_type,
+                           uint min_length,
+                           uint max_length,
+                           uint default_length,
+                           string keygen_argument,
+                           string default_filename,
+                           string label)
+        {
+            this.key_type = key_type;
+            this.min_length = min_length;
+            this.max_length = max_length;
+            this.default_length = default_length;
+            this.keygen_argument = keygen_argument;
+            this.default_filename = default_filename;
+            this.label = label;
+        }
     }
 
     enum SshCurveType {
@@ -58,10 +80,18 @@ namespace Credentials {
         SECP521R1
     }
 
-    interface SshCurveSpec : GLib.Object {
-        public abstract SshCurveType curve_type { get; }
-        public abstract string name { get; }
-        public abstract uint length { get; }
+    struct SshCurveSpec {
+        public SshCurveType curve_type;
+        public string name;
+        public uint length;
+        public SshCurveSpec (SshCurveType curve_type,
+                             string name,
+                             uint length)
+        {
+            this.curve_type = curve_type;
+            this.name = name;
+            this.length = length;
+        }
     }
 
     interface SshBlob : GLib.Object {
@@ -75,44 +105,56 @@ namespace Credentials {
 
     class SshKeyParser : GLib.Object {
         GLib.HashTable<string,SshBlobParser> _blob_parsers;
-        GLib.HashTable<string,SshKeySpec> _specs;
-        GLib.HashTable<string,SshCurveSpec> _curve_specs;
-        GLib.HashTable<SshKeyType,SshKeySpec> _type_to_spec;
+        GLib.HashTable<string,SshKeySpec?> _specs;
+        GLib.HashTable<string,SshCurveSpec?> _curve_specs;
+        GLib.HashTable<SshKeyType,SshKeySpec?> _type_to_spec;
 
         construct {
             this._blob_parsers =
                 new GLib.HashTable<string,SshBlobParser> (GLib.str_hash,
                                                           GLib.str_equal);
             this._specs =
-                new GLib.HashTable<string,SshKeySpec> (GLib.str_hash,
+                new GLib.HashTable<string,SshKeySpec?> (GLib.str_hash,
                                                        GLib.str_equal);
             this._curve_specs =
-                new GLib.HashTable<string,SshCurveSpec> (GLib.str_hash,
+                new GLib.HashTable<string,SshCurveSpec?> (GLib.str_hash,
                                                          GLib.str_equal);
             this._type_to_spec =
-                new GLib.HashTable<SshKeyType,SshKeySpec> (null, null);
+                new GLib.HashTable<SshKeyType,SshKeySpec?> (null, null);
 
-            register ("ssh-rsa", new SshKeySpecRsa (), null,
-                      new SshBlobParserRsa ());
-            register ("ssh-dss", new SshKeySpecDsa (), null,
-                      new SshBlobParserDsa ());
+            SshKeySpec spec;
+
+            spec = SshKeySpec (SshKeyType.RSA, 1024, 4096, 2048,
+                               "rsa", "id_rsa", _("RSA"));
+            register ("ssh-rsa", spec, null, new SshBlobParserRsa ());
+
+            spec = SshKeySpec (SshKeyType.DSA, 1024, 3072, 2048,
+                               "dsa", "id_dsa", _("DSA"));
+            register ("ssh-dss", spec, null, new SshBlobParserDsa ());
+
+            spec = SshKeySpec (SshKeyType.ECDSA, 256, 521, 256,
+                               "ecdsa", "id_ecdsa", _("ECDSA"));
 
             SshCurveSpec curve_spec;
 
-            curve_spec = new SshCurveSpecNistp256 ();
-            register ("ecdsa-sha2-nistp256",
-                      new SshKeySpecEcdsa (), curve_spec,
-                      new SshBlobParserEcdsa (curve_spec));
-            curve_spec = new SshCurveSpecNistp384 ();
-            register ("ecdsa-sha2-nistp384",
-                      new SshKeySpecEcdsa (), curve_spec,
-                      new SshBlobParserEcdsa (curve_spec));
-            curve_spec = new SshCurveSpecNistp521 ();
-            register ("ecdsa-sha2-nistp521",
-                      new SshKeySpecEcdsa (), curve_spec,
+            curve_spec = SshCurveSpec (SshCurveType.X9_62_PRIME256V1,
+                                       "nistp256", 256);
+            register ("ecdsa-sha2-nistp256", spec, curve_spec,
                       new SshBlobParserEcdsa (curve_spec));
 
-            register ("ssh-ed25519", new SshKeySpecEd25519 (), null,
+            curve_spec = SshCurveSpec (SshCurveType.SECP384R1,
+                                       "nistp384", 384);
+            register ("ecdsa-sha2-nistp384", spec, curve_spec,
+                      new SshBlobParserEcdsa (curve_spec));
+
+            curve_spec = SshCurveSpec (SshCurveType.SECP521R1,
+                                       "nistp521", 521);
+            register ("ecdsa-sha2-nistp521", spec, curve_spec,
+                      new SshBlobParserEcdsa (curve_spec));
+
+            spec = SshKeySpec (SshKeyType.ED25519, 256, 256, 256,
+                               "ed25519", "id_ed25519", _("Ed25519"));
+            register ("ssh-ed25519", spec, null,
                       new SshBlobParserEd25519 ());
         }
 
@@ -192,19 +234,8 @@ namespace Credentials {
             var spec = this._specs.lookup (magic_string);
             var curve_spec = this._curve_specs.lookup (magic_string);
             return new SshKey (path, magic_string, blob, comment,
-                               spec, curve_spec);
+                               spec);
         }
-    }
-
-    class SshKeySpecRsa : SshKeySpec, GLib.Object {
-        public SshKeyType key_type { get { return SshKeyType.RSA; } }
-        public uint min_length { get { return 1024; } }
-        public uint max_length { get { return 4096; } }
-        public uint default_length { get { return 2048; } }
-
-        public string keygen_argument { get { return "rsa"; } }
-        public string default_filename { get { return "id_rsa"; } }
-        public string label { get { return _("RSA"); } }
     }
 
     class SshBlobRsa : SshBlob, GLib.Object {
@@ -238,18 +269,6 @@ namespace Credentials {
 
             return new SshBlobRsa (public_exponent, modulus);
         }
-    }
-
-    class SshKeySpecDsa : SshKeySpec, GLib.Object {
-        public SshKeyType key_type { get { return SshKeyType.DSA; } }
-        public uint min_length { get { return 1024; } }
-        public uint max_length { get { return 3072; } }
-        public uint default_length { get { return 2048; } }
-
-        public string magic { get { return "ssh-dss"; } }
-        public string keygen_argument { get { return "dsa"; } }
-        public string default_filename { get { return "id_dsa"; } }
-        public string label { get { return _("DSA"); } }
     }
 
     class SshBlobDsa : SshBlob, GLib.Object {
@@ -295,50 +314,6 @@ namespace Credentials {
         }
     }
 
-    class SshCurveSpecNistp256 : SshCurveSpec, GLib.Object {
-        public SshCurveType curve_type {
-            get {
-                return SshCurveType.X9_62_PRIME256V1;
-            }
-        }
-
-        public string name { get { return "nistp256"; } }
-        public uint length { get { return 256; } }
-    }
-
-    class SshCurveSpecNistp384 : SshCurveSpec, GLib.Object {
-        public SshCurveType curve_type {
-            get {
-                return SshCurveType.SECP384R1;
-            }
-        }
-
-        public string name { get { return "nistp384"; } }
-        public uint length { get { return 384; } }
-    }
-
-    class SshCurveSpecNistp521 : SshCurveSpec, GLib.Object {
-        public SshCurveType curve_type {
-            get {
-                return SshCurveType.SECP521R1;
-            }
-        }
-
-        public string name { get { return "nistp521"; } }
-        public uint length { get { return 521; } }
-    }
-
-    class SshKeySpecEcdsa : SshKeySpec, GLib.Object {
-        public SshKeyType key_type { get { return SshKeyType.ECDSA; } }
-        public uint min_length { get { return 256; } }
-        public uint max_length { get { return 521; } }
-        public uint default_length { get { return 256; } }
-
-        public string keygen_argument { get { return "ecdsa"; } }
-        public string default_filename { get { return "id_ecdsa"; } }
-        public string label { get { return _("ECDSA"); } }
-    }
-
     class SshBlobEcdsa : SshBlob, GLib.Object {
         SshCurveSpec _spec;
         string _point;
@@ -377,17 +352,6 @@ namespace Credentials {
             var point = SshUtils.read_string (bytes, ref offset);
             return new SshBlobEcdsa (this._spec, point);
         }
-    }
-
-    class SshKeySpecEd25519 : SshKeySpec, GLib.Object {
-        public SshKeyType key_type { get { return SshKeyType.ED25519; } }
-        public uint min_length { get { return 256; } }
-        public uint max_length { get { return 256; } }
-        public uint default_length { get { return 256; } }
-
-        public string keygen_argument { get { return "ed25519"; } }
-        public string default_filename { get { return "id_ed25519"; } }
-        public string label { get { return _("Ed25519"); } }
     }
 
     class SshBlobEd25519 : SshBlob, GLib.Object {
@@ -463,7 +427,17 @@ namespace Credentials {
             return result;
         }
 
+        static void write_length (GLib.ByteArray array, uint length) {
+            uint8[] data = new uint8[4];
+            data[0] = (uint8) (length << 24) & 0xFF;
+            data[1] = (uint8) (length << 16) & 0xFF;
+            data[2] = (uint8) (length << 8) & 0xFF;
+            data[3] = (uint8) length & 0xFF;
+            array.append (data);
+        }
+
         static void write_string (GLib.ByteArray array, string s) {
+            write_length (array, s.length);
             array.append (s.data);
         }
 
@@ -474,6 +448,7 @@ namespace Credentials {
             var data = new uchar[n_written];
 
             mpi.print (GCrypt.MPI.Format.SSH, data, n_written, out n_written);
+            write_length (array, data.length);
             array.append (data);
         }
     }
