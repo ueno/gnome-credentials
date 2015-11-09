@@ -1,6 +1,18 @@
 namespace Credentials {
     namespace GpgUtils {
-        static string format_protocol (GGpg.Protocol protocol) {
+        static string generator_progress_label (string what) {
+            if (what == "pk_dsa")
+                return _("Generating DSA key");
+            else if (what == "pk_elg")
+                return _("Generating ElGamal key");
+            else if (what == "primegen")
+                return _("Generating prime numbers");
+            else if (what == "need_entropy")
+                return _("Gathering entropy");
+            return_val_if_reached ("Generating key");
+        }
+
+        static string protocol_label (GGpg.Protocol protocol) {
             switch (protocol) {
             case GGpg.Protocol.OPENPGP:
                 return _("PGP");
@@ -11,27 +23,27 @@ namespace Credentials {
             }
         }
 
-        static string format_pubkey_algo (GGpg.PubkeyAlgo pubkey_algo) {
+        static string pubkey_algo_label (GGpg.PubkeyAlgo pubkey_algo) {
             switch (pubkey_algo) {
             case GGpg.PubkeyAlgo.RSA:
             case GGpg.PubkeyAlgo.RSA_E:
             case GGpg.PubkeyAlgo.RSA_S:
-                return "RSA";
+                return _("RSA");
             case GGpg.PubkeyAlgo.ELG:
             case GGpg.PubkeyAlgo.ELG_E:
-                return "ElGamal";
+                return _("ElGamal");
             case GGpg.PubkeyAlgo.DSA:
-                return "DSA";
+                return _("DSA");
             case GGpg.PubkeyAlgo.ECDSA:
-                return "ECDSA";
+                return _("ECDSA");
             case GGpg.PubkeyAlgo.ECDH:
-                return "ECDH";
+                return _("ECDH");
             default:
                 return_val_if_reached (_("Unknown"));
             }
         }
 
-        static string format_validity (GGpg.Validity validity) {
+        static string validity_label (GGpg.Validity validity) {
             switch (validity) {
             case GGpg.Validity.UNKNOWN:
                 return _("Unknown");
@@ -47,51 +59,6 @@ namespace Credentials {
                 return _("Ultimate");
             default:
                 return_val_if_reached (_("Invalid"));
-            }
-        }
-
-        static string format_key_type (GpgGenerateKeyType key_type) {
-            switch (key_type) {
-            case GpgGenerateKeyType.RSA_RSA:
-                return _("RSA and RSA");
-            case GpgGenerateKeyType.DSA_ELGAMAL:
-                return _("DSA and ElGamal");
-            case GpgGenerateKeyType.DSA:
-                return _("DSA (sign only)");
-            case GpgGenerateKeyType.RSA_SIGN:
-                return _("RSA (sign only)");
-            case GpgGenerateKeyType.ELGAMAL:
-                return _("ElGamal (encrypt only)");
-            case GpgGenerateKeyType.RSA_ENCRYPT:
-                return _("RSA (encrypt only)");
-            case GpgGenerateKeyType.ECC_ECC:
-                return _("ECC and ECC");
-            case GpgGenerateKeyType.ECC_SIGN:
-                return _("ECC (sign only)");
-            case GpgGenerateKeyType.ECC_ENCRYPT:
-                return _("ECC (encrypt only)");
-            default:
-                return_val_if_reached (null);
-            }
-        }
-
-        static GpgGenerateKeyLength get_generate_key_length (GpgGenerateKeyType key_type) {
-            switch (key_type) {
-            case GpgGenerateKeyType.RSA_RSA:
-            case GpgGenerateKeyType.RSA_SIGN:
-            case GpgGenerateKeyType.RSA_ENCRYPT:
-                return { 1024, 4096, 2048 };
-            case GpgGenerateKeyType.DSA_ELGAMAL:
-            case GpgGenerateKeyType.DSA:
-                return { 1024, 3072, 2048 };
-            case GpgGenerateKeyType.ELGAMAL:
-                return { 1024, 4096, 2048 };
-            case GpgGenerateKeyType.ECC_ECC:
-            case GpgGenerateKeyType.ECC_SIGN:
-            case GpgGenerateKeyType.ECC_ENCRYPT:
-                return { 256, 521, 256 };
-            default:
-                return_val_if_reached (null);
             }
         }
     }

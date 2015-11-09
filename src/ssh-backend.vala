@@ -110,16 +110,16 @@ namespace Credentials {
         }
     }
 
-    class SshGenerateParameters : Parameters, GLib.Object {
+    class SshGeneratedKeyParameters : GeneratedKeyParameters, GLib.Object {
         public string path { construct set; get; }
         public string comment { construct set; get; }
         public SshKeyType key_type { construct set; get; }
         public uint length { construct set; get; }
         public int64 expires { construct set; get; }
 
-        public SshGenerateParameters (string path, string comment,
-                                      SshKeyType key_type,
-                                      uint length)
+        public SshGeneratedKeyParameters (string path, string comment,
+                                          SshKeyType key_type,
+                                          uint length)
         {
             Object (path: path, comment: comment,
                     key_type: key_type, length: length);
@@ -204,7 +204,7 @@ namespace Credentials {
             return items;
         }
 
-        string[] parameters_to_arguments (SshGenerateParameters parameters) {
+        string[] parameters_to_arguments (SshGeneratedKeyParameters parameters) {
             var spec = ((SshBackend) backend).get_spec (parameters.key_type);
             string[] args = { "ssh-keygen", "-q" };
             args += "-f";
@@ -218,10 +218,10 @@ namespace Credentials {
             return args;
         }
 
-        public async void generate_item (Parameters parameters,
+        public async void generate_item (GeneratedKeyParameters parameters,
                                          GLib.Cancellable? cancellable) throws GLib.Error {
             var args = parameters_to_arguments (
-                (SshGenerateParameters) parameters);
+                (SshGeneratedKeyParameters) parameters);
             var subprocess =
                 new GLib.Subprocess.newv (args,
                                           GLib.SubprocessFlags.NONE);
@@ -233,9 +233,6 @@ namespace Credentials {
             } catch (GLib.Error e) {
                 throw e;
             }
-        }
-
-        public void set_progress_callback (ProgressCallback callback) {
         }
 
         public override int compare (Collection other) {

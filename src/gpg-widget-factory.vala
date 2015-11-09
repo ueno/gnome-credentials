@@ -167,7 +167,7 @@ namespace Credentials {
             var row_index = 0;
             var label = create_name_label (_("Owner trust"));
             properties_grid.attach (label, 0, row_index, 1, 1);
-            label = create_value_label (GpgUtils.format_validity (item.owner_trust));
+            label = create_value_label (GpgUtils.validity_label (item.owner_trust));
             properties_grid.attach (label, 1, row_index, 1, 1);
             row_index++;
 
@@ -176,7 +176,7 @@ namespace Credentials {
 
             label = create_name_label (_("Algorithm"));
             properties_grid.attach (label, 0, row_index, 1, 1);
-            label = create_value_label (GpgUtils.format_pubkey_algo (pubkey.pubkey_algo));
+            label = create_value_label (GpgUtils.pubkey_algo_label (pubkey.pubkey_algo));
             properties_grid.attach (label, 1, row_index, 1, 1);
             row_index++;
 
@@ -249,23 +249,12 @@ namespace Credentials {
 
         construct {
             var store = new Gtk.ListStore (2,
-                                           typeof (GpgGenerateKeyType),
+                                           typeof (GpgGeneratedKeySpec),
                                            typeof (string));
-            var enum_class =
-                (EnumClass) typeof (GpgGenerateKeyType).class_ref ();
-            for (var index = enum_class.minimum;
-                 index <= enum_class.maximum;
-                 index++) {
-                if (enum_class.get_value (index) == null)
-                    continue;
-
-                var key_type = (GpgGenerateKeyType) index;
-
+            foreach (var spec in collection.get_generated_key_specs ()) {
                 Gtk.TreeIter iter;
                 store.append (out iter);
-                store.set (iter,
-                           0, index,
-                           1, GpgUtils.format_key_type (key_type));
+                store.set (iter, 0, spec, 1, spec.label);
             }
 
             key_type_combobox.set_model (store);
@@ -282,12 +271,11 @@ namespace Credentials {
         void on_key_type_changed () {
             Gtk.TreeIter iter;
             key_type_combobox.get_active_iter (out iter);
-            GpgGenerateKeyType key_type;
-            key_type_combobox.get_model ().get (iter, 0, out key_type);
-            var length = GpgUtils.get_generate_key_length (key_type);
-            var adjustment = new Gtk.Adjustment (length._default,
-                                                 length.min,
-                                                 length.max,
+            GpgGeneratedKeySpec spec;
+            key_type_combobox.get_model ().get (iter, 0, out spec);
+            var adjustment = new Gtk.Adjustment (spec.default_length,
+                                                 spec.min_length,
+                                                 spec.max_length,
                                                  1,
                                                  1,
                                                  0);
@@ -299,14 +287,14 @@ namespace Credentials {
             if (res == Gtk.ResponseType.OK) {
                 Gtk.TreeIter iter;
                 key_type_combobox.get_active_iter (out iter);
-                GpgGenerateKeyType key_type;
-                key_type_combobox.get_model ().get (iter, 0, out key_type);
+                GpgGeneratedKeySpec spec;
+                key_type_combobox.get_model ().get (iter, 0, out spec);
 
-                var parameters = new GpgGenerateParameters (
+                var parameters = new GpgGeneratedKeyParameters (
+                    spec,
                     name_entry.get_text (),
                     email_entry.get_text (),
                     comment_entry.get_text (),
-                    key_type,
                     length_spinbutton.get_value_as_int (),
                     0);
 
@@ -344,7 +332,7 @@ namespace Credentials {
             box.pack_start (heading, false, false, 0);
 
             var protocol = ((GpgCollection) item.collection).protocol;
-            var name = new Gtk.Label (_("%s Key").printf (GpgUtils.format_protocol (protocol)));
+            var name = new Gtk.Label (_("%s Key").printf (GpgUtils.protocol_label (protocol)));
             context = name.get_style_context ();
             context.add_class ("key-list-type");
             context.add_class ("dim-label");

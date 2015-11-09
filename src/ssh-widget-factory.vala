@@ -228,7 +228,7 @@ namespace Credentials {
                 SshKeyType key_type;
                 key_type_combobox.get_model ().get (iter, 0, out key_type);
 
-                var parameters = new SshGenerateParameters (
+                var parameters = new SshGeneratedKeyParameters (
                     path_button.get_data ("credentails-selected-path"),
                     comment_entry.get_text (),
                     key_type,

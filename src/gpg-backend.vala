@@ -1,37 +1,70 @@
 namespace Credentials {
-    enum GpgGenerateKeyType {
+    enum GpgGeneratedKeyType {
         RSA_RSA,
         DSA_ELGAMAL,
-        DSA,
+        DSA_SIGN,
         RSA_SIGN,
-        ELGAMAL,
+        ELGAMAL_ENCRYPT,
         RSA_ENCRYPT,
         ECC_ECC,
         ECC_SIGN,
         ECC_ENCRYPT
     }
 
-    struct GpgGenerateKeyLength {
-        uint min;
-        uint max;
-        uint _default;
+    enum GpgGeneratedKeyUsage {
+        SIGN,
+        ENCRYPT,
+        SIGN_ENCRYPT
     }
 
-    class GpgGenerateParameters : Parameters, GLib.Object {
+    struct GpgGeneratedKeySpec {
+        public GpgGeneratedKeyType key_type;
+        public GpgGeneratedKeyUsage usage;
+        public GGpg.PubkeyAlgo algo;
+        public GGpg.PubkeyAlgo subkey_algo;
+        public uint min_length;
+        public uint max_length;
+        public uint default_length;
+
+        public string label;
+
+        public GpgGeneratedKeySpec (GpgGeneratedKeyType key_type,
+                                    GpgGeneratedKeyUsage usage,
+                                    GGpg.PubkeyAlgo algo,
+                                    GGpg.PubkeyAlgo subkey_algo,
+                                    uint min_length,
+                                    uint max_length,
+                                    uint default_length,
+                                    string label)
+        {
+            this.key_type = key_type;
+            this.usage = usage;
+            this.algo = algo;
+            this.subkey_algo = subkey_algo;
+            this.min_length = min_length;
+            this.max_length = max_length;
+            this.default_length = default_length;
+            this.label = label;
+        }
+    }
+
+    class GpgGeneratedKeyParameters : GeneratedKeyParameters, GLib.Object {
+        public GpgGeneratedKeySpec spec { construct set; get; }
         public string name { construct set; get; }
         public string email { construct set; get; }
         public string comment { construct set; get; }
-        public GpgGenerateKeyType key_type { construct set; get; }
         public uint length { construct set; get; }
         public int64 expires { construct set; get; }
 
-        public GpgGenerateParameters (string name, string email, string comment,
-                                      GpgGenerateKeyType key_type,
-                                      uint length,
-                                      int64 expires)
+        public GpgGeneratedKeyParameters (GpgGeneratedKeySpec spec,
+                                          string name,
+                                          string email,
+                                          string comment,
+                                          uint length,
+                                          int64 expires)
         {
-            Object (name: name, email: email, comment: comment,
-                    key_type: key_type, length: length, expires: expires);
+            Object (spec: spec, name: name, email: email, comment: comment,
+                    length: length, expires: expires);
         }
     }
 
@@ -139,17 +172,12 @@ namespace Credentials {
     class GpgCollection : Collection, ItemGenerator {
         public GGpg.Protocol protocol { construct set; get; }
         GLib.HashTable<string,GpgItem> _items;
+        GLib.List<GpgGeneratedKeySpec?> _specs;
 
         public override string item_type {
             get {
                 return _("PGP Key");
             }
-        }
-
-        ProgressCallback _progress_callback = null;
-
-        public void set_progress_callback (ProgressCallback progress_callback) {
-            this._progress_callback = progress_callback;
         }
 
         public override bool locked {
@@ -168,6 +196,69 @@ namespace Credentials {
         construct {
             this._items = new GLib.HashTable<string,GpgItem> (GLib.str_hash,
                                                               GLib.str_equal);
+            this._specs = null;
+            register (GpgGeneratedKeySpec (GpgGeneratedKeyType.RSA_RSA,
+                                           GpgGeneratedKeyUsage.SIGN_ENCRYPT,
+                                           GGpg.PubkeyAlgo.RSA,
+                                           GGpg.PubkeyAlgo.RSA,
+                                           1024, 4096, 2048,
+                                           _("RSA and RSA")));
+            register (GpgGeneratedKeySpec (GpgGeneratedKeyType.DSA_ELGAMAL,
+                                           GpgGeneratedKeyUsage.SIGN_ENCRYPT,
+                                           GGpg.PubkeyAlgo.DSA,
+                                           GGpg.PubkeyAlgo.ELG,
+                                           1024, 3072, 2048,
+                                           _("DSA and ElGamal")));
+            register (GpgGeneratedKeySpec (GpgGeneratedKeyType.DSA_SIGN,
+                                           GpgGeneratedKeyUsage.SIGN,
+                                           GGpg.PubkeyAlgo.DSA,
+                                           GGpg.PubkeyAlgo.NONE,
+                                           1024, 3072, 2048,
+                                           _("DSA (sign only)")));
+            register (GpgGeneratedKeySpec (GpgGeneratedKeyType.RSA_SIGN,
+                                           GpgGeneratedKeyUsage.SIGN,
+                                           GGpg.PubkeyAlgo.RSA,
+                                           GGpg.PubkeyAlgo.NONE,
+                                           1024, 4096, 2048,
+                                           _("RSA (sign only)")));
+            register (GpgGeneratedKeySpec (GpgGeneratedKeyType.ELGAMAL_ENCRYPT,
+                                           GpgGeneratedKeyUsage.ENCRYPT,
+                                           GGpg.PubkeyAlgo.ELG,
+                                           GGpg.PubkeyAlgo.NONE,
+                                           1024, 4096, 2048,
+                                           _("ElGamal (encrypt only)")));
+            register (GpgGeneratedKeySpec (GpgGeneratedKeyType.RSA_ENCRYPT,
+                                           GpgGeneratedKeyUsage.ENCRYPT,
+                                           GGpg.PubkeyAlgo.RSA,
+                                           GGpg.PubkeyAlgo.NONE,
+                                           1024, 4096, 2048,
+                                           _("RSA (encrypt only)")));
+            register (GpgGeneratedKeySpec (GpgGeneratedKeyType.ECC_ECC,
+                                           GpgGeneratedKeyUsage.SIGN_ENCRYPT,
+                                           GGpg.PubkeyAlgo.ECDSA,
+                                           GGpg.PubkeyAlgo.ECDH,
+                                           256, 521, 256,
+                                           _("ECC and ECC")));
+            register (GpgGeneratedKeySpec (GpgGeneratedKeyType.ECC_SIGN,
+                                           GpgGeneratedKeyUsage.SIGN,
+                                           GGpg.PubkeyAlgo.ECDSA,
+                                           GGpg.PubkeyAlgo.NONE,
+                                           256, 521, 256,
+                                           _("ECC (sign only)")));
+            register (GpgGeneratedKeySpec (GpgGeneratedKeyType.ECC_ENCRYPT,
+                                           GpgGeneratedKeyUsage.ENCRYPT,
+                                           GGpg.PubkeyAlgo.ECDH,
+                                           GGpg.PubkeyAlgo.NONE,
+                                           256, 521, 256,
+                                           _("ECC (encrypt only)")));
+        }
+
+        void register (GpgGeneratedKeySpec spec) {
+            this._specs.append (spec);
+        }
+
+        public GLib.List<GpgGeneratedKeySpec?> get_generated_key_specs () {
+            return this._specs.copy ();
         }
 
         public override async void load_items () throws GLib.Error {
@@ -212,66 +303,36 @@ namespace Credentials {
             return items;
         }
 
-        string format_parameters (GpgGenerateParameters parameters) {
+        string format_pubkey_algo (GGpg.PubkeyAlgo algo) {
+            return_val_if_fail (algo != GGpg.PubkeyAlgo.NONE, null);
+            var enum_class = (EnumClass) typeof (GGpg.PubkeyAlgo).class_ref ();
+            var enum_value = enum_class.get_value (algo);
+            return enum_value.value_nick.up ();
+        }
+
+        string format_parameters (GpgGeneratedKeyParameters parameters) {
             var buffer = new StringBuilder ();
             buffer.append ("<GnupgKeyParms format=\"internal\">\n");
-            switch (parameters.key_type) {
-            case GpgGenerateKeyType.RSA_RSA:
-                buffer.append ("Key-Type: RSA\n");
+            buffer.append_printf ("Key-Type: %s\n",
+                                  format_pubkey_algo (parameters.spec.algo));
+            switch (parameters.spec.usage) {
+            case GpgGeneratedKeyUsage.SIGN:
+            case GpgGeneratedKeyUsage.SIGN_ENCRYPT:
                 buffer.append ("Key-Usage: sign\n");
-                buffer.append_printf ("Key-Length: %u\n", parameters.length);
-                buffer.append ("Subkey-Type: RSA\n");
+                break;
+            case GpgGeneratedKeyUsage.ENCRYPT:
+                buffer.append ("Key-Usage: encrypt\n");
+                break;
+            }
+            buffer.append_printf ("Key-Length: %u\n", parameters.length);
+
+            if (parameters.spec.subkey_algo != GGpg.PubkeyAlgo.NONE) {
+                buffer.append_printf ("Subkey-Type: %s\n",
+                                      format_pubkey_algo (parameters.spec.subkey_algo));
+                // FIXME: we assume the generated subkey is only for
+                // encryption and has the same length as the primary key.
                 buffer.append ("Subkey-Usage: encrypt\n");
                 buffer.append_printf ("Subkey-Length: %u\n", parameters.length);
-                break;
-            case GpgGenerateKeyType.DSA_ELGAMAL:
-                buffer.append ("Key-Type: DSA\n");
-                buffer.append ("Key-Usage: sign\n");
-                buffer.append_printf ("Key-Length: %u\n", parameters.length);
-                buffer.append ("Subkey-Type: ELG-e\n");
-                buffer.append ("Subkey-Usage: encrypt\n");
-                buffer.append_printf ("Subkey-Length: %u\n", parameters.length);
-                break;
-            case GpgGenerateKeyType.DSA:
-                buffer.append ("Key-Type: DSA\n");
-                buffer.append ("Key-Usage: sign\n");
-                buffer.append_printf ("Key-Length: %u\n", parameters.length);
-                break;
-            case GpgGenerateKeyType.RSA_SIGN:
-                buffer.append ("Key-Type: RSA\n");
-                buffer.append ("Key-Usage: sign\n");
-                buffer.append_printf ("Key-Length: %u\n", parameters.length);
-                break;
-            case GpgGenerateKeyType.ELGAMAL:
-                buffer.append ("Key-Type: ELG-E\n");
-                buffer.append ("Key-Usage: encrypt\n");
-                buffer.append_printf ("Key-Length: %u\n", parameters.length);
-                break;
-            case GpgGenerateKeyType.RSA_ENCRYPT:
-                buffer.append ("Key-Type: RSA\n");
-                buffer.append ("Key-Usage: encrypt\n");
-                buffer.append_printf ("Key-Length: %u\n", parameters.length);
-                break;
-            case GpgGenerateKeyType.ECC_ECC:
-                buffer.append ("Key-Type: ECDSA\n");
-                buffer.append ("Key-Usage: sign\n");
-                buffer.append_printf ("Key-Length: %u\n", parameters.length);
-                buffer.append ("Subkey-Type: ECDH\n");
-                buffer.append ("Subkey-Usage: encrypt\n");
-                buffer.append_printf ("Subkey-Length: %u\n", parameters.length);
-                break;
-            case GpgGenerateKeyType.ECC_SIGN:
-                buffer.append ("Key-Type: ECDSA\n");
-                buffer.append ("Key-Usage: sign\n");
-                buffer.append_printf ("Key-Length: %u\n", parameters.length);
-                break;
-            case GpgGenerateKeyType.ECC_ENCRYPT:
-                buffer.append ("Key-Type: ECDH\n");
-                buffer.append ("Key-Usage: encrypt\n");
-                buffer.append_printf ("Key-Length: %u\n", parameters.length);
-                break;
-            default:
-                return_if_reached ();
             }
 
             buffer.append_printf ("Name-Real: %s\n", parameters.name);
@@ -284,34 +345,21 @@ namespace Credentials {
             return buffer.str;
         }
 
-        string get_progress_label (string what) {
-            if (what == "pk_dsa")
-                return _("Generating DSA key");
-            else if (what == "pk_elg")
-                return _("Generating ElGamal key");
-            else if (what == "primegen")
-                return _("Generating prime numbers");
-            else if (what == "need_entropy")
-                return _("Gathering entropy");
-            return_val_if_reached ("Generating key");
-        }
-
         void progress_callback_wrapper (string what, int type,
                                         int current, int total)
         {
-            this._progress_callback (get_progress_label (what),
-                                     (double) current / (double) total);
+            progress_changed (GpgUtils.generator_progress_label (what),
+                              (double) current / (double) total);
         }
 
-        public async void generate_item (Parameters parameters,
+        public async void generate_item (GeneratedKeyParameters parameters,
                                          GLib.Cancellable? cancellable) throws GLib.Error {
             var ctx = new GGpg.Ctx ();
             ctx.protocol = protocol;
-            if (this._progress_callback != null)
-                ctx.set_progress_callback (this.progress_callback_wrapper);
+            ctx.set_progress_callback (this.progress_callback_wrapper);
             try {
                 yield ctx.generate_key (
-                    format_parameters ((GpgGenerateParameters) parameters),
+                    format_parameters ((GpgGeneratedKeyParameters) parameters),
                     null, null,
                     cancellable);
                 load_items.begin ();

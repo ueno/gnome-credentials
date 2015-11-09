@@ -46,13 +46,11 @@ namespace Credentials {
         public abstract int compare (Backend other);
     }
 
-    interface Parameters : GLib.Object {
+    interface GeneratedKeyParameters : GLib.Object {
     }
 
-    delegate void ProgressCallback (string label, double fraction);
-
     interface ItemGenerator : Collection {
-        public abstract void set_progress_callback (ProgressCallback callback);
-        public abstract async void generate_item (Parameters parameters, GLib.Cancellable? cancellable) throws GLib.Error;
+        public signal void progress_changed (string label, double fraction);
+        public abstract async void generate_item (GeneratedKeyParameters parameters, GLib.Cancellable? cancellable) throws GLib.Error;
     }
 }
