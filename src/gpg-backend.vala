@@ -307,18 +307,18 @@ namespace Credentials {
             return items;
         }
 
-        string format_pubkey_algo (GGpg.PubkeyAlgo algo) {
+        string pubkey_algo_name (GGpg.PubkeyAlgo algo) {
             return_val_if_fail (algo != GGpg.PubkeyAlgo.NONE, null);
             var enum_class = (EnumClass) typeof (GGpg.PubkeyAlgo).class_ref ();
             var enum_value = enum_class.get_value (algo);
             return enum_value.value_nick.up ();
         }
 
-        string format_parameters (GpgGeneratedKeyParameters parameters) {
+        string parameters_to_string (GpgGeneratedKeyParameters parameters) {
             var buffer = new StringBuilder ();
             buffer.append ("<GnupgKeyParms format=\"internal\">\n");
             buffer.append_printf ("Key-Type: %s\n",
-                                  format_pubkey_algo (parameters.spec.algo));
+                                  pubkey_algo_name (parameters.spec.algo));
             switch (parameters.spec.usage) {
             case GpgGeneratedKeyUsage.SIGN:
             case GpgGeneratedKeyUsage.SIGN_ENCRYPT:
@@ -332,7 +332,7 @@ namespace Credentials {
 
             if (parameters.spec.subkey_algo != GGpg.PubkeyAlgo.NONE) {
                 buffer.append_printf ("Subkey-Type: %s\n",
-                                      format_pubkey_algo (parameters.spec.subkey_algo));
+                                      pubkey_algo_name (parameters.spec.subkey_algo));
                 // FIXME: we assume the generated subkey is only for
                 // encryption and has the same length as the primary key.
                 buffer.append ("Subkey-Usage: encrypt\n");
@@ -352,7 +352,7 @@ namespace Credentials {
         void progress_callback_wrapper (string what, int type,
                                         int current, int total)
         {
-            progress_changed (GpgUtils.generator_progress_label (what),
+            progress_changed (GpgUtils.format_generator_progress_type (what),
                               (double) current / (double) total);
         }
 
@@ -363,7 +363,7 @@ namespace Credentials {
             ctx.set_progress_callback (this.progress_callback_wrapper);
             try {
                 yield ctx.generate_key (
-                    format_parameters ((GpgGeneratedKeyParameters) parameters),
+                    parameters_to_string ((GpgGeneratedKeyParameters) parameters),
                     null, null,
                     cancellable);
                 load_items.begin (cancellable);

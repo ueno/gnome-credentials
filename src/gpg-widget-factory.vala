@@ -167,7 +167,7 @@ namespace Credentials {
             var row_index = 0;
             var label = create_name_label (_("Owner trust"));
             properties_grid.attach (label, 0, row_index, 1, 1);
-            label = create_value_label (GpgUtils.validity_label (item.owner_trust));
+            label = create_value_label (GpgUtils.format_validity (item.owner_trust));
             properties_grid.attach (label, 1, row_index, 1, 1);
             row_index++;
 
@@ -176,7 +176,7 @@ namespace Credentials {
 
             label = create_name_label (_("Algorithm"));
             properties_grid.attach (label, 0, row_index, 1, 1);
-            label = create_value_label (GpgUtils.pubkey_algo_label (pubkey.pubkey_algo));
+            label = create_value_label (GpgUtils.format_pubkey_algo (pubkey.pubkey_algo));
             properties_grid.attach (label, 1, row_index, 1, 1);
             row_index++;
 
@@ -332,7 +332,7 @@ namespace Credentials {
             box.pack_start (heading, false, false, 0);
 
             var protocol = ((GpgCollection) item.collection).protocol;
-            var name = new Gtk.Label (_("%s Key").printf (GpgUtils.protocol_label (protocol)));
+            var name = new Gtk.Label (_("%s Key").printf (GpgUtils.format_protocol (protocol)));
             context = name.get_style_context ();
             context.add_class ("key-list-type");
             context.add_class ("dim-label");

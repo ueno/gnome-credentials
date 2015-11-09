@@ -1,6 +1,6 @@
 namespace Credentials {
     namespace GpgUtils {
-        static string generator_progress_label (string what) {
+        static string format_generator_progress_type (string what) {
             if (what == "pk_dsa")
                 return _("Generating DSA key");
             else if (what == "pk_elg")
@@ -12,7 +12,7 @@ namespace Credentials {
             return_val_if_reached ("Generating key");
         }
 
-        static string protocol_label (GGpg.Protocol protocol) {
+        static string format_protocol (GGpg.Protocol protocol) {
             switch (protocol) {
             case GGpg.Protocol.OPENPGP:
                 return _("PGP");
@@ -23,7 +23,7 @@ namespace Credentials {
             }
         }
 
-        static string pubkey_algo_label (GGpg.PubkeyAlgo pubkey_algo) {
+        static string format_pubkey_algo (GGpg.PubkeyAlgo pubkey_algo) {
             switch (pubkey_algo) {
             case GGpg.PubkeyAlgo.RSA:
             case GGpg.PubkeyAlgo.RSA_E:
@@ -43,7 +43,7 @@ namespace Credentials {
             }
         }
 
-        static string validity_label (GGpg.Validity validity) {
+        static string format_validity (GGpg.Validity validity) {
             switch (validity) {
             case GGpg.Validity.UNKNOWN:
                 return _("Unknown");
