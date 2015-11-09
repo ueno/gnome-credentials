@@ -448,7 +448,6 @@ namespace Credentials {
             var data = new uchar[n_written];
 
             mpi.print (GCrypt.MPI.Format.SSH, data, n_written, out n_written);
-            write_length (array, data.length);
             array.append (data);
         }
     }
