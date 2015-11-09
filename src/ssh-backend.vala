@@ -142,6 +142,7 @@ namespace Credentials {
         }
 
         public string path { construct set; get; }
+        GLib.FileMonitor _monitor;
 
         public SshCollection (Backend backend, string name, string path)
         {
@@ -151,6 +152,28 @@ namespace Credentials {
         construct {
             this._items = new GLib.HashTable<string,SshItem> (GLib.str_hash,
                                                               GLib.str_equal);
+            var file = GLib.File.new_for_path (path);
+            try {
+                this._monitor = file.monitor_directory (GLib.FileMonitorFlags.NONE, null);
+                this._monitor.changed.connect (on_monitor_changed);
+            } catch (GLib.Error e) {
+                warning ("cannot monitor directory %s: %s", path, e.message);
+            }
+        }
+
+        void on_monitor_changed (GLib.File file,
+                                 GLib.File? other_file,
+                                 GLib.FileMonitorEvent event_type)
+        {
+            switch (event_type) {
+            case GLib.FileMonitorEvent.CHANGED:
+            case GLib.FileMonitorEvent.DELETED:
+            case GLib.FileMonitorEvent.CREATED:
+                load_items.begin (null);
+                break;
+            default:
+                break;
+            }
         }
 
         public override async void load_items (GLib.Cancellable? cancellable) throws GLib.Error {
