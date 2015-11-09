@@ -63,7 +63,7 @@ namespace Credentials {
         void on_collection_added (Collection collection) {
             collection.item_added.connect (on_item_added);
             collection.item_removed.connect (on_item_removed);
-            collection.load_items.begin ();
+            collection.load_items.begin (null);
             adjust_view ();
         }
 
@@ -114,7 +114,7 @@ namespace Credentials {
             this._store.remove_all ();
             foreach (var backend in this._backends) {
                 try {
-                    yield backend.load_collections ();
+                    yield backend.load_collections (null);
                 } catch (GLib.Error e) {
                     warning ("cannot load collections: %s", e.message);
                     continue;

@@ -261,7 +261,7 @@ namespace Credentials {
             return this._specs.copy ();
         }
 
-        public override async void load_items () throws GLib.Error {
+        public override async void load_items (GLib.Cancellable? cancellable) throws GLib.Error {
             var seen = new GLib.GenericSet<string> (GLib.str_hash,
                                                     GLib.str_equal);
             var ctx = new GGpg.Ctx ();
@@ -270,6 +270,8 @@ namespace Credentials {
             ctx.keylist_start (null, true);
 
             while (true) {
+                if (cancellable.is_cancelled ())
+                    return;
                 var key = ctx.keylist_next ();
                 if (key == null)
                     break;
@@ -286,6 +288,8 @@ namespace Credentials {
             string fingerprint;
             GpgItem item;
             while (iter.next (out fingerprint, out item)) {
+                if (cancellable.is_cancelled ())
+                    return;
                 if (!seen.contains (fingerprint)) {
                     iter.remove();
                     item_removed (item);
@@ -362,7 +366,7 @@ namespace Credentials {
                     format_parameters ((GpgGeneratedKeyParameters) parameters),
                     null, null,
                     cancellable);
-                load_items.begin ();
+                load_items.begin (cancellable);
             } catch (GLib.Error e) {
                 throw e;
             }
@@ -411,8 +415,10 @@ namespace Credentials {
                                                           GLib.str_equal);
         }
 
-        public override async void load_collections () throws GLib.Error {
+        public override async void load_collections (GLib.Cancellable? cancellable) throws GLib.Error {
             foreach (var entry in entries) {
+                if (cancellable.is_cancelled ())
+                    return;
                 var collection = new GpgCollection (this,
                                                     entry.name,
                                                     entry.protocol);

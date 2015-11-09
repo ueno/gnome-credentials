@@ -21,7 +21,7 @@ namespace Credentials {
         public abstract string item_type { get; }
         public abstract bool locked { get; }
 
-        public abstract async void load_items () throws GLib.Error;
+        public abstract async void load_items (GLib.Cancellable? cancellable) throws GLib.Error;
         public abstract GLib.List<Item> get_items ();
 
         public virtual async void unlock (GLib.Cancellable? cancellable) throws GLib.Error {
@@ -37,7 +37,7 @@ namespace Credentials {
         public string name { construct set; get; }
         public abstract bool has_locked { get; }
 
-        public abstract async void load_collections () throws GLib.Error;
+        public abstract async void load_collections (GLib.Cancellable? cancellable) throws GLib.Error;
         public abstract GLib.List<Collection> get_collections ();
 
         public signal void collection_added (Collection collection);

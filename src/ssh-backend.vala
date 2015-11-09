@@ -153,11 +153,13 @@ namespace Credentials {
                                                               GLib.str_equal);
         }
 
-        public override async void load_items () throws GLib.Error {
+        public override async void load_items (GLib.Cancellable? cancellable) throws GLib.Error {
             var seen = new GLib.GenericSet<string> (GLib.str_hash,
                                                     GLib.str_equal);
             var dir = GLib.Dir.open (path);
             while (true) {
+                if (cancellable.is_cancelled ())
+                    return;
                 var basename = dir.read_name ();
                 if (basename == null)
                     break;
@@ -187,6 +189,8 @@ namespace Credentials {
             string path;
             SshItem item;
             while (iter.next (out path, out item)) {
+                if (cancellable.is_cancelled ())
+                    return;
                 if (!seen.contains (path)) {
                     iter.remove();
                     item_removed (item);
@@ -229,7 +233,7 @@ namespace Credentials {
                 yield subprocess.wait_async (null);
                 if (subprocess.get_exit_status () != 0)
                     throw new SshError.FAILED ("cannot generate key");
-                load_items.begin ();
+                load_items.begin (cancellable);
             } catch (GLib.Error e) {
                 throw e;
             }
@@ -271,7 +275,7 @@ namespace Credentials {
             return this._parser.parse (filename, bytes);
         }
 
-        public override async void load_collections () throws GLib.Error {
+        public override async void load_collections (GLib.Cancellable? cancellable) throws GLib.Error {
             var sshdir =
                 GLib.Path.build_filename (GLib.Environment.get_home_dir (),
                                           ".ssh");

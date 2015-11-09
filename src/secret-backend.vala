@@ -175,9 +175,11 @@ namespace Credentials {
             backend.notify_property ("has-locked");
         }
 
-        public override async void load_items () throws GLib.Error {
+        public override async void load_items (GLib.Cancellable? cancellable) throws GLib.Error {
             if (!_content.get_locked ()) {
                 foreach (var item in _content.get_items ()) {
+                    if (cancellable.is_cancelled ())
+                        return;
                     add_item (item);
                 }
             }
@@ -258,19 +260,29 @@ namespace Credentials {
             Object (name: name);
         }
 
-        public override async void load_collections () throws GLib.Error {
+        public override async void load_collections (GLib.Cancellable? cancellable) throws GLib.Error {
             Secret.Service service =
                 yield Secret.Service.get (Secret.ServiceFlags.OPEN_SESSION,
-                                          null);
+                                          cancellable);
 
-            yield service.load_collections (null);
-            yield load_aliases (service);
+            if (cancellable.is_cancelled ())
+                return;
+
+            yield service.load_collections (cancellable);
+            if (cancellable.is_cancelled ())
+                return;
+
+            yield load_aliases (service, cancellable);
+            if (cancellable.is_cancelled ())
+                return;
 
             this._collections.remove_all ();
             var collections = service.get_collections ();
             foreach (var _collection in collections) {
-                var object_path = _collection.get_object_path ();
+                if (cancellable.is_cancelled ())
+                    return;
 
+                var object_path = _collection.get_object_path ();
                 if (this._aliases.lookup ("session") == object_path)
                     continue;
 
@@ -291,11 +303,13 @@ namespace Credentials {
             return collections;
         }
 
-        async void load_aliases (Secret.Service service) {
+        async void load_aliases (Secret.Service service, GLib.Cancellable? cancellable) {
             string[] names = { "default", "session", "login" };
 
             this._aliases.remove_all ();
             foreach (var name in names) {
+                if (cancellable.is_cancelled ())
+                    return;
                 try {
                     var object_path =
                         yield service.read_alias_dbus_path (name, null);
