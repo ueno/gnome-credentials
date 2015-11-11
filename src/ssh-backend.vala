@@ -46,6 +46,19 @@ namespace Credentials {
             }
         }
 
+        public bool authorized {
+            get {
+                return ((SshCollection) this.collection).is_authorized (this._content);
+            }
+            set {
+                try {
+                    ((SshCollection) this.collection).set_authorized (this._content, value, null);
+                } catch (GLib.Error e) {
+                    warning ("cannot set authorized: %s", e.message);
+                }
+            }
+        }
+
         public SshItem (Collection collection, SshKey content,
                         string path, string etag)
         {
@@ -155,6 +168,11 @@ namespace Credentials {
         public string path { construct set; get; }
         GLib.FileMonitor _monitor;
 
+        string _authorized_keys_path;
+        string _authorized_keys_etag;
+        GLib.Bytes _authorized_keys_bytes;
+        GLib.FileMonitor _authorized_keys_monitor;
+
         public SshCollection (Backend backend, string name, string path)
         {
             Object (backend: backend, name: name, path: path);
@@ -165,11 +183,22 @@ namespace Credentials {
                                                               GLib.str_equal);
             var file = GLib.File.new_for_path (path);
             try {
-                this._monitor = file.monitor_directory (GLib.FileMonitorFlags.NONE, null);
+                this._monitor =
+                    file.monitor_directory (GLib.FileMonitorFlags.NONE, null);
                 this._monitor.changed.connect (on_monitor_changed);
             } catch (GLib.Error e) {
                 warning ("cannot monitor directory %s: %s", path, e.message);
             }
+
+            this._authorized_keys_path = GLib.Path.build_filename (path, "authorized_keys");
+            var authorized_keys_file = GLib.File.new_for_path (this._authorized_keys_path);
+            try {
+                this._authorized_keys_monitor = authorized_keys_file.monitor_file (GLib.FileMonitorFlags.NONE, null);
+                this._authorized_keys_monitor.changed.connect (on_authorized_keys_monitor_changed);
+            } catch (GLib.Error e) {
+                warning ("cannot monitor file %s: %s", this._authorized_keys_path, e.message);
+            }
+            load_authorized_keys.begin (null);
         }
 
         void on_monitor_changed (GLib.File file,
@@ -180,7 +209,13 @@ namespace Credentials {
             case GLib.FileMonitorEvent.CHANGED:
             case GLib.FileMonitorEvent.DELETED:
             case GLib.FileMonitorEvent.CREATED:
-                load_items.begin (null);
+                load_items.begin (null, (obj, res) => {
+                        try {
+                            load_items.end (res);
+                        } catch (GLib.Error e) {
+                            warning ("cannot load items: %s", e.message);
+                        }
+                    });
                 break;
             default:
                 break;
@@ -234,6 +269,99 @@ namespace Credentials {
                     iter.remove();
                     item_removed (item);
                 }
+            }
+        }
+
+        public bool is_authorized (SshKey key) {
+            var memory = new GLib.MemoryInputStream.from_bytes (this._authorized_keys_bytes);
+            var input = new GLib.DataInputStream (memory);
+            var bytes = key.to_bytes ();
+            while (true) {
+                string line;
+                try {
+                    line = input.read_line ();
+                    if (line == null)
+                        break;
+                } catch (GLib.Error e) {
+                    warning ("cannot read line: %s", e.message);
+                    continue;
+                }
+                var index = line.index_of_char (' ');
+                if (index < 0)
+                    continue;
+                index = line.index_of_char (' ', index + 1);
+                if (index < 0)
+                    continue;
+                if (GLib.Memory.cmp (line.data, bytes.get_data (), index) == 0)
+                    return true;
+            }
+            return false;
+        }
+
+        public void set_authorized (SshKey key, bool authorized, GLib.Cancellable? cancellable) throws GLib.Error {
+            var memory = new GLib.MemoryInputStream.from_bytes (this._authorized_keys_bytes);
+            var input = new GLib.DataInputStream (memory);
+            var output = new GLib.MemoryOutputStream.resizable ();
+            var bytes = key.to_bytes ();
+            while (true) {
+                string line = input.read_line (null, cancellable);
+                if (line == null)
+                    break;
+                var index = line.index_of_char (' ');
+                if (index < 0)
+                    continue;
+                index = line.index_of_char (' ', index + 1);
+                if (index < 0)
+                    continue;
+                if (GLib.Memory.cmp (line.data, bytes.get_data (), index) == 0) {
+                    if (authorized)
+                        return;
+                } else {
+                    output.write (line.data, cancellable);
+                    output.write ("\n".data, cancellable);
+                }
+            }
+            if (authorized)
+                output.write_bytes (bytes, cancellable);
+            var size = output.get_data_size ();
+            var data = output.get_data ()[0:size];
+            var file = GLib.File.new_for_path (this._authorized_keys_path);
+            file.replace_contents (data,
+                                   this._authorized_keys_etag,
+                                   true,
+                                   GLib.FileCreateFlags.NONE,
+                                   out this._authorized_keys_etag,
+                                   cancellable);
+            this._authorized_keys_bytes = new GLib.Bytes (data);
+        }
+
+        public signal void authorized_keys_changed ();
+
+        async void load_authorized_keys (GLib.Cancellable? cancellable) throws GLib.Error {
+            var file = GLib.File.new_for_path (this._authorized_keys_path);
+            uint8[] contents;
+            string etag;
+            file.load_contents (cancellable,
+                                out contents,
+                                out etag);
+            if (etag != this._authorized_keys_etag) {
+                this._authorized_keys_bytes = new GLib.Bytes (contents);
+                authorized_keys_changed ();
+            }
+        }
+
+        void on_authorized_keys_monitor_changed (GLib.File file,
+                                                 GLib.File? other_file,
+                                                 GLib.FileMonitorEvent event_type)
+        {
+            switch (event_type) {
+            case GLib.FileMonitorEvent.CHANGED:
+            case GLib.FileMonitorEvent.DELETED:
+            case GLib.FileMonitorEvent.CREATED:
+                load_authorized_keys.begin (null);
+                break;
+            default:
+                break;
             }
         }
 

@@ -9,6 +9,8 @@ namespace Credentials {
         Gtk.Entry _comment_entry;
         uint _set_comment_idle_handler = 0;
 
+        Gtk.Switch _authorized_switch;
+
         public SshEditorDialog (SshItem item) {
             Object (item: item, use_header_bar: 1);
         }
@@ -83,6 +85,17 @@ namespace Credentials {
             properties_grid.attach (label, 0, row_index, 1, 1);
             label = create_value_label (format_fingerprint (item.get_fingerprint ()));
             properties_grid.attach (label, 1, row_index, 1, 1);
+            row_index++;
+
+            label = create_name_label (_("Remote Access"));
+            properties_grid.attach (label, 0, row_index, 1, 1);
+            this._authorized_switch = new Gtk.Switch ();
+            this._authorized_switch.set_halign (Gtk.Align.START);
+            item.bind_property ("authorized",
+                                this._authorized_switch, "active",
+                                GLib.BindingFlags.SYNC_CREATE |
+                                GLib.BindingFlags.BIDIRECTIONAL);
+            properties_grid.attach (this._authorized_switch, 1, row_index, 1, 1);
             row_index++;
 
             properties_grid.show_all ();
