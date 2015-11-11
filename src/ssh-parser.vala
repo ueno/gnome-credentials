@@ -11,13 +11,10 @@ namespace Credentials {
             Object (magic: magic, blob: blob, comment: comment, spec: spec);
         }
 
-        static const uint8[] SPACE = { ' ' };
-        static const uint8[] NEWLINE = { '\n' };
-
         public GLib.Bytes to_bytes () {
             var buffer = new GLib.ByteArray ();
             buffer.append (magic.data);
-            buffer.append (SPACE);
+            buffer.append (" ".data);
 
             var blob_buffer = new GLib.ByteArray ();
             SshUtils.write_string (blob_buffer, magic);
@@ -25,9 +22,9 @@ namespace Credentials {
             var blob_bytes = GLib.ByteArray.free_to_bytes (blob_buffer);
             buffer.append (GLib.Base64.encode (blob_bytes.get_data ()).data);
 
-            buffer.append (SPACE);
+            buffer.append (" ".data);
             buffer.append (comment.data);
-            buffer.append (NEWLINE);
+            buffer.append ("\n".data);
             return GLib.ByteArray.free_to_bytes (buffer);
         }
 
