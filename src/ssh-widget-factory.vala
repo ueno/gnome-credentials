@@ -36,6 +36,7 @@ namespace Credentials {
                     var window = (Gtk.Window) this.get_toplevel ();
                     item.set_comment.begin (
                         this._comment_entry.get_text (),
+                        null,
                         (obj, res) => {
                             try {
                                 item.set_comment.end (res);

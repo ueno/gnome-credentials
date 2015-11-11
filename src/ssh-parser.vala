@@ -1,16 +1,14 @@
 namespace Credentials {
     class SshKey : GLib.Object {
-        public string path { construct set; get; }
         public string magic { construct set; get; }
         public SshBlob blob { construct set; get; }
         public string comment { construct set; get; }
         public SshKeySpec spec { construct set; get; }
 
-        public SshKey (string path, string magic, SshBlob blob, string comment,
+        public SshKey (string magic, SshBlob blob, string comment,
                        SshKeySpec spec)
         {
-            Object (path: path, magic: magic, blob: blob, comment: comment,
-                    spec: spec);
+            Object (magic: magic, blob: blob, comment: comment, spec: spec);
         }
 
         static const uint8[] SPACE = { ' ' };
@@ -173,8 +171,7 @@ namespace Credentials {
             return this._type_to_spec.lookup (type);
         }
 
-        public SshKey parse (string path,
-                             GLib.Bytes bytes) throws GLib.Error
+        public SshKey parse (GLib.Bytes bytes) throws GLib.Error
         {
             int start_offset = 0;
             int end_offset = 0;
@@ -233,8 +230,7 @@ namespace Credentials {
             var blob = blob_parser.parse (key_bytes);
             var spec = this._specs.lookup (magic_string);
             var curve_spec = this._curve_specs.lookup (magic_string);
-            return new SshKey (path, magic_string, blob, comment,
-                               spec);
+            return new SshKey (magic_string, blob, comment, spec);
         }
     }
 

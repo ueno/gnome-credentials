@@ -31,23 +31,12 @@ namespace Credentials {
             }
         }
 
-        public SshItem (Collection collection, SshKey content) {
-            Object (collection: collection, content: content);
-        }
+        public string path { construct set; get; }
 
-        async void load_content (GLib.Cancellable? cancellable) throws GLib.Error {
-            this._content = ((SshBackend) collection.backend).parse (
-                this._content.path);
-            changed ();
-        }
-
-        public override string get_label () {
-            return format_path (this._content.path);
-        }
-
-        public string path {
-            get {
-                return this._content.path;
+        string _etag;
+        public string etag {
+            construct set {
+                this._etag = value;
             }
         }
 
@@ -57,20 +46,43 @@ namespace Credentials {
             }
         }
 
+        public SshItem (Collection collection, SshKey content,
+                        string path, string etag)
+        {
+            Object (collection: collection, content: content,
+                    path: path, etag: etag);
+        }
+
+        async void load_content (GLib.Cancellable? cancellable) throws GLib.Error {
+            var file = GLib.File.new_for_path (this.path);
+            uint8[] contents;
+            file.load_contents (cancellable, out contents, out this._etag);
+            var bytes = new GLib.Bytes (contents);
+            this._content = ((SshBackend) collection.backend).parse (bytes);
+            changed ();
+        }
+
+        public override string get_label () {
+            return format_path (this.path);
+        }
+
         public string get_fingerprint () {
             return this._content.get_fingerprint ();
         }
 
-        public async void set_comment (string comment) throws GLib.Error {
+        public async void set_comment (string comment,
+                                       GLib.Cancellable? cancellable) throws GLib.Error
+        {
             this._content.comment = comment;
             var bytes = this._content.to_bytes ();
-            var file = GLib.File.new_for_path (this._content.path);
+            var file = GLib.File.new_for_path (this.path);
             file.replace_contents (bytes.get_data (),
-                                   null,
+                                   this._etag,
                                    true,
                                    GLib.FileCreateFlags.NONE,
-                                   null);
-            load_content.begin (null);
+                                   out this._etag,
+                                   cancellable);
+            load_content.begin (cancellable);
         }
 
         public override int compare (Item other) {
@@ -78,15 +90,14 @@ namespace Credentials {
             if (difference != 0)
                 return difference;
 
-            var path = this._content.path;
-            var other_path = ((SshItem) other)._content.path;
+            var other_path = ((SshItem) other).path;
 
-            return GLib.strcmp (path, other_path);
+            return GLib.strcmp (this.path, other_path);
         }
 
         public override bool match (string[] words) {
             string[] attributes = {};
-            attributes += GLib.Path.get_basename (this._content.path);
+            attributes += GLib.Path.get_basename (this.path);
             attributes += this._content.comment;
 
             foreach (var attribute in attributes) {
@@ -104,7 +115,7 @@ namespace Credentials {
         }
 
         public override async void delete (GLib.Cancellable? cancellable) throws GLib.Error {
-            var file = GLib.File.new_for_path (this._content.path);
+            var file = GLib.File.new_for_path (this.path);
             yield file.delete_async (GLib.Priority.DEFAULT, null);
             collection.item_removed (this);
         }
@@ -189,21 +200,26 @@ namespace Credentials {
                 if (!basename.has_suffix (".pub"))
                     continue;
 
-                var filename = GLib.Path.build_filename (path, basename);
+                var path = GLib.Path.build_filename (path, basename);
+                var file = GLib.File.new_for_path (path);
 
-                SshKey pubkey;
+                SshKey key;
+                string etag;
                 try {
-                    pubkey = ((SshBackend) backend).parse (filename);
+                    uint8[] contents;
+                    file.load_contents (cancellable, out contents, out etag);
+                    var bytes = new GLib.Bytes (contents);
+                    key = ((SshBackend) backend).parse (bytes);
                 } catch (GLib.Error e) {
                     warning ("cannot read public key %s: %s",
-                             filename, e.message);
+                             path, e.message);
                     continue;
                 }
 
-                seen.add (filename);
-                if (!this._items.contains (pubkey.path)) {
-                    var item = new SshItem (this, pubkey);
-                    this._items.insert (pubkey.path, item);
+                seen.add (path);
+                if (!this._items.contains (path)) {
+                    var item = new SshItem (this, key, path, etag);
+                    this._items.insert (path, item);
                     item_added (item);
                 }
             }
@@ -292,10 +308,8 @@ namespace Credentials {
             return this._parser.get_spec (type);
         }
 
-        public SshKey parse (string filename) throws GLib.Error {
-            var mapped = new GLib.MappedFile (filename, false);
-            var bytes = mapped.get_bytes ();
-            return this._parser.parse (filename, bytes);
+        public SshKey parse (GLib.Bytes bytes) throws GLib.Error {
+            return this._parser.parse (bytes);
         }
 
         public override async void load_collections (GLib.Cancellable? cancellable) throws GLib.Error {
