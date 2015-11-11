@@ -57,6 +57,22 @@
 		<property name="position">1</property>
 	      </packing>
 	    </child>
+	    <child>
+	      <object class="GtkButton" id="change_password_button">
+		<property name="label" translatable="yes">_Change Password...</property>
+		<property name="use-underline">True</property>
+		<property name="visible">True</property>
+		<property name="can_focus">True</property>
+		<property name="halign">start</property>
+		<signal name="clicked" handler="on_change_password_clicked"/>
+	      </object>
+	      <packing>
+		<property name="expand">False</property>
+		<property name="fill">False</property>
+		<property name="padding">10</property>
+		<property name="position">2</property>
+	      </packing>
+	    </child>
 	  </object>
 	</child>
       </object>

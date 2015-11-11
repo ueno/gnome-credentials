@@ -101,6 +101,20 @@ namespace Credentials {
             properties_grid.show_all ();
         }
 
+        [GtkCallback]
+        void on_change_password_clicked (Gtk.Button button) {
+            var window = (Gtk.Window) this.get_toplevel ();
+            item.change_password.begin (null, (obj, res) => {
+                        try {
+                            item.change_password.end (res);
+                        } catch (GLib.Error e) {
+                            show_error (window,
+                                        _("Couldn't change password: %s"),
+                                        e.message);
+                        }
+                });
+        }
+
         public override void response (int res) {
             var window = (Gtk.Window) this.get_toplevel ();
             switch (res) {
@@ -110,7 +124,7 @@ namespace Credentials {
                             item.delete.end (res);
                         } catch (GLib.Error e) {
                             show_error (window,
-                                        _("Couldn't delete PGP key: %s"),
+                                        _("Couldn't delete key: %s"),
                                         e.message);
                         }
                     });

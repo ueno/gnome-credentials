@@ -132,6 +132,22 @@ namespace Credentials {
             yield file.delete_async (GLib.Priority.DEFAULT, null);
             collection.item_removed (this);
         }
+
+        public async void change_password (GLib.Cancellable? cancellable) throws GLib.Error {
+            string[] args = { "ssh-keygen", "-q", "-p" };
+            args += "-f";
+            args += path[0:path.last_index_of (".pub")];
+            var subprocess =
+                new GLib.Subprocess.newv (args,
+                                          GLib.SubprocessFlags.NONE);
+            try {
+                yield subprocess.wait_async (null);
+                if (subprocess.get_exit_status () != 0)
+                    throw new SshError.FAILED ("cannot change password");
+            } catch (GLib.Error e) {
+                throw e;
+            }
+        }
     }
 
     class SshGeneratedKeyParameters : GeneratedKeyParameters, GLib.Object {
