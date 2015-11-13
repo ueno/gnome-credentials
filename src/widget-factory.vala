@@ -5,7 +5,6 @@ namespace Credentials {
    }
 
     abstract class GenerativeWidgetFactory : WidgetFactory {
-        public abstract Gtk.Widget create_generator_menu_button (GenerativeCollection collection);
         public abstract GeneratorDialog create_generator_dialog (GenerativeCollection collection);
    }
 }

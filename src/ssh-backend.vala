@@ -185,8 +185,7 @@ namespace Credentials {
         GLib.Bytes _authorized_keys_bytes;
         GLib.FileMonitor _authorized_keys_monitor;
 
-        public SshCollection (Backend backend, string name, string path)
-        {
+        public SshCollection (Backend backend, string name, string path) {
             Object (backend: backend, name: name, path: path);
         }
 
@@ -452,7 +451,7 @@ namespace Credentials {
             var sshdir =
                 GLib.Path.build_filename (GLib.Environment.get_home_dir (),
                                           ".ssh");
-            this._collection = new SshCollection (this, name, sshdir);
+            this._collection = new SshCollection (this, "ssh", sshdir);
             collection_added (this._collection);
         }
 

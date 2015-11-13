@@ -23,6 +23,7 @@ gnome_credentials_SOURCES =			\
 	ssh-editor.vala				\
 	ssh-generator.vala			\
 	ssh-widget-factory.vala			\
+	model-button.vala			\
 	list-box-helper.vala			\
 	utils.vala				\
 	resources.c

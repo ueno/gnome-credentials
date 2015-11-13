@@ -382,7 +382,7 @@ namespace Credentials {
         }
 
         static const GpgCollectionEntry[] entries = {
-            { GGpg.Protocol.OPENPGP, "PGP" }
+            { GGpg.Protocol.OPENPGP, "openpgp" }
         };
 
         GLib.HashTable<string,GpgCollection> _collections;
