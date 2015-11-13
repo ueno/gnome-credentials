@@ -207,5 +207,20 @@ namespace Credentials {
 
             properties_grid.show_all ();
         }
+
+        [GtkCallback]
+        void on_change_password_clicked (Gtk.Button button) {
+            var _item = (GpgItem) item;
+            var window = (Gtk.Window) this.get_toplevel ();
+            _item.change_password.begin (null, (obj, res) => {
+                        try {
+                            _item.change_password.end (res);
+                        } catch (GLib.Error e) {
+                            show_error (window,
+                                        _("Couldn't change password: %s"),
+                                        e.message);
+                        }
+                });
+        }
     }
 }

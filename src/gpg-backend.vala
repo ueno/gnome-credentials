@@ -159,6 +159,14 @@ namespace Credentials {
             yield load_content (cancellable);
             changed ();
         }
+
+        public async void change_password (GLib.Cancellable? cancellable) throws GLib.Error {
+            var ctx = new GGpg.Ctx ();
+            ctx.protocol = ((GpgCollection) collection).protocol;
+            yield ctx.change_password (this._content,
+                                       GGpg.ChangePasswordFlags.NONE,
+                                       cancellable);
+        }
     }
 
     class GpgCollection : GenerativeCollection {
