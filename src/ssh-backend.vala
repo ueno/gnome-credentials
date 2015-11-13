@@ -150,23 +150,23 @@ namespace Credentials {
         }
     }
 
-    class SshGeneratedKeyParameters : GeneratedKeyParameters, GLib.Object {
+    class SshGeneratedItemParameters : GeneratedItemParameters {
         public string path { construct set; get; }
         public string comment { construct set; get; }
         public SshKeyType key_type { construct set; get; }
         public uint length { construct set; get; }
         public int64 expires { construct set; get; }
 
-        public SshGeneratedKeyParameters (string path, string comment,
-                                          SshKeyType key_type,
-                                          uint length)
+        public SshGeneratedItemParameters (string path, string comment,
+                                           SshKeyType key_type,
+                                           uint length)
         {
             Object (path: path, comment: comment,
                     key_type: key_type, length: length);
         }
     }
 
-    class SshCollection : Collection, ItemGenerator {
+    class SshCollection : GenerativeCollection {
         GLib.HashTable<string,SshItem> _items;
 
         public override string item_type {
@@ -391,7 +391,7 @@ namespace Credentials {
             return items;
         }
 
-        string[] parameters_to_arguments (SshGeneratedKeyParameters parameters) {
+        string[] parameters_to_arguments (SshGeneratedItemParameters parameters) {
             var spec = ((SshBackend) backend).get_spec (parameters.key_type);
             string[] args = { "ssh-keygen", "-q" };
             args += "-f";
@@ -405,21 +405,17 @@ namespace Credentials {
             return args;
         }
 
-        public async void generate_item (GeneratedKeyParameters parameters,
-                                         GLib.Cancellable? cancellable) throws GLib.Error {
+        public override async void generate_item (GeneratedItemParameters parameters,
+                                                  GLib.Cancellable? cancellable) throws GLib.Error {
             var args = parameters_to_arguments (
-                (SshGeneratedKeyParameters) parameters);
+                (SshGeneratedItemParameters) parameters);
             var subprocess =
                 new GLib.Subprocess.newv (args,
                                           GLib.SubprocessFlags.NONE);
-            try {
-                yield subprocess.wait_async (null);
-                if (subprocess.get_exit_status () != 0)
-                    throw new SshError.FAILED ("cannot generate key");
-                load_items.begin (cancellable);
-            } catch (GLib.Error e) {
-                throw e;
-            }
+            yield subprocess.wait_async (null);
+            if (subprocess.get_exit_status () != 0)
+                throw new SshError.FAILED ("cannot generate key");
+            load_items.begin (cancellable);
         }
 
         public override int compare (Collection other) {

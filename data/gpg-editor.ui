@@ -2,7 +2,7 @@
 <!-- Generated with glade 3.19.0 -->
 <interface>
   <requires lib="gtk+" version="3.16"/>
-  <template class="CredentialsGpgEditorDialog" parent="GtkDialog">
+  <template class="CredentialsGpgEditorDialog" parent="CredentialsEditorDialog">
     <property name="width_request">400</property>
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">PGP Key Properties</property>

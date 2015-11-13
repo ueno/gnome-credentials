@@ -48,7 +48,7 @@ namespace Credentials {
         }
     }
 
-    class GpgGeneratedKeyParameters : GeneratedKeyParameters, GLib.Object {
+    class GpgGeneratedItemParameters : GeneratedItemParameters {
         public GpgGeneratedKeySpec spec { construct set; get; }
         public string name { construct set; get; }
         public string email { construct set; get; }
@@ -56,7 +56,7 @@ namespace Credentials {
         public uint length { construct set; get; }
         public int64 expires { construct set; get; }
 
-        public GpgGeneratedKeyParameters (GpgGeneratedKeySpec spec,
+        public GpgGeneratedItemParameters (GpgGeneratedKeySpec spec,
                                           string name,
                                           string email,
                                           string comment,
@@ -169,7 +169,7 @@ namespace Credentials {
         }
     }
 
-    class GpgCollection : Collection, ItemGenerator {
+    class GpgCollection : GenerativeCollection {
         public GGpg.Protocol protocol { construct set; get; }
         GLib.HashTable<string,GpgItem> _items;
         GLib.List<GpgGeneratedKeySpec?> _specs;
@@ -314,7 +314,7 @@ namespace Credentials {
             return enum_value.value_nick.up ();
         }
 
-        string parameters_to_string (GpgGeneratedKeyParameters parameters) {
+        string parameters_to_string (GpgGeneratedItemParameters parameters) {
             var buffer = new StringBuilder ();
             buffer.append ("<GnupgKeyParms format=\"internal\">\n");
             buffer.append_printf ("Key-Type: %s\n",
@@ -356,20 +356,16 @@ namespace Credentials {
                               (double) current / (double) total);
         }
 
-        public async void generate_item (GeneratedKeyParameters parameters,
+        public override async void generate_item (GeneratedItemParameters parameters,
                                          GLib.Cancellable? cancellable) throws GLib.Error {
             var ctx = new GGpg.Ctx ();
             ctx.protocol = protocol;
             ctx.set_progress_callback (this.progress_callback_wrapper);
-            try {
-                yield ctx.generate_key (
-                    parameters_to_string ((GpgGeneratedKeyParameters) parameters),
-                    null, null,
-                    cancellable);
-                load_items.begin (cancellable);
-            } catch (GLib.Error e) {
-                throw e;
-            }
+            yield ctx.generate_key (
+                parameters_to_string ((GpgGeneratedItemParameters) parameters),
+                null, null,
+                cancellable);
+            load_items.begin (cancellable);
         }
 
         public override int compare (Collection other) {

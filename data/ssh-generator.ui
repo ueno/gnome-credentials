@@ -10,7 +10,7 @@
       <column type="gint"/>
     </columns>
   </object>
-  <template class="CredentialsSshGeneratorDialog" parent="GtkDialog">
+  <template class="CredentialsSshGeneratorDialog" parent="CredentialsGeneratorDialog">
     <property name="width_request">450</property>
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Generate PGP Key</property>

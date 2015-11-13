@@ -1,48 +1,18 @@
 namespace Credentials {
     class KeyListPanel : ListPanel {
-        GLib.Menu _generator_menu;
         Gtk.Popover _generator_popover;
         GLib.SimpleActionGroup _generator_action_group;
 
         construct {
             this._generator_action_group = new GLib.SimpleActionGroup ();
-            this._generator_menu = new GLib.Menu ();
             this._generator_popover = new Gtk.Popover (null);
-            this._generator_popover.bind_model (this._generator_menu,
-                                                "generator");
+            var box = new Gtk.Box (Gtk.Orientation.VERTICAL, 10);
+            box.margin = 10;
+            box.show ();
+            this._generator_popover.add (box);
 
-            Backend backend = new GpgBackend ("Gpg");
-            WidgetFactory factory = new GpgWidgetFactory ();
-            register_backend (backend, factory);
-
-            backend.collection_added.connect ((_collection) => {
-                    var collection = (GpgCollection) _collection;
-                    if (collection.protocol == GGpg.Protocol.OPENPGP) {
-                        var action = new GLib.SimpleAction ("openpgp", null);
-                        action.activate.connect (() => {
-                                activate_generate_openpgp (collection);
-                            });
-                        this._generator_action_group.add_action (action);
-                    }
-                });
-
-            var item = new GLib.MenuItem (_("Generate PGP Key"), "openpgp");
-            this._generator_menu.append_item (item);
-
-            backend = new SshBackend ("Ssh");
-            factory = new SshWidgetFactory ();
-            register_backend (backend, factory);
-
-            backend.collection_added.connect ((collection) => {
-                    var action = new GLib.SimpleAction ("ssh", null);
-                    action.activate.connect (() => {
-                            activate_generate_ssh ((SshCollection) collection);
-                        });
-                    this._generator_action_group.add_action (action);
-                });
-
-            item = new GLib.MenuItem (_("Generate SSH Key"), "ssh");
-            this._generator_menu.append_item (item);
+            register_backend (new GpgBackend ("Gpg"), new GpgWidgetFactory ());
+            register_backend (new SshBackend ("Ssh"), new SshWidgetFactory ());
 
             map.connect (on_map);
         }
@@ -56,19 +26,38 @@ namespace Credentials {
                 "generator", this._generator_action_group);
         }
 
-        void activate_generate_openpgp (GpgCollection collection) {
-            var dialog = new GpgGeneratorDialog (collection);
-            return_if_fail (dialog != null);
-            dialog.response.connect_after ((res) => {
-                    dialog.destroy ();
+        protected override void register_backend (Backend backend,
+                                                  WidgetFactory factory)
+        {
+            base.register_backend (backend, factory);
+            backend.collection_added.connect ((collection) => {
+                    register_generator ((GenerativeCollection) collection,
+                                        (GenerativeWidgetFactory) factory);
                 });
-            dialog.set_transient_for ((Gtk.Window) this.get_toplevel ());
-            dialog.show ();
         }
 
-        void activate_generate_ssh (SshCollection collection) {
-            var dialog = new SshGeneratorDialog (collection);
-            return_if_fail (dialog != null);
+        void register_generator (GenerativeCollection collection,
+                                 GenerativeWidgetFactory factory)
+        {
+            var action = new GLib.SimpleAction (collection.name, null);
+            action.activate.connect (() => {
+                    activate_generate (collection, factory);
+                });
+            this._generator_action_group.add_action (action);
+            var widget = factory.create_generator_menu_button (collection);
+            var button = new Gtk.ModelButton ();
+            button.action_name = "generator.%s".printf (collection.name);
+            button.get_child ().destroy ();
+            button.add (widget);
+            button.show_all ();
+            var box = (Gtk.Box) this._generator_popover.get_child ();
+            box.add (button);
+        }
+
+        void activate_generate (GenerativeCollection collection,
+                                GenerativeWidgetFactory factory)
+        {
+            var dialog = factory.create_generator_dialog (collection);
             dialog.response.connect_after ((res) => {
                     dialog.destroy ();
                 });

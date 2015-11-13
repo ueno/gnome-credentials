@@ -33,6 +33,14 @@ namespace Credentials {
         public abstract int compare (Collection other);
     }
 
+    abstract class GeneratedItemParameters : GLib.Object {
+    }
+
+    abstract class GenerativeCollection : Collection {
+        public signal void progress_changed (string label, double fraction);
+        public abstract async void generate_item (GeneratedItemParameters parameters, GLib.Cancellable? cancellable) throws GLib.Error;
+    }
+
     abstract class Backend : GLib.Object {
         public string name { construct set; get; }
         public abstract bool has_locked { get; }
@@ -44,13 +52,5 @@ namespace Credentials {
         public signal void collection_removed (Collection collection);
 
         public abstract int compare (Backend other);
-    }
-
-    interface GeneratedKeyParameters : GLib.Object {
-    }
-
-    interface ItemGenerator : Collection {
-        public signal void progress_changed (string label, double fraction);
-        public abstract async void generate_item (GeneratedKeyParameters parameters, GLib.Cancellable? cancellable) throws GLib.Error;
     }
 }

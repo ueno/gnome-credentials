@@ -51,13 +51,17 @@ namespace Credentials {
             list_box_adjust_scrolling (list_box);
         }
 
-        protected void register_backend (Backend backend,
-                                         WidgetFactory factory)
+        protected virtual void register_backend (Backend backend,
+                                                 WidgetFactory factory)
         {
             this._backends += backend;
             backend.collection_added.connect (on_collection_added);
             backend.collection_removed.connect (on_collection_removed);
             this._factories.set (backend, factory);
+        }
+
+        protected WidgetFactory get_widget_factory (Backend backend) {
+            return this._factories.get (backend);
         }
 
         void on_collection_added (Collection collection) {
