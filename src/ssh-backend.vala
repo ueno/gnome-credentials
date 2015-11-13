@@ -140,13 +140,9 @@ namespace Credentials {
             var subprocess =
                 new GLib.Subprocess.newv (args,
                                           GLib.SubprocessFlags.NONE);
-            try {
-                yield subprocess.wait_async (null);
-                if (subprocess.get_exit_status () != 0)
-                    throw new SshError.FAILED ("cannot change password");
-            } catch (GLib.Error e) {
-                throw e;
-            }
+            yield subprocess.wait_async (null);
+            if (subprocess.get_exit_status () != 0)
+                throw new SshError.FAILED ("cannot change password");
         }
     }
 

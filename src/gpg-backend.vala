@@ -145,27 +145,19 @@ namespace Credentials {
         public override async void delete (GLib.Cancellable? cancellable) throws GLib.Error {
             var ctx = new GGpg.Ctx ();
             ctx.protocol = ((GpgCollection) collection).protocol;
-            try {
-                yield ctx.delete (this._content, GGpg.DeleteFlags.ALLOW_SECRET,
-                                  cancellable);
-                collection.item_removed (this);
-            } catch (GLib.Error e) {
-                throw e;
-            }
+            yield ctx.delete (this._content, GGpg.DeleteFlags.ALLOW_SECRET,
+                              cancellable);
+            collection.item_removed (this);
         }
 
         public async void edit (GpgEditCommand command, GLib.Cancellable? cancellable) throws GLib.Error {
             var ctx = new GGpg.Ctx ();
             ctx.protocol = ((GpgCollection) collection).protocol;
             var data = new GGpg.Data ();
-            try {
-                yield ctx.edit (this._content, command.edit_callback,
-                                data, cancellable);
-                yield load_content (cancellable);
-                changed ();
-            } catch (GLib.Error e) {
-                throw e;
-            }
+            yield ctx.edit (this._content, command.edit_callback,
+                            data, cancellable);
+            yield load_content (cancellable);
+            changed ();
         }
     }
 
