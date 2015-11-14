@@ -4,9 +4,6 @@ namespace Credentials {
         GLib.SimpleActionGroup _generator_action_group;
 
         construct {
-            // The type "CredentialsModelButton" is referred to from
-            // the GtkBuilder file.
-            typeof (ModelButton).class_ref ();
             var builder = new Gtk.Builder.from_resource (
                 "/org/gnome/Credentials/key-generator-menu.ui");
             this._generator_popover =
