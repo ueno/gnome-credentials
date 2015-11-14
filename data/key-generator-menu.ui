@@ -13,9 +13,6 @@
 	<child>
           <object class="CredentialsModelButton">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="sensitive">True</property>
-	    <property name="relief">none</property>
             <property name="action-name">generator.openpgp</property>
 	    <property name="primary-text" translatable="yes">PGP Key</property>
 	    <property name="secondary-text" translatable="yes">For email and file encryption</property>
@@ -24,9 +21,6 @@
 	<child>
           <object class="CredentialsModelButton">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="sensitive">True</property>
-	    <property name="relief">none</property>
             <property name="action-name">generator.ssh</property>
 	    <property name="primary-text" translatable="yes">Secure Shell Key</property>
 	    <property name="secondary-text" translatable="yes">For accessing other computer</property>

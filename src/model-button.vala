@@ -12,7 +12,7 @@ namespace Credentials {
             var context = this.get_style_context ();
             context.add_class ("menuitem");
 
-            var box = new Gtk.Box (Gtk.Orientation.VERTICAL, 6);
+            var box = new Gtk.Box (Gtk.Orientation.VERTICAL, 3);
             box.margin_start = 12;
             box.margin_end = 12;
             box.margin_top = 3;
