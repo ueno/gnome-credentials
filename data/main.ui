@@ -18,7 +18,7 @@
 	  </packing>
 	</child>
 	<child>
-	  <object class="GtkMenuButton" id="new_button">
+	  <object class="GtkMenuButton" id="generators_menu_button">
             <property name="can_focus">False</property>
             <property name="visible">False</property>
 	    <property name="use_popover">True</property>
@@ -26,7 +26,7 @@
               <class name="image-button"/>
             </style>
             <child>
-              <object class="GtkImage" id="new_button_image">
+              <object class="GtkImage">
 		<property name="visible">True</property>
 		<property name="icon-name">list-add-symbolic</property>
               </object>
@@ -34,6 +34,25 @@
 	  </object>
 	  <packing>
             <property name="pack-type">start</property>
+	  </packing>
+	</child>
+	<child>
+	  <object class="GtkMenuButton" id="tools_menu_button">
+            <property name="can_focus">False</property>
+            <property name="visible">False</property>
+	    <property name="use_popover">True</property>
+            <style>
+              <class name="image-button"/>
+            </style>
+            <child>
+              <object class="GtkImage">
+		<property name="visible">True</property>
+		<property name="icon-name">open-menu-symbolic</property>
+              </object>
+            </child>
+	  </object>
+	  <packing>
+            <property name="pack-type">end</property>
 	  </packing>
 	</child>
 	<child>

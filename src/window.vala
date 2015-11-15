@@ -20,7 +20,10 @@ namespace Credentials {
         public Gtk.Button unlock_button;
 
         [GtkChild]
-        public Gtk.MenuButton new_button;
+        public Gtk.MenuButton generators_menu_button;
+
+        [GtkChild]
+        public Gtk.MenuButton tools_menu_button;
 
         [GtkChild]
         Gtk.ToggleButton search_active_button;

@@ -1,17 +1,25 @@
 namespace Credentials {
     class KeyListPanel : ListPanel {
-        Gtk.Popover _generator_popover;
-        GLib.SimpleActionGroup _generator_action_group;
+        Gtk.Popover _generators_popover;
+        GLib.SimpleActionGroup _generator_actions;
+
+        Gtk.Popover _tools_popover;
+        GLib.SimpleActionGroup _tool_actions;
 
         construct {
             var builder = new Gtk.Builder.from_resource (
-                "/org/gnome/Credentials/key-generator-menu.ui");
-            this._generator_popover =
-                (Gtk.Popover) builder.get_object ("generator-popover");
+                "/org/gnome/Credentials/menu.ui");
+            this._generators_popover =
+                (Gtk.Popover) builder.get_object ("generators-popover");
+            this._generator_actions = new GLib.SimpleActionGroup ();
+            this._generators_popover.insert_action_group (
+                "generator", this._generator_actions);
 
-            this._generator_action_group = new GLib.SimpleActionGroup ();
-            this._generator_popover.insert_action_group (
-                "generator", this._generator_action_group);
+            this._tools_popover =
+                (Gtk.Popover) builder.get_object ("tools-popover");
+            this._tool_actions = new GLib.SimpleActionGroup ();
+            this._tools_popover.insert_action_group (
+                "tool", this._tool_actions);
 
             register_backend (new GpgBackend ("Gpg"), new GpgWidgetFactory ());
             register_backend (new SshBackend ("Ssh"), new SshWidgetFactory ());
@@ -22,8 +30,10 @@ namespace Credentials {
         void on_map () {
             Window toplevel = (Window) this.get_toplevel ();
             toplevel.unlock_button.set_visible (false);
-            toplevel.new_button.set_visible (true);
-            toplevel.new_button.set_popover (this._generator_popover);
+            toplevel.generators_menu_button.set_visible (true);
+            toplevel.generators_menu_button.set_popover (this._generators_popover);
+            toplevel.tools_menu_button.set_visible (false);
+            toplevel.tools_menu_button.set_popover (this._tools_popover);
         }
 
         protected override void register_backend (Backend backend,
@@ -31,30 +41,14 @@ namespace Credentials {
         {
             base.register_backend (backend, factory);
             backend.collection_added.connect ((collection) => {
-                    register_generator ((GenerativeCollection) collection,
-                                        (GenerativeWidgetFactory) factory);
+                    ((GenerativeWidgetFactory) factory).register_generator_actions (
+                        this,
+                        this._generator_actions,
+                        (GenerativeCollection) collection);
+                    factory.register_tool_actions (this,
+                                                   this._tool_actions,
+                                                   collection);
                 });
-        }
-
-        void register_generator (GenerativeCollection collection,
-                                 GenerativeWidgetFactory factory)
-        {
-            var action = new GLib.SimpleAction (collection.name, null);
-            action.activate.connect (() => {
-                    show_generator_dialog (collection, factory);
-                });
-            this._generator_action_group.add_action (action);
-        }
-
-        void show_generator_dialog (GenerativeCollection collection,
-                                    GenerativeWidgetFactory factory)
-        {
-            var dialog = factory.create_generator_dialog (collection);
-            dialog.response.connect_after ((res) => {
-                    dialog.destroy ();
-                });
-            dialog.set_transient_for ((Gtk.Window) this.get_toplevel ());
-            dialog.show ();
         }
     }
 }

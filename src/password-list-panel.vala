@@ -42,7 +42,8 @@ namespace Credentials {
 
         void on_map () {
             Window toplevel = (Window) this.get_toplevel ();
-            toplevel.new_button.set_visible (false);
+            toplevel.generators_menu_button.set_visible (false);
+            toplevel.tools_menu_button.set_visible (false);
 
             this._backend.bind_property ("has-locked",
                                          toplevel.unlock_button, "visible",

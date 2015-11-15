@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <requires lib="gtk+" version="3.16"/>
-  <object class="GtkPopover" id="generator-popover">
+  <object class="GtkPopover" id="generators-popover">
     <property name="modal">True</property>
     <child>
       <object class="GtkBox">
@@ -24,6 +24,25 @@
             <property name="action-name">generator.ssh</property>
 	    <property name="primary-text" translatable="yes">Secure Shell Key</property>
 	    <property name="secondary-text" translatable="yes">For accessing other computer</property>
+          </object>
+	</child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkPopover" id="tools-popover">
+    <property name="modal">True</property>
+    <child>
+      <object class="GtkBox">
+	<property name="visible">True</property>
+	<property name="orientation">vertical</property>
+	<style>
+          <class name="linked"/>
+        </style>
+	<child>
+          <object class="GtkModelButton">
+            <property name="visible">True</property>
+            <property name="action-name">tool.locate</property>
+	    <property name="text" translatable="yes">Find Remote Keys...</property>
           </object>
 	</child>
       </object>
