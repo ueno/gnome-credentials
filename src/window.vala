@@ -106,14 +106,15 @@ namespace Credentials {
 
         [GtkCallback]
         void on_search_changed (Gtk.SearchEntry entry) {
-            var text = entry.get_text ().strip();
-
+            this._cancellable.cancel ();
             this._cancellable.reset ();
-            if (text.length > 0)
-                this._area.filter_items.begin (text.split_set (" \t", -1),
-                                               this._cancellable);
-            else
-                this._cancellable.cancel ();
+
+            var text = entry.get_text ().strip();
+            if (text.length == 0)
+                return;
+
+            this._area.filter_items.begin (text.split_set (" \t", -1),
+                                           this._cancellable);
         }
 
         public void add_notification (Gtk.Widget notification) {

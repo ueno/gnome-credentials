@@ -32,7 +32,7 @@ namespace Credentials {
             toplevel.unlock_button.set_visible (false);
             toplevel.generators_menu_button.set_visible (true);
             toplevel.generators_menu_button.set_popover (this._generators_popover);
-            toplevel.tools_menu_button.set_visible (false);
+            toplevel.tools_menu_button.set_visible (true);
             toplevel.tools_menu_button.set_popover (this._tools_popover);
         }
 

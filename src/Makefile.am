@@ -16,6 +16,7 @@ gnome_credentials_SOURCES =			\
 	gpg-backend.vala			\
 	gpg-editor.vala				\
 	gpg-generator.vala			\
+	gpg-fetcher.vala			\
 	gpg-widget-factory.vala			\
 	gpg-helper.vala				\
 	ssh-backend.vala			\

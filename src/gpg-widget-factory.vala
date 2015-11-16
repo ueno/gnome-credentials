@@ -25,6 +25,32 @@ namespace Credentials {
             return new GpgEditorDialog (item);
         }
 
+        public override void register_tool_actions (Gtk.Widget widget,
+                                                    GLib.ActionMap map,
+                                                    Collection collection)
+        {
+            var action = new GLib.SimpleAction ("locate", null);
+            action.activate.connect (() => {
+                    show_fetcher_dialog (widget, (GpgCollection) collection);
+                });
+            map.add_action (action);
+        }
+
+        void show_fetcher_dialog (Gtk.Widget widget,
+                                  GpgCollection collection)
+        {
+            var dialog = create_fetcher_dialog (collection);
+            dialog.response.connect_after ((res) => {
+                    dialog.destroy ();
+                });
+            dialog.set_transient_for ((Gtk.Window) widget.get_toplevel ());
+            dialog.show ();
+        }
+
+        Gtk.Dialog create_fetcher_dialog (GpgCollection collection) {
+            return new GpgFetcherDialog (collection);
+        }
+
         public override GeneratorDialog create_generator_dialog (GenerativeCollection collection) {
             return new GpgGeneratorDialog (collection);
         }

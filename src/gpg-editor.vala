@@ -156,9 +156,7 @@ namespace Credentials {
         construct {
             var _item = (GpgItem) item;
             this._store = new GLib.ListStore (typeof (GpgEditorUserIdItem));
-            user_id_list_box.bind_model (this._store,
-                                         this.create_user_id_widget);
-            user_id_list_box.set_selection_mode (Gtk.SelectionMode.NONE);
+            user_id_list_box.bind_model (this._store, create_user_id_widget);
             user_id_list_box.set_header_func (list_box_update_header_func);
             list_box_setup_scrolling (user_id_list_box, 0);
             _item.changed.connect (update_user_id_list);
