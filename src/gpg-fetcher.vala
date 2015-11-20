@@ -42,11 +42,7 @@ namespace Credentials {
             string primary_name = "";
             if (uids != null) {
                 GGpg.UserId uid = uids.first ().data;
-                primary_name = uid.name;
-                if (!primary_name.validate (-1)) {
-                    warning ("invalid byte sequence: %s", primary_name);
-                    primary_name = "";
-                }
+                primary_name = escape_invalid_chars (uid.name);
                 if (primary_name != "") {
                     primary_label = primary_name;
                     if (uid.email != "")
@@ -57,11 +53,7 @@ namespace Credentials {
                 var count = 0;
                 foreach (var uid2 in uids.next) {
                     string secondary_label = "";
-                    var secondary_name = uid2.name;
-                    if (!secondary_name.validate (-1)) {
-                        warning ("invalid byte sequence: %s", secondary_name);
-                        secondary_name = "";
-                    }
+                    var secondary_name = escape_invalid_chars (uid2.name);
                     if (secondary_name == "")
                         secondary_label = uid2.email;
                     else {

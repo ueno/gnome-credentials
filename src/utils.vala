@@ -26,6 +26,23 @@ namespace Credentials {
         return builder.str;
     }
 
+    static string escape_invalid_chars (string s) {
+        var buffer = new GLib.StringBuilder ();
+        char *start = (char *) s;
+        while (true) {
+            char *end;
+            if (((string) start).validate (-1, out end)) {
+                buffer.append ((string) start);
+                break;
+            } else {
+                buffer.append_len ((string) start, (ssize_t) (end - start));
+                buffer.append_printf ("\\x%02X", *end & 0xFF);
+                start = end + 1;
+            }
+        }
+        return buffer.str;
+    }
+
     enum DateFormat {
         REGULAR,
         FULL

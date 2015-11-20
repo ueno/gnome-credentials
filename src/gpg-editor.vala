@@ -81,7 +81,7 @@ namespace Credentials {
                 return box;
             } else {
                 var box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 10);
-                var label = new Gtk.Label (user_id_item.user_id.uid);
+                var label = new Gtk.Label (escape_invalid_chars (user_id_item.user_id.uid));
                 box.pack_start (label, false, false, 10);
                 var gicon = new GLib.ThemedIcon ("window-close-symbolic");
                 var image =
