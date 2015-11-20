@@ -11,20 +11,29 @@ namespace Credentials {
         [GtkChild]
         Gtk.Button import_button;
 
+        [GtkChild]
+        Gtk.Spinner spinner;
+
+        [GtkChild]
+        Gtk.Stack stack;
+
         GLib.ListStore _store;
         GLib.Cancellable _cancellable;
 
         public GpgCollection collection { construct set; get; }
+
+        uint _spinner_timeout_id = 0;
 
         public GpgFetcherDialog (GpgCollection collection) {
             Object (collection: collection, use_header_bar: 1);
         }
 
         construct {
+            this.stack.set_visible_child_name ("default");
             this._store = new GLib.ListStore (typeof (GGpg.Key));
             list_box.bind_model (this._store, create_key_widget);
             list_box.set_header_func (list_box_update_header_func);
-            list_box_setup_scrolling (list_box, 4);
+            list_box_setup_scrolling (list_box, 6);
             this._cancellable = new GLib.Cancellable ();
             this._cancellable.connect (clear_matches);
         }
@@ -86,7 +95,7 @@ namespace Credentials {
                 secondary_labels += "";
 
             if (primary_label == "")
-                primary_label = _("unknown user ID");
+                primary_label = _("(empty user ID)");
 
             var label = new Gtk.Label (primary_label);
             label.halign = Gtk.Align.START;
@@ -114,6 +123,27 @@ namespace Credentials {
             list_box_adjust_scrolling (list_box);
         }
 
+        void start_spinner () {
+            this._spinner_timeout_id = GLib.Timeout.add (500, () => {
+                    this.stack.visible_child_name = "loading";
+                    spinner.start ();
+                    this._spinner_timeout_id = 0;
+                    return GLib.Source.REMOVE;
+                });
+        }
+
+        void stop_spinner () {
+            if (this._spinner_timeout_id > 0) {
+                GLib.Source.remove (this._spinner_timeout_id);
+                this._spinner_timeout_id = 0;
+            }
+            spinner.stop ();
+            if (this._store.get_n_items () > 0)
+                this.stack.visible_child_name = "listing";
+            else
+                this.stack.visible_child_name = "default";
+        }
+
         [GtkCallback]
         void on_search_activate (Gtk.Entry entry) {
             this._cancellable.cancel ();
@@ -126,17 +156,31 @@ namespace Credentials {
             var ctx = new GGpg.Ctx ();
             ctx.protocol = GGpg.Protocol.OPENPGP;
             ctx.keylist_mode = GGpg.KeylistMode.EXTERN;
+
+            start_spinner ();
             ctx.keylist.begin (
                 text, false,
                 (key) => {
                     var context = GLib.MainContext.default ();
                     context.invoke (() => {
-                            this._store.append (key);
-                            list_box_adjust_scrolling (list_box);
+                            var uids = key.get_uids ();
+                            if (uids != null) {
+                                this._store.append (key);
+                                list_box_adjust_scrolling (list_box);
+                            }
                             return GLib.Source.REMOVE;
                         });
                 },
-                this._cancellable);
+                this._cancellable,
+                (obj, res) => {
+                    try {
+                        ctx.keylist.end (res);
+                    } catch (GLib.IOError.CANCELLED e) {
+                    } catch (GLib.Error e) {
+                        warning ("failed to list keys: %s", e.message);
+                    }
+                    stop_spinner ();
+                });
         }
 
         [GtkCallback]
