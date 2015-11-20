@@ -291,7 +291,7 @@ struct _GGpgCtx
   GObject parent;
   gpgme_ctx_t pointer;
   gpointer progress_user_data;
-  GDestroyNotify progress_destroy_data;
+  GDestroyNotify progress_destroy;
   GPtrArray *signers;
   GMutex lock;
 };
@@ -408,8 +408,8 @@ g_gpg_ctx_finalize (GObject *object)
 
   gpgme_release (ctx->pointer);
 
-  if (ctx->progress_destroy_data)
-    g_clear_pointer (&ctx->progress_user_data, ctx->progress_destroy_data);
+  if (ctx->progress_destroy)
+    ctx->progress_destroy (ctx->progress_user_data);
 
   g_mutex_clear (&ctx->lock);
 
@@ -486,11 +486,11 @@ g_gpg_ctx_set_progress_callback (GGpgCtx *ctx,
                                  gpointer user_data,
                                  GDestroyNotify destroy_data)
 {
-  if (ctx->progress_destroy_data)
-    g_clear_pointer (&ctx->progress_user_data, ctx->progress_destroy_data);
+  if (ctx->progress_destroy)
+    ctx->progress_destroy (ctx->progress_user_data);
 
   ctx->progress_user_data = user_data;
-  ctx->progress_destroy_data = destroy_data;
+  ctx->progress_destroy = destroy_data;
 
   gpgme_set_progress_cb (ctx->pointer, (gpgme_progress_cb_t) callback,
                          user_data);
@@ -1287,70 +1287,6 @@ g_gpg_key_get_uids (GGpgKey *key)
   return result;
 }
 
-/**
- * g_gpg_ctx_keylist_start:
- * @ctx: a #GGpgCtx
- * @pattern: (nullable): a string
- * @secret_only: if %TRUE, only list secret keys
- * @error: error location
- *
- */
-gboolean
-g_gpg_ctx_keylist_start (GGpgCtx *ctx, const gchar *pattern,
-                         gboolean secret_only, GError **error)
-{
-  gpgme_error_t err;
-
-  err = gpgme_op_keylist_start (ctx->pointer, pattern, secret_only);
-  if (err)
-    {
-      g_set_error (error, G_GPG_ERROR, gpgme_err_code (err),
-                   "%s", gpgme_strerror (err));
-      return FALSE;
-    }
-  return TRUE;
-}
-
-/**
- * g_gpg_ctx_keylist_next:
- * @ctx: a #GGpgCtx
- * @error: error location
- *
- * Returns: (transfer full): a #GGpgKey
- */
-GGpgKey *
-g_gpg_ctx_keylist_next (GGpgCtx *ctx, GError **error)
-{
-  gpgme_key_t key;
-  gpgme_error_t err;
-
-  err = gpgme_op_keylist_next (ctx->pointer, &key);
-  if (err)
-    {
-      if (gpgme_err_code (err) != GPG_ERR_EOF)
-        g_set_error (error, G_GPG_ERROR, err, "%s", gpgme_strerror (err));
-      return NULL;
-    }
-
-  return g_object_new (G_GPG_TYPE_KEY, "pointer", key, NULL);
-}
-
-gboolean
-g_gpg_ctx_keylist_end (GGpgCtx *ctx, GError **error)
-{
-  gpgme_error_t err;
-
-  err = gpgme_op_keylist_end (ctx->pointer);
-  if (err)
-    {
-      g_set_error (error, G_GPG_ERROR, gpgme_err_code (err),
-                   "%s", gpgme_strerror (err));
-      return FALSE;
-    }
-
-  return TRUE;
-}
-
 struct GGpgSource;
 
 struct GGpgSourceFd
@@ -1378,6 +1314,11 @@ struct GGpgSource
   GGpgSourceState state;
   gpgme_error_t err;
   GGpgCtx *ctx;
+  GCancellable *cancellable;
+  gulong cancellable_id;
+  GGpgKeylistCallback keylist_callback;
+  gpointer keylist_user_data;
+  GDestroyNotify keylist_destroy;
   GMutex lock;
 };
 
@@ -1455,9 +1396,16 @@ g_gpg_source_finalize (GSource *_source)
           fd->tag = NULL;
         }
     }
+
+  if (source->cancellable_id > 0)
+    g_cancellable_disconnect (source->cancellable, source->cancellable_id);
+
   g_ptr_array_free (source->fds, TRUE);
   g_mutex_clear (&source->lock);
   g_object_unref (source->ctx);
+
+  if (source->keylist_destroy)
+    source->keylist_destroy (source->keylist_user_data);
 }
 
 static GSourceFuncs g_gpg_source_funcs =
@@ -1557,6 +1505,19 @@ g_gpg_event_io_cb (void *data, gpgme_event_io_t type, void *type_data)
           }
         g_mutex_unlock (&source->lock);
       }
+      break;
+
+    case GPGME_EVENT_NEXT_KEY:
+      if (source->keylist_callback)
+        {
+          gpgme_key_t pointer = type_data;
+          GGpgKey *key;
+
+          gpgme_key_ref (pointer);
+          key = g_object_new (G_GPG_TYPE_KEY, "pointer", pointer, NULL);
+          source->keylist_callback (source->keylist_user_data, key);
+        }
+      break;
 
     default:
       break;
@@ -1585,6 +1546,8 @@ g_gpg_source_new (GGpgCtx *ctx, gsize size)
   return (GSource *) source;
 }
 
+#define G_GPG_SOURCE_NEW(t,c) ((t *) g_gpg_source_new (c, sizeof (t)))
+
 static gboolean
 _g_gpg_source_func (gpointer user_data)
 {
@@ -1609,6 +1572,100 @@ static void
 _g_gpg_source_cancel (GCancellable *cancellable, struct GGpgSource *source)
 {
   gpgme_cancel (source->ctx->pointer);
+}
+
+static void
+g_gpg_source_connect_cancellable (struct GGpgSource *source,
+                                  GCancellable *cancellable)
+{
+  if (cancellable)
+    {
+      source->cancellable = cancellable;
+      source->cancellable_id =
+        g_cancellable_connect (cancellable, G_CALLBACK (_g_gpg_source_cancel),
+                               source, NULL);
+    }
+}
+
+struct GGpgKeylistSource
+{
+  struct GGpgSource source;
+  gchar *pattern;
+  gboolean secret_only;
+};
+
+static void
+g_gpg_keylist_source_finalize (GSource *_source)
+{
+  struct GGpgKeylistSource *source = (struct GGpgKeylistSource *) _source;
+  g_free (source->pattern);
+}
+
+static void
+_g_gpg_ctx_keylist_begin (GGpgCtx *ctx,
+                          struct GGpgKeylistSource *source,
+                          GTask *task,
+                          GCancellable *cancellable)
+{
+  gpgme_error_t err;
+
+  err = gpgme_op_keylist_start (ctx->pointer, source->pattern,
+                                source->secret_only);
+  if (err)
+    {
+      g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
+                               "%s", gpgme_strerror (err));
+      return;
+    }
+
+  g_gpg_source_connect_cancellable ((struct GGpgSource *) source, cancellable);
+  g_task_attach_source (task, (GSource *) source, _g_gpg_source_func);
+  g_source_unref ((GSource *) source);
+}
+
+/**
+ * g_gpg_ctx_keylist:
+ * @ctx: a #GGpgCtx
+ * @pattern: (nullable): a string
+ * @secret_only: if %TRUE, only list secret keys
+ * @keylist_callback: (scope notified) (destroy keylist_destroy) (closure keylist_user_data): a #GGpgKeylistCallback
+ * @keylist_user_data: a data for @keylist_callback
+ * @keylist_destroy: a #GDestroyNotify
+ * @cancellable: (nullable): a #GCancellable
+ * @callback: a #GAsyncReadyCallback
+ * @user_data: a user data
+ *
+ */
+void
+g_gpg_ctx_keylist (GGpgCtx *ctx, const gchar *pattern, gboolean secret_only,
+                   GGpgKeylistCallback keylist_callback,
+                   gpointer keylist_user_data,
+                   GDestroyNotify keylist_destroy,
+                   GCancellable *cancellable,
+                   GAsyncReadyCallback callback,
+                   gpointer user_data)
+{
+  GTask *task;
+  struct GGpgKeylistSource *source;
+
+  task = g_task_new (ctx, cancellable, callback, user_data);
+  source = G_GPG_SOURCE_NEW (struct GGpgKeylistSource, ctx);
+  source->source.keylist_callback = keylist_callback;
+  source->source.keylist_user_data = keylist_user_data;
+  source->source.keylist_destroy = keylist_destroy;
+  source->pattern = g_strdup (pattern);
+  source->secret_only = secret_only;
+  g_task_set_task_data (task, source,
+                        (GDestroyNotify) g_gpg_keylist_source_finalize);
+  _g_gpg_ctx_keylist_begin (ctx, source, task, cancellable);
+}
+
+gboolean
+g_gpg_ctx_keylist_finish (GGpgCtx *ctx, GAsyncResult *result,
+                          GError **error)
+{
+  g_return_val_if_fail (g_task_is_valid (result, ctx), FALSE);
+  return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 struct GGpgGetKeyData
@@ -1680,8 +1737,6 @@ g_gpg_ctx_get_key_finish (GGpgCtx *ctx, GAsyncResult *result, GError **error)
   return g_task_propagate_pointer (G_TASK (result), error);
 }
 
-#define G_GPG_SOURCE_NEW(t,c) ((t *) g_gpg_source_new (c, sizeof (t)))
-
 struct GGpgGenerateKeySource
 {
   struct GGpgSource source;
@@ -1718,10 +1773,7 @@ _g_gpg_ctx_generate_key_begin (GGpgCtx *ctx,
       return;
     }
 
-  if (cancellable)
-    g_cancellable_connect (cancellable, G_CALLBACK (_g_gpg_source_cancel),
-                           source, NULL);
-
+  g_gpg_source_connect_cancellable ((struct GGpgSource *) source, cancellable);
   g_task_attach_source (task, (GSource *) source, _g_gpg_source_func);
   g_source_unref ((GSource *) source);
 }
@@ -1796,10 +1848,7 @@ _g_gpg_ctx_delete_begin (GGpgCtx *ctx,
       return;
     }
 
-  if (cancellable)
-    g_cancellable_connect (cancellable, G_CALLBACK (_g_gpg_source_cancel),
-                           source, NULL);
-
+  g_gpg_source_connect_cancellable ((struct GGpgSource *) source, cancellable);
   g_task_attach_source (task, (GSource *) source, _g_gpg_source_func);
   g_source_unref ((GSource *) source);
 }
@@ -1861,10 +1910,7 @@ _g_gpg_ctx_change_password_begin (GGpgCtx *ctx,
       return;
     }
 
-  if (cancellable)
-    g_cancellable_connect (cancellable, G_CALLBACK (_g_gpg_source_cancel),
-                           source, NULL);
-
+  g_gpg_source_connect_cancellable ((struct GGpgSource *) source, cancellable);
   g_task_attach_source (task, (GSource *) source, _g_gpg_source_func);
   g_source_unref ((GSource *) source);
 }
@@ -1902,6 +1948,7 @@ struct GGpgEditSource
   GGpgKey *key;
   GGpgEditCallback callback;
   gpointer user_data;
+  GDestroyNotify destroy;
   GGpgData *out;
 };
 
@@ -1911,6 +1958,8 @@ g_gpg_edit_source_finalize (GSource *_source)
   struct GGpgEditSource *source = (struct GGpgEditSource *) _source;
   g_object_unref (source->key);
   g_object_unref (source->out);
+  if (source->destroy)
+    source->destroy (source->user_data);
 }
 
 static gpgme_error_t
@@ -1948,10 +1997,7 @@ _g_gpg_ctx_edit_begin (GGpgCtx *ctx,
       return;
     }
 
-  if (cancellable)
-    g_cancellable_connect (cancellable, G_CALLBACK (_g_gpg_source_cancel),
-                           source, NULL);
-
+  g_gpg_source_connect_cancellable ((struct GGpgSource *) source, cancellable);
   g_task_attach_source (task, (GSource *) source, _g_gpg_source_func);
   g_source_unref ((GSource *) source);
 }
@@ -1960,8 +2006,9 @@ _g_gpg_ctx_edit_begin (GGpgCtx *ctx,
  * g_gpg_ctx_edit:
  * @ctx: a #GGpgCtx
  * @key: a #GGpgKey
- * @edit_callback: (scope async): a #GGpgEditCallback
+ * @edit_callback: (scope notified) (destroy edit_destroy) (closure edit_user_data): a #GGpgEditCallback
  * @edit_user_data: a data for @edit_callback
+ * @edit_destroy: a #GDestroyNotify
  * @out: a #GGpgData
  * @cancellable: a #GCancellable
  * @callback: a callback
@@ -1973,6 +2020,7 @@ g_gpg_ctx_edit (GGpgCtx *ctx,
                 GGpgKey *key,
                 GGpgEditCallback edit_callback,
                 gpointer edit_user_data,
+                GDestroyNotify edit_destroy,
                 GGpgData *out,
                 GCancellable *cancellable,
                 GAsyncReadyCallback callback,
@@ -1986,6 +2034,7 @@ g_gpg_ctx_edit (GGpgCtx *ctx,
   source->key = g_object_ref (key);
   source->callback = edit_callback;
   source->user_data = edit_user_data;
+  source->destroy = edit_destroy;
   source->out = g_object_ref (out);
   g_task_set_task_data (task, source,
                         (GDestroyNotify) g_gpg_edit_source_finalize);
@@ -2034,10 +2083,7 @@ _g_gpg_ctx_export_begin (GGpgCtx *ctx,
       return;
     }
 
-  if (cancellable)
-    g_cancellable_connect (cancellable, G_CALLBACK (_g_gpg_source_cancel),
-                           source, NULL);
-
+  g_gpg_source_connect_cancellable ((struct GGpgSource *) source, cancellable);
   g_task_attach_source (task, (GSource *) source, _g_gpg_source_func);
   g_source_unref ((GSource *) source);
 }
@@ -2100,10 +2146,7 @@ _g_gpg_ctx_import_begin (GGpgCtx *ctx,
       return;
     }
 
-  if (cancellable)
-    g_cancellable_connect (cancellable, G_CALLBACK (_g_gpg_source_cancel),
-                           source, NULL);
-
+  g_gpg_source_connect_cancellable ((struct GGpgSource *) source, cancellable);
   g_task_attach_source (task, (GSource *) source, _g_gpg_source_func);
   g_source_unref ((GSource *) source);
 }
@@ -2364,10 +2407,7 @@ _g_gpg_ctx_decrypt_begin (GGpgCtx *ctx,
       return;
     }
 
-  if (cancellable)
-    g_cancellable_connect (cancellable, G_CALLBACK (_g_gpg_source_cancel),
-                           source, NULL);
-
+  g_gpg_source_connect_cancellable ((struct GGpgSource *) source, cancellable);
   g_task_attach_source (task, (GSource *) source, _g_gpg_source_func);
   g_source_unref ((GSource *) source);
 }
@@ -2414,10 +2454,7 @@ _g_gpg_ctx_decrypt_verify_begin (GGpgCtx *ctx,
       return;
     }
 
-  if (cancellable)
-    g_cancellable_connect (cancellable, G_CALLBACK (_g_gpg_source_cancel),
-                           source, NULL);
-
+  g_gpg_source_connect_cancellable ((struct GGpgSource *) source, cancellable);
   g_task_attach_source (task, (GSource *) source, _g_gpg_source_func);
   g_source_unref ((GSource *) source);
 }
@@ -3032,10 +3069,7 @@ _g_gpg_ctx_verify_begin (GGpgCtx *ctx,
       return;
     }
 
-  if (cancellable)
-    g_cancellable_connect (cancellable, G_CALLBACK (_g_gpg_source_cancel),
-                           source, NULL);
-
+  g_gpg_source_connect_cancellable ((struct GGpgSource *) source, cancellable);
   g_task_attach_source (task, (GSource *) source, _g_gpg_source_func);
   g_source_unref ((GSource *) source);
 }
@@ -3522,10 +3556,7 @@ _g_gpg_ctx_sign_begin (GGpgCtx *ctx,
       return;
     }
 
-  if (cancellable)
-    g_cancellable_connect (cancellable, G_CALLBACK (_g_gpg_source_cancel),
-                           source, NULL);
-
+  g_gpg_source_connect_cancellable ((struct GGpgSource *) source, cancellable);
   g_task_attach_source (task, (GSource *) source, _g_gpg_source_func);
   g_source_unref ((GSource *) source);
 }
@@ -3710,10 +3741,7 @@ _g_gpg_ctx_encrypt_begin (GGpgCtx *ctx,
       return;
     }
 
-  if (cancellable)
-    g_cancellable_connect (cancellable, G_CALLBACK (_g_gpg_source_cancel),
-                           source, NULL);
-
+  g_gpg_source_connect_cancellable ((struct GGpgSource *) source, cancellable);
   g_task_attach_source (task, (GSource *) source, _g_gpg_source_func);
   g_source_unref ((GSource *) source);
 }

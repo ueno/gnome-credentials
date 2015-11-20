@@ -94,10 +94,17 @@ guint g_gpg_ctx_get_n_signers (GGpgCtx *ctx);
 GGpgKey *g_gpg_ctx_get_signer (GGpgCtx *ctx, guint index);
 void g_gpg_ctx_clear_signers (GGpgCtx *ctx);
 
-gboolean g_gpg_ctx_keylist_start (GGpgCtx *ctx, const gchar *pattern,
-                                  gboolean secret_only, GError **error);
-GGpgKey *g_gpg_ctx_keylist_next (GGpgCtx *ctx, GError **error);
-gboolean g_gpg_ctx_keylist_end (GGpgCtx *ctx, GError **error);
+typedef void (*GGpgKeylistCallback) (gpointer user_data,
+                                     GGpgKey *key);
+void g_gpg_ctx_keylist (GGpgCtx *ctx, const gchar *pattern, gboolean secret_only,
+                        GGpgKeylistCallback keylist_callback,
+                        gpointer keylist_user_data,
+                        GDestroyNotify keylist_destroy,
+                        GCancellable *cancellable,
+                        GAsyncReadyCallback callback,
+                        gpointer user_data);
+gboolean g_gpg_ctx_keylist_finish (GGpgCtx *ctx, GAsyncResult *result,
+                                   GError **error);
 
 void g_gpg_ctx_get_key (GGpgCtx *ctx, const gchar *fpr,
                         GGpgGetKeyFlags flags,
@@ -142,6 +149,7 @@ void g_gpg_ctx_edit (GGpgCtx *ctx,
                      GGpgKey *key,
                      GGpgEditCallback edit_callback,
                      gpointer edit_user_data,
+                     GDestroyNotify edit_destroy,
                      GGpgData *out,
                      GCancellable *cancellable,
                      GAsyncReadyCallback callback,
