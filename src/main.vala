@@ -48,6 +48,8 @@ public int main (string[] args) {
     GCrypt.control (GCrypt.ControlCommand.DISABLE_SECMEM, 0);
     GCrypt.control (GCrypt.ControlCommand.INITIALIZATION_FINISHED, 0);
 
+    GGpg.check_version (null);
+
     // The type "CredentialsModelButton" is referred to from a
     // GtkBuilder file.
     typeof (Credentials.ModelButton).class_ref ();

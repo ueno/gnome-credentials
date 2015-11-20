@@ -267,22 +267,15 @@ namespace Credentials {
             var ctx = new GGpg.Ctx ();
 
             ctx.protocol = protocol;
-            ctx.keylist_start (null, true);
-
-            while (true) {
-                if (cancellable.is_cancelled ())
-                    return;
-                var key = ctx.keylist_next ();
-                if (key == null)
-                    break;
-                var pubkey = key.get_subkeys ().first ().data;
-                seen.add (pubkey.fingerprint);
-                if (!this._items.contains (pubkey.fingerprint)) {
-                    var item = new GpgItem (this, key);
-                    this._items.insert (pubkey.fingerprint, item);
-                    item_added (item);
-                }
-            }
+            yield ctx.keylist (null, true, (key) => {
+                    var pubkey = key.get_subkeys ().first ().data;
+                    seen.add (pubkey.fingerprint);
+                    if (!this._items.contains (pubkey.fingerprint)) {
+                        var item = new GpgItem (this, key);
+                        this._items.insert (pubkey.fingerprint, item);
+                        item_added (item);
+                    }
+                }, cancellable);
 
             var iter = GLib.HashTableIter<string,GpgItem> (this._items);
             string fingerprint;
@@ -385,10 +378,6 @@ namespace Credentials {
     }
 
     class GpgBackend : Backend {
-        static construct {
-            GGpg.check_version (null);
-        }
-
         static const GpgCollectionEntry[] entries = {
             { GGpg.Protocol.OPENPGP, "openpgp" }
         };

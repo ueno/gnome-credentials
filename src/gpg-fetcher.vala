@@ -122,23 +122,6 @@ namespace Credentials {
             list_box_adjust_scrolling (list_box);
         }
 
-        void search_loop (GGpg.Ctx ctx,
-                          GLib.Cancellable? cancellable) throws GLib.Error
-        {
-            var context = GLib.MainContext.default ();
-            while (!this._cancellable.is_cancelled ()) {
-                var key = ctx.keylist_next ();
-                if (key == null)
-                    break;
-                context.invoke (() => {
-                        this._store.append (key);
-                        list_box_adjust_scrolling (list_box);
-                        return GLib.Source.REMOVE;
-                    });
-            }
-            ctx.keylist_end ();
-        }
-
         [GtkCallback]
         void on_search_activate (Gtk.Entry entry) {
             this._cancellable.cancel ();
@@ -151,15 +134,17 @@ namespace Credentials {
             var ctx = new GGpg.Ctx ();
             ctx.protocol = GGpg.Protocol.OPENPGP;
             ctx.keylist_mode = GGpg.KeylistMode.EXTERN;
-            try {
-                ctx.keylist_start (text, false);
-                GLib.Thread.create<void*> (() => {
-                        search_loop (ctx, this._cancellable);
-                        return null;
-                    }, false);
-            } catch (GLib.Error e) {
-                warning ("error starting search: %s", e.message);
-            }
+            ctx.keylist.begin (
+                text, false,
+                (key) => {
+                    var context = GLib.MainContext.default ();
+                    context.invoke (() => {
+                            this._store.append (key);
+                            list_box_adjust_scrolling (list_box);
+                            return GLib.Source.REMOVE;
+                        });
+                },
+                this._cancellable);
         }
 
         [GtkCallback]
