@@ -7,15 +7,41 @@
     <property name="title" translatable="yes">Fetch PGP Keys</property>
     <property name="modal">True</property>
     <property name="type_hint">dialog</property>
-    <child type="action">
-      <object class="GtkButton" id="import_button">
-        <property name="label" translatable="yes">_Import</property>
-	<property name="use_underline">True</property>
-        <property name="visible">False</property>
-        <property name="can_focus">True</property>
-        <style>
-          <class name="suggested-action"/>
-        </style>
+    <child type="titlebar">
+      <object class="GtkHeaderBar">
+	<property name="visible">True</property>
+        <property name="title" translatable="yes">Fetch PGP Keys</property>
+	<property name="show-close-button">True</property>
+	<child>
+	  <object class="GtkButton" id="import_button">
+            <property name="label" translatable="yes">_Import</property>
+	    <property name="use_underline">True</property>
+            <property name="visible">False</property>
+            <property name="can_focus">True</property>
+            <style>
+              <class name="suggested-action"/>
+            </style>
+	  </object>
+	  <packing>
+            <property name="pack-type">start</property>
+	  </packing>
+	</child>
+	<child>
+	  <object class="GtkToggleButton" id="select_button">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+	    <signal name="toggled" handler="on_selection_mode_toggled"/>
+            <child>
+              <object class="GtkImage">
+		<property name="visible">True</property>
+		<property name="icon-name">object-select-symbolic</property>
+              </object>
+            </child>
+	  </object>
+	  <packing>
+            <property name="pack-type">end</property>
+	  </packing>
+	</child>
       </object>
     </child>
     <child internal-child="vbox">
@@ -114,9 +140,8 @@
 		<child>
 		  <object class="GtkListBox" id="list_box">
 		    <property name="visible">True</property>
-		    <property name="selection-mode">multiple</property>
+		    <property name="selection-mode">none</property>
 		    <property name="valign">fill</property>
-		    <signal name="selected-rows-changed" handler="on_selected_rows_changed"/>
 		  </object>
 		</child>
 	      </object>

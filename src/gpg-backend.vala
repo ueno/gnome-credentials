@@ -361,6 +361,14 @@ namespace Credentials {
             load_items.begin (cancellable);
         }
 
+        public async void import_keys (GGpg.Key[] keys,
+                                       GLib.Cancellable? cancellable) throws GLib.Error {
+            var ctx = new GGpg.Ctx ();
+            ctx.protocol = protocol;
+            yield ctx.import_keys (keys, cancellable);
+            load_items.begin (cancellable);
+        }
+        
         public override int compare (Collection other) {
             var difference = backend.compare (((Collection) other).backend);
             if (difference != 0)

@@ -12,6 +12,9 @@ namespace Credentials {
         Gtk.Button import_button;
 
         [GtkChild]
+        Gtk.Button select_button;
+
+        [GtkChild]
         Gtk.Spinner spinner;
 
         [GtkChild]
@@ -34,17 +37,14 @@ namespace Credentials {
             list_box.bind_model (this._store, create_key_widget);
             list_box.set_header_func (list_box_update_header_func);
             list_box_setup_scrolling (list_box, 6);
+            select_button.bind_property ("active", import_button, "visible",
+                                         GLib.BindingFlags.SYNC_CREATE);
             this._cancellable = new GLib.Cancellable ();
             this._cancellable.connect (clear_matches);
         }
 
         Gtk.Widget create_key_widget (GLib.Object object) {
             var key = (GGpg.Key) object;
-            var box = new Gtk.Box (Gtk.Orientation.VERTICAL, 3);
-            box.margin_start = 12;
-            box.margin_end = 12;
-            box.margin_top = 3;
-            box.margin_bottom = 3;
             GLib.List<GGpg.UserId> uids = key.get_uids ();
             string[] secondary_labels = {};
             string primary_label = "";
@@ -97,11 +97,14 @@ namespace Credentials {
             if (primary_label == "")
                 primary_label = _("(empty user ID)");
 
+            var vbox = new Gtk.Box (Gtk.Orientation.VERTICAL, 3);
+            vbox.show ();
+
             var label = new Gtk.Label (primary_label);
             label.halign = Gtk.Align.START;
             label.ellipsize = Pango.EllipsizeMode.END;
             label.show ();
-            box.pack_start (label, false, false, 0);
+            vbox.pack_start (label, false, false, 0);
 
             foreach (var secondary_label in secondary_labels) {
                 label = new Gtk.Label (secondary_label);
@@ -111,11 +114,21 @@ namespace Credentials {
                 label.halign = Gtk.Align.START;
                 label.ellipsize = Pango.EllipsizeMode.END;
                 label.show ();
-                box.pack_start (label, false, false, 0);
+                vbox.pack_start (label, false, false, 0);
             }
 
-            box.set_data ("credentials-list-box-row-object", object);
-            return box;
+            var hbox = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 3);
+            hbox.margin_start = 12;
+            hbox.margin_end = 12;
+            hbox.margin_top = 3;
+            hbox.margin_bottom = 3;
+            hbox.pack_start (vbox, false, false, 0);
+            var button = new Gtk.CheckButton ();
+            select_button.bind_property ("active", button, "visible",
+                                         GLib.BindingFlags.SYNC_CREATE);
+            hbox.pack_end (button, false, false, 0);
+            hbox.set_data<GGpg.Key> ("credentials-list-box-row-object", key);
+            return hbox;
         }
 
         void clear_matches () {
@@ -184,9 +197,51 @@ namespace Credentials {
         }
 
         [GtkCallback]
-        void on_selected_rows_changed (Gtk.ListBox list_box) {
-            var rows = list_box.get_selected_rows ();
-            import_button.visible = rows != null;
+        void on_selection_mode_toggled (Gtk.ToggleButton button) {
+            var context = this.get_header_bar ().get_style_context ();
+            if (button.active)
+                context.add_class ("selection-mode");
+            else
+                context.remove_class ("selection-mode");
+        }
+
+        public override void response (int res) {
+            if (res == GpgFetcherResponse.IMPORT) {
+                GGpg.Key[] keys = {};
+                for (var i = 0; ; i++) {
+                    var selected = false;
+                    var row = list_box.get_row_at_index (i);
+                    if (row == null)
+                        break;
+                    var box = (Gtk.Box) row.get_child ();
+                    foreach (var child in box.get_children ()) {
+                        if (child is Gtk.CheckButton) {
+                            selected = ((Gtk.ToggleButton) child).active;
+                            break;
+                        }
+                    }
+                    if (selected) {
+                        var key = box.get_data<GGpg.Key> ("credentials-list-box-row-object");
+                        keys += key;
+                    }
+                }
+                if (keys.length > 0) {
+                    var window = (Gtk.Window) this.get_transient_for ();
+                    collection.import_keys.begin (
+                        keys, this._cancellable,
+                        (obj, res) => {
+                            try {
+                                collection.import_keys.end (res);
+                                show_notification (window,
+                                                   _("keys imported"));
+                            } catch (GLib.Error e) {
+                                show_error (window,
+                                            "Couldn't import keys: %s",
+                                            e.message);
+                            }
+                        });
+                }
+            }
         }
     }
 }
