@@ -175,6 +175,14 @@ void g_gpg_ctx_import (GGpgCtx *ctx,
 gboolean g_gpg_ctx_import_finish (GGpgCtx *ctx, GAsyncResult *result,
                                   GError **error);
 
+void g_gpg_ctx_import_keys (GGpgCtx *ctx,
+                            GGpgKey **keys,
+                            GCancellable *cancellable,
+                            GAsyncReadyCallback callback,
+                            gpointer user_data);
+gboolean g_gpg_ctx_import_keys_finish (GGpgCtx *ctx, GAsyncResult *result,
+                                       GError **error);
+
 void g_gpg_ctx_decrypt (GGpgCtx *ctx,
                         GGpgData *cipher,
                         GGpgData *plain,

@@ -2176,6 +2176,95 @@ g_gpg_ctx_import_finish (GGpgCtx *ctx, GAsyncResult *result, GError **error)
   return g_task_propagate_boolean (G_TASK (result), error);
 }
 
+struct GGpgImportKeysSource
+{
+  struct GGpgSource source;
+  GGpgKey **keys;
+};
+
+static void
+g_gpg_import_keys_source_finalize (GSource *_source)
+{
+  struct GGpgImportKeysSource *source = (struct GGpgImportKeysSource *) _source;
+  GGpgKey **keys;
+  for (keys = source->keys; *keys; keys++)
+    g_object_unref (*keys);
+  g_free (source->keys);
+}
+
+static void
+_g_gpg_ctx_import_keys_begin (GGpgCtx *ctx,
+                              struct GGpgImportKeysSource *source,
+                              GTask *task,
+                              GCancellable *cancellable)
+{
+  gpgme_error_t err;
+  gpgme_key_t *keys;
+  gsize i;
+
+  for (i = 0; source->keys[i]; i++)
+    ;
+
+  keys = g_new0 (gpgme_key_t, i + 1);
+  for (i = 0; source->keys[i]; i++)
+    keys[i] = source->keys[i]->pointer;
+  
+  err = gpgme_op_import_keys_start (ctx->pointer, keys);
+  g_free (keys);
+  if (err)
+    {
+      g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
+                               "%s", gpgme_strerror (err));
+      return;
+    }
+
+  g_gpg_source_connect_cancellable ((struct GGpgSource *) source, cancellable);
+  g_task_attach_source (task, (GSource *) source, _g_gpg_source_func);
+  g_source_unref ((GSource *) source);
+}
+
+/**
+ * g_gpg_ctx_import_keys:
+ * @ctx: a #GGpgCtx
+ * @keys: (array zero-terminated=1) (element-type GGpgKey): list of keys
+ * @cancellable: (nullable): a #GCancellable
+ * @callback: a callback
+ * @user_data: a user data
+ *
+ */
+void
+g_gpg_ctx_import_keys (GGpgCtx *ctx,
+                       GGpgKey **keys,
+                       GCancellable *cancellable,
+                       GAsyncReadyCallback callback,
+                       gpointer user_data)
+{
+  GTask *task;
+  struct GGpgImportKeysSource *source;
+  gsize i;
+
+  task = g_task_new (ctx, cancellable, callback, user_data);
+  source = G_GPG_SOURCE_NEW (struct GGpgImportKeysSource, ctx);
+
+  for (i = 0; keys[i]; i++)
+    ;
+  source->keys = g_new0 (GGpgKey *, i + 1);
+  for (i = 0; keys[i]; i++)
+    source->keys[i] = g_object_ref (keys[i]);
+
+  g_task_set_task_data (task, source,
+                        (GDestroyNotify) g_gpg_import_keys_source_finalize);
+  _g_gpg_ctx_import_keys_begin (ctx, source, task, cancellable);
+}
+
+gboolean
+g_gpg_ctx_import_keys_finish (GGpgCtx *ctx, GAsyncResult *result,
+                              GError **error)
+{
+  g_return_val_if_fail (g_task_is_valid (result, ctx), FALSE);
+  return g_task_propagate_boolean (G_TASK (result), error);
+}
+
 struct _GGpgRecipient
 {
   GObject parent;
