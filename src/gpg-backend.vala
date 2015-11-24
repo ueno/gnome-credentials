@@ -361,12 +361,13 @@ namespace Credentials {
             load_items.begin (cancellable);
         }
 
-        public async void import_keys (GGpg.Key[] keys,
-                                       GLib.Cancellable? cancellable) throws GLib.Error {
+        public async GGpg.ImportResult import_keys (GGpg.Key[] keys,
+                                                    GLib.Cancellable? cancellable) throws GLib.Error {
             var ctx = new GGpg.Ctx ();
             ctx.protocol = protocol;
             yield ctx.import_keys (keys, cancellable);
             load_items.begin (cancellable);
+            return ctx.import_result ();
         }
         
         public override int compare (Collection other) {

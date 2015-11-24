@@ -231,9 +231,12 @@ namespace Credentials {
                         keys, this._cancellable,
                         (obj, res) => {
                             try {
-                                collection.import_keys.end (res);
+                                var result = collection.import_keys.end (res);
                                 show_notification (window,
-                                                   _("keys imported"));
+                                                   _("%d keys imported (%d new, %d unchanged)"),
+                                                   result.considered,
+                                                   result.imported,
+                                                   result.unchanged);
                             } catch (GLib.Error e) {
                                 show_error (window,
                                             "Couldn't import keys: %s",
