@@ -2010,7 +2010,7 @@ _g_gpg_ctx_edit_begin (GGpgCtx *ctx,
  * @edit_user_data: a data for @edit_callback
  * @edit_destroy: a #GDestroyNotify
  * @out: a #GGpgData
- * @cancellable: a #GCancellable
+ * @cancellable: (nullable): a #GCancellable
  * @callback: a callback
  * @user_data: a data for @callback
  *
@@ -2051,7 +2051,7 @@ g_gpg_ctx_edit_finish (GGpgCtx *ctx, GAsyncResult *result, GError **error)
 struct GGpgExportSource
 {
   struct GGpgSource source;
-  GGpgKey *key;
+  gchar *pattern;
   GGpgExportMode mode;
   GGpgData *keydata;
 };
@@ -2060,7 +2060,7 @@ static void
 g_gpg_export_source_finalize (GSource *_source)
 {
   struct GGpgExportSource *source = (struct GGpgExportSource *) _source;
-  g_free (source->key);
+  g_free (source->pattern);
   g_object_unref (source->keydata);
 }
 
@@ -2070,12 +2070,10 @@ _g_gpg_ctx_export_begin (GGpgCtx *ctx,
                          GTask *task,
                          GCancellable *cancellable)
 {
-  gpgme_key_t keys[2] = { NULL, NULL };
   gpgme_error_t err;
 
-  keys[0] = source->key->pointer;
-  err = gpgme_op_export_keys_start (ctx->pointer, keys, source->mode,
-                                    source->keydata->pointer);
+  err = gpgme_op_export_start (ctx->pointer, source->pattern, source->mode,
+                               source->keydata->pointer);
   if (err)
     {
       g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
@@ -2090,7 +2088,7 @@ _g_gpg_ctx_export_begin (GGpgCtx *ctx,
 
 void
 g_gpg_ctx_export (GGpgCtx *ctx,
-                  GGpgKey *key,
+                  const gchar *pattern,
                   GGpgExportMode mode,
                   GGpgData *keydata,
                   GCancellable *cancellable,
@@ -2102,7 +2100,7 @@ g_gpg_ctx_export (GGpgCtx *ctx,
 
   task = g_task_new (ctx, cancellable, callback, user_data);
   source = G_GPG_SOURCE_NEW (struct GGpgExportSource, ctx);
-  source->key = g_object_ref (key);
+  source->pattern = g_strdup (pattern);
   source->mode = mode;
   source->keydata = g_object_ref (keydata);
   g_task_set_task_data (task, source,
@@ -2112,6 +2110,104 @@ g_gpg_ctx_export (GGpgCtx *ctx,
 
 gboolean
 g_gpg_ctx_export_finish (GGpgCtx *ctx, GAsyncResult *result, GError **error)
+{
+  g_return_val_if_fail (g_task_is_valid (result, ctx), FALSE);
+  return g_task_propagate_boolean (G_TASK (result), error);
+}
+
+struct GGpgExportKeysSource
+{
+  struct GGpgSource source;
+  GGpgKey **keys;
+  GGpgExportMode mode;
+  GGpgData *keydata;
+};
+
+static void
+g_gpg_export_keys_source_finalize (GSource *_source)
+{
+  struct GGpgExportKeysSource *source = (struct GGpgExportKeysSource *) _source;
+  GGpgKey **keys;
+  for (keys = source->keys; *keys; keys++)
+    g_object_unref (*keys);
+  g_free (source->keys);
+  g_object_unref (source->keydata);
+}
+
+static void
+_g_gpg_ctx_export_keys_begin (GGpgCtx *ctx,
+                              struct GGpgExportKeysSource *source,
+                              GTask *task,
+                              GCancellable *cancellable)
+{
+  gpgme_error_t err;
+  gpgme_key_t *keys;
+  gsize i;
+
+  for (i = 0; source->keys[i]; i++)
+    ;
+
+  keys = g_new0 (gpgme_key_t, i + 1);
+  for (i = 0; source->keys[i]; i++)
+    keys[i] = source->keys[i]->pointer;
+
+  err = gpgme_op_export_keys_start (ctx->pointer, keys, source->mode,
+                                    source->keydata->pointer);
+  if (err)
+    {
+      g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
+                               "%s", gpgme_strerror (err));
+      return;
+    }
+
+  g_gpg_source_connect_cancellable ((struct GGpgSource *) source, cancellable);
+  g_task_attach_source (task, (GSource *) source, _g_gpg_source_func);
+  g_source_unref ((GSource *) source);
+}
+
+/**
+ * g_gpg_ctx_export_keys:
+ * @ctx: a #GGpgCtx
+ * @keys: (array zero-terminated=1) (element-type GGpgKey): list of keys
+ * @mode: a #GGpgExportMode
+ * @keydata: a #GGpgData
+ * @cancellable: (nullable): a #GCancellable
+ * @callback: a callback
+ * @user_data: a user data
+ *
+ */
+void
+g_gpg_ctx_export_keys (GGpgCtx *ctx,
+                       GGpgKey **keys,
+                       GGpgExportMode mode,
+                       GGpgData *keydata,
+                       GCancellable *cancellable,
+                       GAsyncReadyCallback callback,
+                       gpointer user_data)
+{
+  GTask *task;
+  struct GGpgExportKeysSource *source;
+  gsize i;
+
+  task = g_task_new (ctx, cancellable, callback, user_data);
+  source = G_GPG_SOURCE_NEW (struct GGpgExportKeysSource, ctx);
+
+  for (i = 0; keys[i]; i++)
+    ;
+  source->keys = g_new0 (GGpgKey *, i + 1);
+  for (i = 0; keys[i]; i++)
+    source->keys[i] = g_object_ref (keys[i]);
+
+  source->mode = mode;
+  source->keydata = g_object_ref (keydata);
+  g_task_set_task_data (task, source,
+                        (GDestroyNotify) g_gpg_export_keys_source_finalize);
+  _g_gpg_ctx_export_keys_begin (ctx, source, task, cancellable);
+}
+
+gboolean
+g_gpg_ctx_export_keys_finish (GGpgCtx *ctx, GAsyncResult *result,
+                              GError **error)
 {
   g_return_val_if_fail (g_task_is_valid (result, ctx), FALSE);
   return g_task_propagate_boolean (G_TASK (result), error);

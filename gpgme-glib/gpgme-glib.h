@@ -166,7 +166,7 @@ gboolean g_gpg_ctx_edit_finish (GGpgCtx *ctx, GAsyncResult *result,
                                 GError **error);
 
 void g_gpg_ctx_export (GGpgCtx *ctx,
-                       GGpgKey *key,
+                       const gchar *pattern,
                        GGpgExportMode mode,
                        GGpgData *keydata,
                        GCancellable *cancellable,
@@ -174,6 +174,15 @@ void g_gpg_ctx_export (GGpgCtx *ctx,
                        gpointer user_data);
 gboolean g_gpg_ctx_export_finish (GGpgCtx *ctx, GAsyncResult *result,
                                   GError **error);
+void g_gpg_ctx_export_keys (GGpgCtx *ctx,
+                            GGpgKey **keys,
+                            GGpgExportMode mode,
+                            GGpgData *keydata,
+                            GCancellable *cancellable,
+                            GAsyncReadyCallback callback,
+                            gpointer user_data);
+gboolean g_gpg_ctx_export_keys_finish (GGpgCtx *ctx, GAsyncResult *result,
+                                       GError **error);
 
 void g_gpg_ctx_import (GGpgCtx *ctx,
                        GGpgData *keydata,
@@ -182,7 +191,6 @@ void g_gpg_ctx_import (GGpgCtx *ctx,
                        gpointer user_data);
 gboolean g_gpg_ctx_import_finish (GGpgCtx *ctx, GAsyncResult *result,
                                   GError **error);
-
 void g_gpg_ctx_import_keys (GGpgCtx *ctx,
                             GGpgKey **keys,
                             GCancellable *cancellable,
