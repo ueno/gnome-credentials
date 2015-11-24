@@ -317,6 +317,108 @@ namespace Credentials {
         }
     }
 
+    enum GpgAddKeyState {
+        START,
+        COMMAND,
+        TYPE,
+        LENGTH,
+        EXPIRES,
+        QUIT,
+        SAVE,
+        ERROR
+    }
+
+    class GpgAddKeyEditCommand : GpgEditCommand {
+        public GpgGeneratedKeyType key_type { construct set; get; }
+        public uint length { construct set; get; }
+        public uint64 expires { construct set; get; }
+
+        public GpgAddKeyEditCommand (GpgGeneratedKeyType key_type,
+                                     uint length,
+                                     uint64 expires)
+        {
+            Object (key_type: key_type, length: length, expires: expires);
+        }
+
+        public override void action (uint state, int fd) throws GLib.Error {
+            switch (state) {
+            case GpgAddKeyState.COMMAND:
+                send_string (fd, "addkey");
+                break;
+
+            case GpgAddKeyState.TYPE:
+                send_string (fd, key_type.to_string ());
+                break;
+
+            case GpgAddKeyState.LENGTH:
+                send_string (fd, length.to_string ());
+                break;
+
+            case GpgAddKeyState.EXPIRES:
+                send_string (fd, expires.to_string ());
+                break;
+
+            case GpgAddKeyState.QUIT:
+                send_string (fd, QUIT);
+                break;
+
+            case GpgAddKeyState.SAVE:
+                send_string (fd, YES);
+                break;
+
+            default:
+                throw new GGpg.Error.GENERAL ("invalid state in adduid command");
+            }
+            send_string (fd, "\n");
+        }
+
+        public override uint transit (uint state,
+                                      GGpg.StatusCode status,
+                                      string args) throws GLib.Error
+        {
+            switch (state) {
+            case GpgAddKeyState.START:
+                if (status == GGpg.StatusCode.GET_LINE && args == PROMPT)
+                    return GpgAddKeyState.COMMAND;
+                throw new GGpg.Error.GENERAL ("invalid response at state %u",
+                                              state);
+
+            case GpgAddKeyState.COMMAND:
+            case GpgAddKeyState.TYPE:
+            case GpgAddKeyState.LENGTH:
+            case GpgAddKeyState.EXPIRES:
+                if (status == GGpg.StatusCode.GET_LINE &&
+                    args == "keygen.algo")
+                    return GpgAddKeyState.TYPE;
+                if (status == GGpg.StatusCode.GET_LINE &&
+                    args == "keygen.size")
+                    return GpgAddKeyState.LENGTH;
+                if (status == GGpg.StatusCode.GET_LINE &&
+                    args == "keygen.valid")
+                    return GpgAddKeyState.EXPIRES;
+                if (status == GGpg.StatusCode.GET_LINE &&
+                    args == PROMPT)
+                    return GpgAddKeyState.QUIT;
+                throw new GGpg.Error.GENERAL ("invalid response at state %u",
+                                              state);
+
+            case GpgAddKeyState.QUIT:
+                if (status == GGpg.StatusCode.GET_BOOL && args == SAVE)
+                    return GpgAddKeyState.SAVE;
+                throw new GGpg.Error.GENERAL ("invalid response at state %u",
+                                              state);
+
+            case GpgAddKeyState.ERROR:
+                if (status == GGpg.StatusCode.GET_LINE && args == PROMPT)
+                    return GpgAddKeyState.QUIT;
+                else
+                    return GpgAddKeyState.ERROR;
+            default:
+                throw new GGpg.Error.GENERAL ("invalid state %u", state);
+            }
+        }
+    }
+
     enum GpgDelKeyState {
         START,
         SELECT,
