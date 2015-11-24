@@ -162,8 +162,11 @@ namespace Credentials {
     static void show_notification (Gtk.Window window, string format, ...) {
         var notification = new Gd.Notification ();
         var grid = new Gtk.Grid ();
+        grid.valign = Gtk.Align.CENTER;
         notification.add (grid);
-        grid.add (new Gtk.Label (format.vprintf (va_list ())));
+        var label = new Gtk.Label (format.vprintf (va_list ()));
+        label.valign = Gtk.Align.CENTER;
+        grid.add (label);
         notification.show_all ();
         notification.timeout = 5;
         ((Window) window).add_notification (notification);
