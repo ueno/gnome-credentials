@@ -2208,7 +2208,7 @@ _g_gpg_ctx_import_keys_begin (GGpgCtx *ctx,
   keys = g_new0 (gpgme_key_t, i + 1);
   for (i = 0; source->keys[i]; i++)
     keys[i] = source->keys[i]->pointer;
-  
+
   err = gpgme_op_import_keys_start (ctx->pointer, keys);
   g_free (keys);
   if (err)
@@ -2263,6 +2263,378 @@ g_gpg_ctx_import_keys_finish (GGpgCtx *ctx, GAsyncResult *result,
 {
   g_return_val_if_fail (g_task_is_valid (result, ctx), FALSE);
   return g_task_propagate_boolean (G_TASK (result), error);
+}
+
+struct _GGpgImportStatus
+{
+  GObject parent;
+  gpgme_import_status_t pointer;
+  GGpgImportResult *owner;
+};
+
+G_DEFINE_TYPE (GGpgImportStatus, g_gpg_import_status, G_TYPE_OBJECT)
+
+enum {
+  IMPORT_STATUS_PROP_0,
+  IMPORT_STATUS_PROP_POINTER,
+  IMPORT_STATUS_PROP_OWNER,
+  IMPORT_STATUS_PROP_FINGERPRINT,
+  IMPORT_STATUS_PROP_RESULT,
+  IMPORT_STATUS_PROP_STATUS,
+  IMPORT_STATUS_LAST_PROP
+};
+
+static GParamSpec *import_status_pspecs[IMPORT_STATUS_LAST_PROP] = { NULL, };
+
+static void
+g_gpg_import_status_set_property (GObject *object,
+                                  guint property_id,
+                                  const GValue *value,
+                                  GParamSpec *pspec)
+{
+  GGpgImportStatus *import_status = G_GPG_IMPORT_STATUS (object);
+
+  switch (property_id)
+    {
+    case IMPORT_STATUS_PROP_POINTER:
+      {
+        gpgme_import_status_t pointer = g_value_get_pointer (value);
+        gpgme_result_ref (pointer);
+        import_status->pointer = pointer;
+      }
+      break;
+
+    case IMPORT_STATUS_PROP_OWNER:
+      import_status->owner = g_value_dup_object (value);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+g_gpg_import_status_get_property (GObject *object,
+                                   guint property_id,
+                                   GValue *value,
+                                   GParamSpec *pspec)
+{
+  GGpgImportStatus *import_status = G_GPG_IMPORT_STATUS (object);
+
+  switch (property_id)
+    {
+    case IMPORT_STATUS_PROP_FINGERPRINT:
+      g_value_set_string (value, import_status->pointer->fpr);
+      break;
+
+    case IMPORT_STATUS_PROP_RESULT:
+      g_value_set_enum (value, import_status->pointer->result);
+      break;
+
+    case IMPORT_STATUS_PROP_STATUS:
+      g_value_set_uint (value, import_status->pointer->status);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+g_gpg_import_status_dispose (GObject *object)
+{
+  GGpgImportStatus *import_status = G_GPG_IMPORT_STATUS (object);
+
+  g_clear_object (&import_status->owner);
+
+  G_OBJECT_CLASS (g_gpg_import_status_parent_class)->dispose (object);
+}
+
+static void
+g_gpg_import_status_class_init (GGpgImportStatusClass *klass)
+{
+  GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+  object_class->set_property = g_gpg_import_status_set_property;
+  object_class->get_property = g_gpg_import_status_get_property;
+  object_class->dispose = g_gpg_import_status_dispose;
+
+  import_status_pspecs[IMPORT_STATUS_PROP_POINTER] =
+    g_param_spec_pointer ("pointer", NULL, NULL,
+                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+  import_status_pspecs[IMPORT_STATUS_PROP_OWNER] =
+    g_param_spec_pointer ("owner", NULL, NULL,
+                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+
+  import_status_pspecs[IMPORT_STATUS_PROP_FINGERPRINT] =
+    g_param_spec_string ("fingerprint", NULL, NULL,
+                         "",
+                         G_PARAM_READABLE);
+  import_status_pspecs[IMPORT_STATUS_PROP_RESULT] =
+    g_param_spec_enum ("result", NULL, NULL,
+                       G_GPG_TYPE_ERROR, G_GPG_ERROR_NO_ERROR,
+                       G_PARAM_READABLE);
+  import_status_pspecs[IMPORT_STATUS_PROP_STATUS] =
+    g_param_spec_uint ("status", NULL, NULL,
+                       0, G_MAXUINT, 0,
+                       G_PARAM_READABLE);
+
+  g_object_class_install_properties (object_class, IMPORT_STATUS_LAST_PROP,
+                                     import_status_pspecs);
+}
+
+static void
+g_gpg_import_status_init (GGpgImportStatus *import_status)
+{
+}
+
+struct _GGpgImportResult
+{
+  GObject parent;
+  gpgme_import_result_t pointer;
+};
+
+G_DEFINE_TYPE (GGpgImportResult, g_gpg_import_result, G_TYPE_OBJECT)
+
+enum {
+  IMPORT_RESULT_PROP_0,
+  IMPORT_RESULT_PROP_POINTER,
+  IMPORT_RESULT_PROP_CONSIDERED,
+  IMPORT_RESULT_PROP_NO_USER_ID,
+  IMPORT_RESULT_PROP_IMPORTED,
+  IMPORT_RESULT_PROP_IMPORTED_RSA,
+  IMPORT_RESULT_PROP_UNCHANGED,
+  IMPORT_RESULT_PROP_NEW_USER_IDS,
+  IMPORT_RESULT_PROP_NEW_SUBKEYS,
+  IMPORT_RESULT_PROP_NEW_SIGNATURES,
+  IMPORT_RESULT_PROP_NEW_REVOCATIONS,
+  IMPORT_RESULT_PROP_SECRET_READ,
+  IMPORT_RESULT_PROP_SECRET_IMPORTED,
+  IMPORT_RESULT_PROP_SECRET_UNCHANGED,
+  IMPORT_RESULT_PROP_NOT_IMPORTED,
+  IMPORT_RESULT_LAST_PROP
+};
+
+static GParamSpec *import_result_pspecs[IMPORT_RESULT_LAST_PROP] = { NULL, };
+
+static void
+g_gpg_import_result_set_property (GObject *object,
+                                  guint property_id,
+                                  const GValue *value,
+                                  GParamSpec *pspec)
+{
+  GGpgImportResult *import_result = G_GPG_IMPORT_RESULT (object);
+
+  switch (property_id)
+    {
+    case IMPORT_RESULT_PROP_POINTER:
+      {
+        gpgme_import_result_t pointer = g_value_get_pointer (value);
+        gpgme_result_ref (pointer);
+        import_result->pointer = pointer;
+      }
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+g_gpg_import_result_get_property (GObject *object,
+                                   guint property_id,
+                                   GValue *value,
+                                   GParamSpec *pspec)
+{
+  GGpgImportResult *import_result = G_GPG_IMPORT_RESULT (object);
+
+  switch (property_id)
+    {
+    case IMPORT_RESULT_PROP_CONSIDERED:
+      g_value_set_int (value, import_result->pointer->considered);
+      break;
+
+    case IMPORT_RESULT_PROP_NO_USER_ID:
+      g_value_set_int (value, import_result->pointer->no_user_id);
+      break;
+
+    case IMPORT_RESULT_PROP_IMPORTED:
+      g_value_set_int (value, import_result->pointer->imported);
+      break;
+
+    case IMPORT_RESULT_PROP_IMPORTED_RSA:
+      g_value_set_int (value, import_result->pointer->imported_rsa);
+      break;
+
+    case IMPORT_RESULT_PROP_UNCHANGED:
+      g_value_set_int (value, import_result->pointer->unchanged);
+      break;
+
+    case IMPORT_RESULT_PROP_NEW_USER_IDS:
+      g_value_set_int (value, import_result->pointer->new_user_ids);
+      break;
+
+    case IMPORT_RESULT_PROP_NEW_SUBKEYS:
+      g_value_set_int (value, import_result->pointer->new_sub_keys);
+      break;
+
+    case IMPORT_RESULT_PROP_NEW_SIGNATURES:
+      g_value_set_int (value, import_result->pointer->new_signatures);
+      break;
+
+    case IMPORT_RESULT_PROP_NEW_REVOCATIONS:
+      g_value_set_int (value, import_result->pointer->new_revocations);
+      break;
+
+    case IMPORT_RESULT_PROP_SECRET_READ:
+      g_value_set_int (value, import_result->pointer->secret_read);
+      break;
+
+    case IMPORT_RESULT_PROP_SECRET_IMPORTED:
+      g_value_set_int (value, import_result->pointer->secret_imported);
+      break;
+
+    case IMPORT_RESULT_PROP_SECRET_UNCHANGED:
+      g_value_set_int (value, import_result->pointer->secret_unchanged);
+      break;
+
+    case IMPORT_RESULT_PROP_NOT_IMPORTED:
+      g_value_set_int (value, import_result->pointer->not_imported);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+g_gpg_import_result_finalize (GObject *object)
+{
+  GGpgImportResult *import_result = G_GPG_IMPORT_RESULT (object);
+
+  gpgme_result_unref (import_result->pointer);
+
+  G_OBJECT_CLASS (g_gpg_import_result_parent_class)->finalize (object);
+}
+
+static void
+g_gpg_import_result_class_init (GGpgImportResultClass *klass)
+{
+  GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+  object_class->set_property = g_gpg_import_result_set_property;
+  object_class->get_property = g_gpg_import_result_get_property;
+  object_class->finalize = g_gpg_import_result_finalize;
+
+  import_result_pspecs[IMPORT_RESULT_PROP_POINTER] =
+    g_param_spec_pointer ("pointer", NULL, NULL,
+                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+
+  import_result_pspecs[IMPORT_RESULT_PROP_CONSIDERED] =
+    g_param_spec_int ("considered", NULL, NULL,
+                      0, G_MAXINT, 0,
+                      G_PARAM_READABLE);
+  import_result_pspecs[IMPORT_RESULT_PROP_NO_USER_ID] =
+    g_param_spec_int ("no-user-id", NULL, NULL,
+                      0, G_MAXINT, 0,
+                      G_PARAM_READABLE);
+  import_result_pspecs[IMPORT_RESULT_PROP_IMPORTED] =
+    g_param_spec_int ("imported", NULL, NULL,
+                      0, G_MAXINT, 0,
+                      G_PARAM_READABLE);
+  import_result_pspecs[IMPORT_RESULT_PROP_IMPORTED_RSA] =
+    g_param_spec_int ("imported-rsa", NULL, NULL,
+                      0, G_MAXINT, 0,
+                      G_PARAM_READABLE);
+  import_result_pspecs[IMPORT_RESULT_PROP_UNCHANGED] =
+    g_param_spec_int ("unchanged", NULL, NULL,
+                      0, G_MAXINT, 0,
+                      G_PARAM_READABLE);
+  import_result_pspecs[IMPORT_RESULT_PROP_NEW_USER_IDS] =
+    g_param_spec_int ("new-user-ids", NULL, NULL,
+                      0, G_MAXINT, 0,
+                      G_PARAM_READABLE);
+  import_result_pspecs[IMPORT_RESULT_PROP_NEW_SUBKEYS] =
+    g_param_spec_int ("new-subkeys", NULL, NULL,
+                      0, G_MAXINT, 0,
+                      G_PARAM_READABLE);
+  import_result_pspecs[IMPORT_RESULT_PROP_NEW_SIGNATURES] =
+    g_param_spec_int ("new-signatures", NULL, NULL,
+                      0, G_MAXINT, 0,
+                      G_PARAM_READABLE);
+  import_result_pspecs[IMPORT_RESULT_PROP_NEW_REVOCATIONS] =
+    g_param_spec_int ("new-revocations", NULL, NULL,
+                      0, G_MAXINT, 0,
+                      G_PARAM_READABLE);
+  import_result_pspecs[IMPORT_RESULT_PROP_SECRET_READ] =
+    g_param_spec_int ("secret-read", NULL, NULL,
+                      0, G_MAXINT, 0,
+                      G_PARAM_READABLE);
+  import_result_pspecs[IMPORT_RESULT_PROP_SECRET_IMPORTED] =
+    g_param_spec_int ("secret-imported", NULL, NULL,
+                      0, G_MAXINT, 0,
+                      G_PARAM_READABLE);
+  import_result_pspecs[IMPORT_RESULT_PROP_SECRET_UNCHANGED] =
+    g_param_spec_int ("secret-unchanged", NULL, NULL,
+                      0, G_MAXINT, 0,
+                      G_PARAM_READABLE);
+  import_result_pspecs[IMPORT_RESULT_PROP_NOT_IMPORTED] =
+    g_param_spec_int ("not-imported", NULL, NULL,
+                      0, G_MAXINT, 0,
+                      G_PARAM_READABLE);
+
+  g_object_class_install_properties (object_class, IMPORT_RESULT_LAST_PROP,
+                                     import_result_pspecs);
+}
+
+static void
+g_gpg_import_result_init (GGpgImportResult *import_result)
+{
+}
+
+/**
+ * g_gpg_import_result_get_imports:
+ * @import_result: a #GGpgImportResult
+ *
+ * Returns: (transfer full) (element-type GGpgImportStatus): a list of
+ * #GGpgImportStatus
+ */
+GList *
+g_gpg_import_result_get_imports (GGpgImportResult *import_result)
+{
+  gpgme_import_status_t imports = import_result->pointer->imports;
+  GList *result = NULL;
+
+  for (; imports; imports = imports->next)
+    {
+      GGpgImportStatus *status =
+        g_object_new (G_GPG_TYPE_IMPORT_STATUS,
+                      "pointer", imports, "owner", import_result,
+                      NULL);
+      result = g_list_append (result, status);
+    }
+  return result;
+}
+
+/**
+ * g_gpg_ctx_import_result:
+ * @ctx: a #GGpgCtx
+ *
+ * Returns: (transfer full): a #GGpgImportResult
+ */
+GGpgImportResult *
+g_gpg_ctx_import_result (GGpgCtx *ctx)
+{
+  gpgme_import_result_t import_result;
+
+  import_result = gpgme_op_import_result (ctx->pointer);
+  g_return_val_if_fail (import_result, NULL);
+  return g_object_new (G_GPG_TYPE_IMPORT_RESULT, "pointer", import_result,
+                       NULL);
 }
 
 struct _GGpgRecipient

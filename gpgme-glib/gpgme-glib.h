@@ -67,6 +67,14 @@ G_DECLARE_FINAL_TYPE (GGpgSignResult, g_gpg_sign_result,
 G_DECLARE_FINAL_TYPE (GGpgEncryptResult, g_gpg_encrypt_result,
                       G_GPG, ENCRYPT_RESULT, GObject)
 
+#define G_GPG_TYPE_IMPORT_STATUS (g_gpg_import_status_get_type ())
+G_DECLARE_FINAL_TYPE (GGpgImportStatus, g_gpg_import_status,
+                      G_GPG, IMPORT_STATUS, GObject)
+
+#define G_GPG_TYPE_IMPORT_RESULT (g_gpg_import_result_get_type ())
+G_DECLARE_FINAL_TYPE (GGpgImportResult, g_gpg_import_result,
+                      G_GPG, IMPORT_RESULT, GObject)
+
 void g_gpg_check_version (const gchar *version);
 
 GGpgData *g_gpg_data_new (void);
@@ -182,6 +190,8 @@ void g_gpg_ctx_import_keys (GGpgCtx *ctx,
                             gpointer user_data);
 gboolean g_gpg_ctx_import_keys_finish (GGpgCtx *ctx, GAsyncResult *result,
                                        GError **error);
+GGpgImportResult *g_gpg_ctx_import_result (GGpgCtx *ctx);
+GList *g_gpg_import_result_get_imports (GGpgImportResult *import_result);
 
 void g_gpg_ctx_decrypt (GGpgCtx *ctx,
                         GGpgData *cipher,
