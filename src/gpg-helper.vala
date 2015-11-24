@@ -316,4 +316,90 @@ namespace Credentials {
             }
         }
     }
+
+    enum GpgDelKeyState {
+        START,
+        SELECT,
+        COMMAND,
+        CONFIRM,
+        QUIT,
+        ERROR
+    }
+
+    class GpgDelKeyEditCommand : GpgEditCommand {
+        public uint index { construct set; get; }
+
+        public GpgDelKeyEditCommand (uint index) {
+            Object (index: index);
+        }
+
+        public override void action (uint state, int fd) throws GLib.Error {
+            switch (state) {
+            case GpgDelKeyState.SELECT:
+                send_string (fd, "key %u".printf (index));
+                break;
+            case GpgDelKeyState.COMMAND:
+                send_string (fd, "delkey");
+                break;
+            case GpgDelKeyState.CONFIRM:
+                send_string (fd, YES);
+                break;
+            case GpgDelKeyState.QUIT:
+                send_string (fd, QUIT);
+                break;
+            default:
+                throw new GGpg.Error.GENERAL ("invalid state in deluid command");
+            }
+            send_string (fd, "\n");
+        }
+
+        protected override uint transit (uint state,
+                                         GGpg.StatusCode status,
+                                         string args) throws GLib.Error
+        {
+            switch (state) {
+            case GpgDelKeyState.START:
+                if (status == GGpg.StatusCode.GET_LINE && args == PROMPT)
+                    return GpgDelKeyState.SELECT;
+                throw new GGpg.Error.GENERAL ("invalid response at state %u",
+                                              state);
+
+            case GpgDelKeyState.SELECT:
+                if (status == GGpg.StatusCode.GET_LINE && args == PROMPT)
+                    return GpgDelKeyState.COMMAND;
+                throw new GGpg.Error.GENERAL ("invalid response at state %u",
+                                              state);
+
+            case GpgDelKeyState.COMMAND:
+                if (status == GGpg.StatusCode.GET_BOOL &&
+                    args == "keyedit.remove.uid.okay")
+                    return GpgDelKeyState.CONFIRM;
+                else if (status == GGpg.StatusCode.GET_LINE && args == PROMPT)
+                    return GpgDelKeyState.QUIT;
+                throw new GGpg.Error.GENERAL ("invalid response at state %u",
+                                              state);
+
+            case GpgDelKeyState.CONFIRM:
+                if (status == GGpg.StatusCode.GET_LINE && args == PROMPT)
+                    return GpgDelKeyState.QUIT;
+                throw new GGpg.Error.GENERAL ("invalid response at state %u",
+                                              state);
+
+            case GpgDelKeyState.QUIT:
+                if (status == GGpg.StatusCode.GET_BOOL && args == SAVE)
+                    return GpgDelKeyState.CONFIRM;
+                throw new GGpg.Error.GENERAL ("invalid response at state %u",
+                                              state);
+
+            case GpgDelKeyState.ERROR:
+                if (status == GGpg.StatusCode.GET_LINE && args == PROMPT)
+                    return GpgDelKeyState.QUIT;
+                else
+                    return GpgDelKeyState.ERROR;
+
+            default:
+                throw new GGpg.Error.GENERAL ("invalid state %u", state);
+            }
+        }
+    }
 }

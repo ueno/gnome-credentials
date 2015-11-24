@@ -513,6 +513,7 @@ enum {
   SUBKEY_PROP_FLAGS,
   SUBKEY_PROP_PUBKEY_ALGO,
   SUBKEY_PROP_LENGTH,
+  SUBKEY_PROP_KEY_ID,
   SUBKEY_PROP_FINGERPRINT,
   SUBKEY_PROP_CREATED,
   SUBKEY_PROP_EXPIRES,
@@ -567,6 +568,10 @@ g_gpg_subkey_get_property (GObject *object,
 
     case SUBKEY_PROP_LENGTH:
       g_value_set_uint (value, subkey->pointer->length);
+      break;
+
+    case SUBKEY_PROP_KEY_ID:
+      g_value_set_string (value, subkey->pointer->keyid);
       break;
 
     case SUBKEY_PROP_FINGERPRINT:
@@ -669,6 +674,10 @@ g_gpg_subkey_class_init (GGpgSubkeyClass *klass)
     g_param_spec_uint ("length", NULL, NULL,
                        0, G_MAXUINT, 0,
                        G_PARAM_READABLE);
+  subkey_pspecs[SUBKEY_PROP_KEY_ID] =
+    g_param_spec_string ("key-id", NULL, NULL,
+                         NULL,
+                         G_PARAM_READABLE);
   subkey_pspecs[SUBKEY_PROP_FINGERPRINT] =
     g_param_spec_string ("fingerprint", NULL, NULL,
                          NULL,

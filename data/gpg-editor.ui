@@ -51,9 +51,46 @@
 		<property name="orientation">vertical</property>
 		<property name="spacing">2</property>
 		<child>
-		  <object class="GtkBox" id="box1">
+		  <object class="GtkBox" id="uids_box">
 		    <property name="visible">True</property>
 		    <property name="orientation">vertical</property>
+		    <child>
+		      <object class="GtkBox">
+			<property name="visible">True</property>
+			<property name="orientation">horizontal</property>
+			<property name="margin">6</property>
+			<child>
+			  <object class="GtkLabel">
+			    <property name="visible">True</property>
+			    <property name="can_focus">False</property>
+			    <property name="label" translatable="yes">User ID</property>
+			    <property name="xalign">1</property>
+			    <style>
+			      <class name="dim-label"/>
+			    </style>
+			  </object>
+			  <packing>
+			    <property name="pack-type">start</property>
+			  </packing>
+			</child>
+			<child>
+			  <object class="GtkButton" id="add_user_id_button">
+			    <property name="visible">True</property>
+			    <property name="can_focus">True</property>
+			    <signal name="clicked" handler="on_add_user_id_clicked"/>
+			    <child>
+			      <object class="GtkImage">
+				<property name="visible">True</property>
+				<property name="icon-name">list-add-symbolic</property>
+			      </object>
+			    </child>
+			  </object>
+			  <packing>
+			    <property name="pack-type">end</property>
+			  </packing>
+			</child>
+		      </object>
+		    </child>
 		    <child>
 		      <object class="GtkFrame" id="frame1">
 			<property name="visible">True</property>
@@ -77,6 +114,69 @@
 		  </packing>
 		</child>
 		<child>
+		  <object class="GtkBox" id="subkeys_box">
+		    <property name="visible">True</property>
+		    <property name="orientation">vertical</property>
+		    <child>
+		      <object class="GtkBox">
+			<property name="visible">True</property>
+			<property name="orientation">horizontal</property>
+			<property name="margin">6</property>
+			<child>
+			  <object class="GtkLabel">
+			    <property name="visible">True</property>
+			    <property name="can_focus">False</property>
+			    <property name="label" translatable="yes">Subkeys</property>
+			    <property name="xalign">1</property>
+			    <style>
+			      <class name="dim-label"/>
+			    </style>
+			  </object>
+			  <packing>
+			    <property name="pack-type">start</property>
+			  </packing>
+			</child>
+			<child>
+			  <object class="GtkButton" id="add_subkey_button">
+			    <property name="visible">True</property>
+			    <property name="can_focus">True</property>
+			    <signal name="clicked" handler="on_add_subkey_clicked"/>
+			    <child>
+			      <object class="GtkImage">
+				<property name="visible">True</property>
+				<property name="icon-name">list-add-symbolic</property>
+			      </object>
+			    </child>
+			  </object>
+			  <packing>
+			    <property name="pack-type">end</property>
+			  </packing>
+			</child>
+		      </object>
+		    </child>
+		    <child>
+		      <object class="GtkFrame">
+			<property name="visible">True</property>
+			<property name="can_focus">True</property>
+			<property name="shadow_type">in</property>
+			<property name="vexpand">False</property>
+			<property name="width-request">400</property>
+			<child>
+			  <object class="GtkListBox" id="subkey_list_box">
+			    <property name="visible">True</property>
+			    <property name="selection-mode">none</property>
+			  </object>
+			</child>
+		      </object>
+		    </child>
+		  </object>
+		  <packing>
+		    <property name="expand">False</property>
+		    <property name="fill">True</property>
+		    <property name="position">1</property>
+		  </packing>
+		</child>
+		<child>
 		  <object class="GtkGrid" id="properties_grid">
 		    <property name="visible">True</property>
 		    <property name="can_focus">False</property>
@@ -87,7 +187,7 @@
 		    <property name="expand">True</property>
 		    <property name="fill">True</property>
 		    <property name="padding">10</property>
-		    <property name="position">1</property>
+		    <property name="position">2</property>
 		  </packing>
 		</child>
 		<child>
@@ -103,7 +203,7 @@
 		    <property name="expand">False</property>
 		    <property name="fill">False</property>
 		    <property name="padding">10</property>
-		    <property name="position">2</property>
+		    <property name="position">3</property>
 		  </packing>
 		</child>
 	      </object>
