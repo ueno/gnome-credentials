@@ -1,14 +1,18 @@
 namespace Credentials {
+    // These values should be in sync with ask_algo() in gnupg/g10/keygen.c.
     enum GpgGeneratedKeyType {
-        RSA_RSA,
-        DSA_ELGAMAL,
-        DSA_SIGN,
-        RSA_SIGN,
-        ELGAMAL_ENCRYPT,
-        RSA_ENCRYPT,
-        ECC_ECC,
-        ECC_SIGN,
-        ECC_ENCRYPT
+        RSA_RSA = 1,
+        DSA_ELGAMAL = 2,
+        DSA_SIGN = 3,
+        RSA_SIGN = 4,
+        ELGAMAL_ENCRYPT = 5,
+        RSA_ENCRYPT = 6,
+        DSA_CAP = 7,
+        RSA_CAP = 8,
+        ECC_ECC = 9,
+        ECC_SIGN = 10,
+        ECC_CAP = 11,
+        ECC_ENCRYPT = 12
     }
 
     enum GpgGeneratedKeyUsage {
@@ -80,6 +84,60 @@ namespace Credentials {
             get {
                 return this._content.owner_trust;
             }
+        }
+
+        GLib.List<GpgGeneratedKeySpec?> _specs;
+
+        construct {
+            this._specs = null;
+            register (GpgGeneratedKeySpec (GpgGeneratedKeyType.DSA_SIGN,
+                                           GpgGeneratedKeyUsage.SIGN,
+                                           GGpg.PubkeyAlgo.DSA,
+                                           GGpg.PubkeyAlgo.NONE,
+                                           1024, 3072, 2048,
+                                           _("DSA (sign only)")));
+            register (GpgGeneratedKeySpec (GpgGeneratedKeyType.RSA_SIGN,
+                                           GpgGeneratedKeyUsage.SIGN,
+                                           GGpg.PubkeyAlgo.RSA,
+                                           GGpg.PubkeyAlgo.NONE,
+                                           1024, 4096, 2048,
+                                           _("RSA (sign only)")));
+            register (GpgGeneratedKeySpec (GpgGeneratedKeyType.ELGAMAL_ENCRYPT,
+                                           GpgGeneratedKeyUsage.ENCRYPT,
+                                           GGpg.PubkeyAlgo.ELG,
+                                           GGpg.PubkeyAlgo.NONE,
+                                           1024, 4096, 2048,
+                                           _("ElGamal (encrypt only)")));
+            register (GpgGeneratedKeySpec (GpgGeneratedKeyType.RSA_ENCRYPT,
+                                           GpgGeneratedKeyUsage.ENCRYPT,
+                                           GGpg.PubkeyAlgo.RSA,
+                                           GGpg.PubkeyAlgo.NONE,
+                                           1024, 4096, 2048,
+                                           _("RSA (encrypt only)")));
+            // TODO: Enable them once figuring out how to determine
+            // supported algorithms from GPGME
+#if false
+            register (GpgGeneratedKeySpec (GpgGeneratedKeyType.ECC_SIGN,
+                                           GpgGeneratedKeyUsage.SIGN,
+                                           GGpg.PubkeyAlgo.ECDSA,
+                                           GGpg.PubkeyAlgo.NONE,
+                                           256, 521, 256,
+                                           _("ECC (sign only)")));
+            register (GpgGeneratedKeySpec (GpgGeneratedKeyType.ECC_ENCRYPT,
+                                           GpgGeneratedKeyUsage.ENCRYPT,
+                                           GGpg.PubkeyAlgo.ECDH,
+                                           GGpg.PubkeyAlgo.NONE,
+                                           256, 521, 256,
+                                           _("ECC (encrypt only)")));
+#endif
+        }
+
+        void register (GpgGeneratedKeySpec spec) {
+            this._specs.append (spec);
+        }
+
+        public unowned GLib.List<GpgGeneratedKeySpec?> get_generated_key_specs () {
+            return this._specs;
         }
 
         public GLib.List<GGpg.Subkey> get_subkeys () {
@@ -221,18 +279,9 @@ namespace Credentials {
                                            GGpg.PubkeyAlgo.NONE,
                                            1024, 4096, 2048,
                                            _("RSA (sign only)")));
-            register (GpgGeneratedKeySpec (GpgGeneratedKeyType.ELGAMAL_ENCRYPT,
-                                           GpgGeneratedKeyUsage.ENCRYPT,
-                                           GGpg.PubkeyAlgo.ELG,
-                                           GGpg.PubkeyAlgo.NONE,
-                                           1024, 4096, 2048,
-                                           _("ElGamal (encrypt only)")));
-            register (GpgGeneratedKeySpec (GpgGeneratedKeyType.RSA_ENCRYPT,
-                                           GpgGeneratedKeyUsage.ENCRYPT,
-                                           GGpg.PubkeyAlgo.RSA,
-                                           GGpg.PubkeyAlgo.NONE,
-                                           1024, 4096, 2048,
-                                           _("RSA (encrypt only)")));
+            // TODO: Enable them once figuring out how to determine
+            // supported algorithms from GPGME
+#if false
             register (GpgGeneratedKeySpec (GpgGeneratedKeyType.ECC_ECC,
                                            GpgGeneratedKeyUsage.SIGN_ENCRYPT,
                                            GGpg.PubkeyAlgo.ECDSA,
@@ -245,20 +294,15 @@ namespace Credentials {
                                            GGpg.PubkeyAlgo.NONE,
                                            256, 521, 256,
                                            _("ECC (sign only)")));
-            register (GpgGeneratedKeySpec (GpgGeneratedKeyType.ECC_ENCRYPT,
-                                           GpgGeneratedKeyUsage.ENCRYPT,
-                                           GGpg.PubkeyAlgo.ECDH,
-                                           GGpg.PubkeyAlgo.NONE,
-                                           256, 521, 256,
-                                           _("ECC (encrypt only)")));
+#endif
         }
 
         void register (GpgGeneratedKeySpec spec) {
             this._specs.append (spec);
         }
 
-        public GLib.List<GpgGeneratedKeySpec?> get_generated_key_specs () {
-            return this._specs.copy ();
+        public unowned GLib.List<GpgGeneratedKeySpec?> get_generated_key_specs () {
+            return this._specs;
         }
 
         public override async void load_items (GLib.Cancellable? cancellable) throws GLib.Error {
@@ -267,7 +311,7 @@ namespace Credentials {
             var ctx = new GGpg.Ctx ();
 
             ctx.protocol = protocol;
-            yield ctx.keylist (null, true, (key) => {
+            yield ctx.keylist (null, false, (key) => {
                     var pubkey = key.get_subkeys ().first ().data;
                     seen.add (pubkey.fingerprint);
                     if (!this._items.contains (pubkey.fingerprint)) {
