@@ -61,6 +61,40 @@ namespace Credentials {
                 return_val_if_reached (_("Invalid"));
             }
         }
+
+        static string format_fingerprint (string fingerprint) {
+            var builder = new GLib.StringBuilder ();
+            for (var i = 0; i < fingerprint.length / 4; i++) {
+                if (i > 0) {
+                    builder.append_c (' ');
+                    if (i % 5 == 0)
+                        builder.append_c (' ');
+                }
+                builder.append (fingerprint[4 * i : 4 * i + 4]);
+            }
+            return builder.str;
+        }
+
+        static string format_expires (int64 expires) {
+            if (expires == 0)
+                return _("Forever");
+
+            var date = new DateTime.from_unix_utc (expires);
+            return format_date (date.to_local (), DateFormat.FULL);
+        }
+
+        static string format_usage (GGpg.SubkeyFlags flags) {
+            string[] uses = {};
+            if ((flags & GGpg.SubkeyFlags.CAN_ENCRYPT) != 0)
+                uses += _("encrypt");
+            else if ((flags & GGpg.SubkeyFlags.CAN_SIGN) != 0)
+                uses += _("sign");
+            else if ((flags & GGpg.SubkeyFlags.CAN_AUTHENTICATE) != 0)
+                uses += _("authenticate");
+            else if ((flags & GGpg.SubkeyFlags.CAN_CERTIFY) != 0)
+                uses += _("certify");
+            return string.joinv (", ", uses);
+        }
     }
 
     abstract class GpgEditCommand : GLib.Object {
@@ -329,7 +363,7 @@ namespace Credentials {
     }
 
     class GpgAddKeyEditCommand : GpgEditCommand {
-        public GpgGeneratedKeyType key_type { construct set; get; }
+        public GpgGeneratedKeyType key_type { construct set; get; default = GpgGeneratedKeyType.DSA_SIGN; }
         public uint length { construct set; get; }
         public uint64 expires { construct set; get; }
 
@@ -347,7 +381,7 @@ namespace Credentials {
                 break;
 
             case GpgAddKeyState.TYPE:
-                send_string (fd, key_type.to_string ());
+                send_string (fd, ((int) key_type).to_string ());
                 break;
 
             case GpgAddKeyState.LENGTH:
@@ -474,7 +508,7 @@ namespace Credentials {
 
             case GpgDelKeyState.COMMAND:
                 if (status == GGpg.StatusCode.GET_BOOL &&
-                    args == "keyedit.remove.uid.okay")
+                    args == "keyedit.remove.subkey.okay")
                     return GpgDelKeyState.CONFIRM;
                 else if (status == GGpg.StatusCode.GET_LINE && args == PROMPT)
                     return GpgDelKeyState.QUIT;
