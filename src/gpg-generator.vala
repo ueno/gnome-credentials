@@ -41,11 +41,10 @@ namespace Credentials {
             name_entry.set_text (GLib.Environment.get_real_name ());
         }
 
-
         void on_key_type_changed () {
             Gtk.TreeIter iter;
             key_type_combobox.get_active_iter (out iter);
-            GpgGeneratedKeySpec spec;
+            GpgGeneratedKeySpec? spec;
             key_type_combobox.get_model ().get (iter, 0, out spec);
             var adjustment = new Gtk.Adjustment (spec.default_length,
                                                  spec.min_length,
@@ -60,7 +59,7 @@ namespace Credentials {
         public override GeneratedItemParameters build_parameters () {
             Gtk.TreeIter iter;
             key_type_combobox.get_active_iter (out iter);
-            GpgGeneratedKeySpec spec;
+            GpgGeneratedKeySpec? spec;
             key_type_combobox.get_model ().get (iter, 0, out spec);
 
             return new GpgGeneratedItemParameters (
