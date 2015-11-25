@@ -100,22 +100,21 @@ namespace Credentials {
 
     class SshKeyParser : GLib.Object {
         GLib.HashTable<string,SshBlobParser> _blob_parsers;
-        GLib.HashTable<string,SshKeySpec?> _specs;
+        GLib.HashTable<string,SshKeySpec?> _magic_to_spec;
+        GLib.List<SshKeySpec?> _specs;
         GLib.HashTable<string,SshCurveSpec?> _curve_specs;
-        GLib.HashTable<SshKeyType,SshKeySpec?> _type_to_spec;
 
         construct {
             this._blob_parsers =
                 new GLib.HashTable<string,SshBlobParser> (GLib.str_hash,
                                                           GLib.str_equal);
-            this._specs =
+            this._magic_to_spec =
                 new GLib.HashTable<string,SshKeySpec?> (GLib.str_hash,
                                                        GLib.str_equal);
+            this._specs = null;
             this._curve_specs =
                 new GLib.HashTable<string,SshCurveSpec?> (GLib.str_hash,
                                                          GLib.str_equal);
-            this._type_to_spec =
-                new GLib.HashTable<SshKeyType,SshKeySpec?> (null, null);
 
             SshKeySpec spec;
 
@@ -158,14 +157,14 @@ namespace Credentials {
                               SshBlobParser parser)
         {
             this._blob_parsers.insert (magic, parser);
-            this._specs.insert (magic, spec);
-            this._type_to_spec.insert (spec.key_type, spec);
+            this._specs.append (spec);
+            this._magic_to_spec.insert (magic, spec);
             if (curve_spec != null)
                 this._curve_specs.insert (magic, curve_spec);
         }
 
-        public SshKeySpec get_spec (SshKeyType type) {
-            return this._type_to_spec.lookup (type);
+        public unowned GLib.List<SshKeySpec?> get_specs () {
+            return this._specs;
         }
 
         public SshKey parse (GLib.Bytes bytes) throws GLib.Error
@@ -225,7 +224,7 @@ namespace Credentials {
                                                   magic_string);
             }
             var blob = blob_parser.parse (key_bytes);
-            var spec = this._specs.lookup (magic_string);
+            var spec = this._magic_to_spec.lookup (magic_string);
             var curve_spec = this._curve_specs.lookup (magic_string);
             return new SshKey (magic_string, blob, comment, spec);
         }

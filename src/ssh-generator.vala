@@ -18,26 +18,14 @@ namespace Credentials {
         }
 
         construct {
-            var backend = (SshBackend) collection.backend;
             var store = new Gtk.ListStore (2,
-                                           typeof (SshKeyType),
+                                           typeof (SshKeySpec),
                                            typeof (string));
-            var enum_class =
-                (EnumClass) typeof (SshKeyType).class_ref ();
-            for (var index = enum_class.minimum;
-                 index <= enum_class.maximum;
-                 index++) {
-                if (enum_class.get_value (index) == null)
-                    continue;
-
-                var key_type = (SshKeyType) index;
-
+            var _collection = (SshCollection) collection;
+            foreach (var spec in _collection.get_specs ()) {
                 Gtk.TreeIter iter;
                 store.append (out iter);
-                var spec = backend.get_spec (key_type);
-                store.set (iter,
-                           0, index,
-                           1, spec.label);
+                store.set (iter, 0, spec, 1, spec.label);
             }
 
             key_type_combobox.set_model (store);
@@ -79,10 +67,8 @@ namespace Credentials {
         void on_key_type_changed () {
             Gtk.TreeIter iter;
             key_type_combobox.get_active_iter (out iter);
-            SshKeyType key_type;
-            key_type_combobox.get_model ().get (iter, 0, out key_type);
-            var backend = (SshBackend) collection.backend;
-            var spec = backend.get_spec (key_type);
+            SshKeySpec? spec;
+            key_type_combobox.get_model ().get (iter, 0, out spec);
             var adjustment = new Gtk.Adjustment (spec.default_length,
                                                  spec.min_length,
                                                  spec.max_length,
@@ -102,13 +88,13 @@ namespace Credentials {
         public override GeneratedItemParameters build_parameters () {
             Gtk.TreeIter iter;
             key_type_combobox.get_active_iter (out iter);
-            SshKeyType key_type;
-            key_type_combobox.get_model ().get (iter, 0, out key_type);
+            SshKeySpec? spec;
+            key_type_combobox.get_model ().get (iter, 0, out spec);
 
             return new SshGeneratedItemParameters (
                 path_button.get_data ("credentails-selected-path"),
                 comment_entry.get_text (),
-                key_type,
+                spec,
                 length_spinbutton.get_value_as_int ());
         }
     }

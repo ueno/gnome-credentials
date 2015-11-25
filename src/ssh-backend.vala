@@ -149,16 +149,13 @@ namespace Credentials {
     class SshGeneratedItemParameters : GeneratedItemParameters {
         public string path { construct set; get; }
         public string comment { construct set; get; }
-        public SshKeyType key_type { construct set; get; }
+        public SshKeySpec spec { construct set; get; }
         public uint length { construct set; get; }
-        public int64 expires { construct set; get; }
 
         public SshGeneratedItemParameters (string path, string comment,
-                                           SshKeyType key_type,
-                                           uint length)
+                                           SshKeySpec spec, uint length)
         {
-            Object (path: path, comment: comment,
-                    key_type: key_type, length: length);
+            Object (path: path, comment: comment, spec: spec, length: length);
         }
     }
 
@@ -387,17 +384,20 @@ namespace Credentials {
         }
 
         string[] parameters_to_arguments (SshGeneratedItemParameters parameters) {
-            var spec = ((SshBackend) backend).get_spec (parameters.key_type);
             string[] args = { "ssh-keygen", "-q" };
             args += "-f";
             args += parameters.path;
             args += "-b";
             args += parameters.length.to_string ();
             args += "-t";
-            args += spec.keygen_argument;
+            args += parameters.spec.keygen_argument;
             args += "-C";
             args += parameters.comment;
             return args;
+        }
+
+        public unowned GLib.List<SshKeySpec?> get_specs () {
+            return ((SshBackend) backend).get_specs ();
         }
 
         public override async void generate_item (GeneratedItemParameters parameters,
@@ -439,8 +439,8 @@ namespace Credentials {
             this._parser = new SshKeyParser ();
         }
 
-        public SshKeySpec get_spec (SshKeyType type) {
-            return this._parser.get_spec (type);
+        public unowned GLib.List<SshKeySpec?> get_specs () {
+            return this._parser.get_specs ();
         }
 
         public SshKey parse (GLib.Bytes bytes) throws GLib.Error {
