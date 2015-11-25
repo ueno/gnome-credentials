@@ -127,7 +127,6 @@ namespace Credentials {
             select_button.bind_property ("active", button, "visible",
                                          GLib.BindingFlags.SYNC_CREATE);
             hbox.pack_end (button, false, false, 0);
-            hbox.set_data<GGpg.Key> ("credentials-list-box-row-object", key);
             return hbox;
         }
 
@@ -208,11 +207,9 @@ namespace Credentials {
         public override void response (int res) {
             if (res == GpgFetcherResponse.IMPORT) {
                 GGpg.Key[] keys = {};
-                for (var i = 0; ; i++) {
+                for (var i = 0; i < this._store.get_n_items (); i++) {
                     var selected = false;
                     var row = list_box.get_row_at_index (i);
-                    if (row == null)
-                        break;
                     var box = (Gtk.Box) row.get_child ();
                     foreach (var child in box.get_children ()) {
                         if (child is Gtk.CheckButton) {
@@ -221,7 +218,7 @@ namespace Credentials {
                         }
                     }
                     if (selected) {
-                        var key = box.get_data<GGpg.Key> ("credentials-list-box-row-object");
+                        var key = (GGpg.Key) this._store.get_item (i);
                         keys += key;
                     }
                 }
