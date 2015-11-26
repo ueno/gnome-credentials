@@ -53,7 +53,7 @@ namespace Credentials {
                 GpgGeneratedKeySpec? spec;
                 key_type_combobox.get_model ().get (iter, 0, out spec);
 
-                var window = (Gtk.Window) this.get_toplevel ();
+                var window = (Gtk.Window) this.get_transient_for ();
                 var command = new GpgAddKeyEditCommand (
                     spec.key_type,
                     length_spinbutton.get_value_as_int (),
@@ -63,7 +63,7 @@ namespace Credentials {
                             item.edit.end (res);
                         } catch (GLib.Error e) {
                             show_error (window,
-                                        "Couldn't add user ID: %s",
+                                        "Couldn't add subkey: %s",
                                         e.message);
                         }
                     });
@@ -101,7 +101,7 @@ namespace Credentials {
 
         public override void response (int res) {
             if (res == Gtk.ResponseType.OK) {
-                var window = (Gtk.Window) this.get_toplevel ();
+                var window = (Gtk.Window) this.get_transient_for ();
                 var command =
                     new GpgAddUidEditCommand (name_entry.get_text (),
                                               email_entry.get_text (),
