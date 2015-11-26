@@ -148,9 +148,10 @@ namespace Credentials {
             var pubkey = this._content.get_subkeys ().first ().data;
             var ctx = new GGpg.Ctx ();
             ctx.protocol = ((GpgCollection) collection).protocol;
-            this._content = yield ctx.get_key (pubkey.fingerprint,
-                                               GGpg.GetKeyFlags.SECRET,
-                                               cancellable);
+            yield ctx.keylist (pubkey.fingerprint, false, (key) => {
+                    this._content = key;
+                },
+                cancellable);
         }
 
         public GLib.List<GGpg.UserId> get_uids () {

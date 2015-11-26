@@ -114,14 +114,6 @@ void g_gpg_ctx_keylist (GGpgCtx *ctx, const gchar *pattern, gboolean secret_only
 gboolean g_gpg_ctx_keylist_finish (GGpgCtx *ctx, GAsyncResult *result,
                                    GError **error);
 
-void g_gpg_ctx_get_key (GGpgCtx *ctx, const gchar *fpr,
-                        GGpgGetKeyFlags flags,
-                        GCancellable *cancellable,
-                        GAsyncReadyCallback callback,
-                        gpointer user_data);
-GGpgKey *g_gpg_ctx_get_key_finish (GGpgCtx *ctx, GAsyncResult *result,
-                                   GError **error);
-
 void g_gpg_ctx_generate_key (GGpgCtx *ctx, const gchar *parms,
                              GGpgData *pubkey, GGpgData *seckey,
                              GCancellable *cancellable,
