@@ -83,15 +83,30 @@ namespace Credentials {
             return format_date (date.to_local (), DateFormat.FULL);
         }
 
+        static string format_subkey_status (GGpg.SubkeyFlags flags) {
+            string[] status = {};
+
+            if ((flags & GGpg.SubkeyFlags.REVOKED) != 0)
+                status += _("revoked");
+            if ((flags & GGpg.SubkeyFlags.EXPIRED) != 0)
+                status += _("expired");
+            if ((flags & GGpg.SubkeyFlags.DISABLED) != 0)
+                status += _("disabled");
+            if ((flags & GGpg.SubkeyFlags.INVALID) != 0)
+                status += _("invalid");
+
+            return string.joinv (", ", status);
+        }
+
         static string format_usage (GGpg.SubkeyFlags flags) {
             string[] uses = {};
             if ((flags & GGpg.SubkeyFlags.CAN_ENCRYPT) != 0)
                 uses += _("encrypt");
-            else if ((flags & GGpg.SubkeyFlags.CAN_SIGN) != 0)
+            if ((flags & GGpg.SubkeyFlags.CAN_SIGN) != 0)
                 uses += _("sign");
-            else if ((flags & GGpg.SubkeyFlags.CAN_AUTHENTICATE) != 0)
+            if ((flags & GGpg.SubkeyFlags.CAN_AUTHENTICATE) != 0)
                 uses += _("authenticate");
-            else if ((flags & GGpg.SubkeyFlags.CAN_CERTIFY) != 0)
+            if ((flags & GGpg.SubkeyFlags.CAN_CERTIFY) != 0)
                 uses += _("certify");
             return string.joinv (", ", uses);
         }
@@ -533,6 +548,97 @@ namespace Credentials {
                 else
                     return GpgDelKeyState.ERROR;
 
+            default:
+                throw new GGpg.Error.GENERAL ("invalid state %u", state);
+            }
+        }
+    }
+
+    enum GpgTrustState {
+        START,
+        COMMAND,
+        VALUE,
+        CONFIRM,
+        QUIT,
+        ERROR
+    }
+
+    class GpgTrustEditCommand : GpgEditCommand {
+        public GGpg.Validity validity { construct set; get; }
+
+        public GpgTrustEditCommand (GGpg.Validity validity)
+        {
+            Object (validity: validity);
+        }
+
+        public override void action (uint state, int fd) throws GLib.Error {
+            switch (state) {
+            case GpgTrustState.COMMAND:
+                send_string (fd, "trust");
+                break;
+
+            case GpgTrustState.VALUE:
+                send_string (fd, ((int) validity).to_string ());
+                break;
+
+            case GpgTrustState.CONFIRM:
+                send_string (fd, YES);
+                break;
+
+            case GpgTrustState.QUIT:
+                send_string (fd, QUIT);
+                break;
+
+            default:
+                throw new GGpg.Error.GENERAL ("invalid state in trust command");
+            }
+            send_string (fd, "\n");
+        }
+
+        public override uint transit (uint state,
+                                      GGpg.StatusCode status,
+                                      string args) throws GLib.Error
+        {
+            switch (state) {
+            case GpgTrustState.START:
+                if (status == GGpg.StatusCode.GET_LINE && args == PROMPT)
+                    return GpgTrustState.COMMAND;
+                throw new GGpg.Error.GENERAL ("invalid response at state %u",
+                                              state);
+
+            case GpgTrustState.COMMAND:
+                if (status == GGpg.StatusCode.GET_LINE &&
+                    args == "edit_ownertrust.value")
+                    return GpgTrustState.VALUE;
+                throw new GGpg.Error.GENERAL ("invalid response at state %u",
+                                              state);
+
+            case GpgTrustState.VALUE:
+                if (status == GGpg.StatusCode.GET_LINE && args == PROMPT)
+                    return GpgTrustState.QUIT;
+                else if (status == GGpg.StatusCode.GET_BOOL &&
+                         args == "edit_ownertrust.set_ultimate.okay")
+                    return GpgTrustState.CONFIRM;
+                throw new GGpg.Error.GENERAL ("invalid response at state %u",
+                                              state);
+
+            case GpgTrustState.CONFIRM:
+                if (status == GGpg.StatusCode.GET_LINE && args == PROMPT)
+                    return GpgTrustState.QUIT;
+                throw new GGpg.Error.GENERAL ("invalid response at state %u",
+                                              state);
+
+            case GpgTrustState.QUIT:
+                if (status == GGpg.StatusCode.GET_BOOL && args == SAVE)
+                    return GpgTrustState.CONFIRM;
+                throw new GGpg.Error.GENERAL ("invalid response at state %u",
+                                              state);
+
+            case GpgTrustState.ERROR:
+                if (status == GGpg.StatusCode.GET_LINE && args == PROMPT)
+                    return GpgTrustState.QUIT;
+                else
+                    return GpgTrustState.ERROR;
             default:
                 throw new GGpg.Error.GENERAL ("invalid state %u", state);
             }
