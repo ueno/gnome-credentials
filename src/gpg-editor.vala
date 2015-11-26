@@ -1,52 +1,4 @@
 namespace Credentials {
-    [GtkTemplate (ui = "/org/gnome/Credentials/gpg-add-user-id.ui")]
-    class GpgAddUserIdDialog : Gtk.Dialog {
-        [GtkChild]
-        Gtk.Entry name_entry;
-        [GtkChild]
-        Gtk.Entry email_entry;
-        [GtkChild]
-        Gtk.Entry comment_entry;
-
-        public GpgItem item { construct set; get; }
-
-        public GpgAddUserIdDialog (GpgItem item) {
-            Object (item: item, use_header_bar: 1);
-        }
-
-        construct {
-            name_entry.set_text (GLib.Environment.get_real_name ());
-        }
-
-        public override void response (int res) {
-            if (res == Gtk.ResponseType.OK) {
-                var window = (Gtk.Window) this.get_toplevel ();
-                var command =
-                    new GpgAddUidEditCommand (name_entry.get_text (),
-                                              email_entry.get_text (),
-                                              comment_entry.get_text ());
-                item.edit.begin (command, null, (obj, res) => {
-                        try {
-                            item.edit.end (res);
-                        } catch (GLib.Error e) {
-                            show_error (window,
-                                        "Couldn't add user ID: %s",
-                                        e.message);
-                        }
-                    });
-            }
-        }
-    }
-
-    class GpgEditorUserIdItem : GLib.Object {
-        public int index { construct set; get; }
-        public GGpg.UserId user_id { construct set; get; }
-
-        public GpgEditorUserIdItem (int index, GGpg.UserId user_id) {
-            Object (index: index, user_id: user_id);
-        }
-    }
-
     [GtkTemplate (ui = "/org/gnome/Credentials/gpg-add-subkey.ui")]
     class GpgAddSubkeyDialog : Gtk.Dialog {
         [GtkChild]
@@ -128,38 +80,209 @@ namespace Credentials {
         }
     }
 
+    [GtkTemplate (ui = "/org/gnome/Credentials/gpg-add-user-id.ui")]
+    class GpgAddUserIdDialog : Gtk.Dialog {
+        [GtkChild]
+        Gtk.Entry name_entry;
+        [GtkChild]
+        Gtk.Entry email_entry;
+        [GtkChild]
+        Gtk.Entry comment_entry;
+
+        public GpgItem item { construct set; get; }
+
+        public GpgAddUserIdDialog (GpgItem item) {
+            Object (item: item, use_header_bar: 1);
+        }
+
+        construct {
+            name_entry.set_text (GLib.Environment.get_real_name ());
+        }
+
+        public override void response (int res) {
+            if (res == Gtk.ResponseType.OK) {
+                var window = (Gtk.Window) this.get_toplevel ();
+                var command =
+                    new GpgAddUidEditCommand (name_entry.get_text (),
+                                              email_entry.get_text (),
+                                              comment_entry.get_text ());
+                item.edit.begin (command, null, (obj, res) => {
+                        try {
+                            item.edit.end (res);
+                        } catch (GLib.Error e) {
+                            show_error (window,
+                                        "Couldn't add user ID: %s",
+                                        e.message);
+                        }
+                    });
+            }
+        }
+    }
+
+    class GpgEditorUserIdItem : GLib.Object {
+        public int index { construct set; get; }
+        public GGpg.UserId user_id { construct set; get; }
+
+        public GpgEditorUserIdItem (int index, GGpg.UserId user_id) {
+            Object (index: index, user_id: user_id);
+        }
+    }
+
     [GtkTemplate (ui = "/org/gnome/Credentials/gpg-editor.ui")]
     class GpgEditorDialog : EditorDialog {
         [GtkChild]
-        Gtk.ListBox user_id_list_box;
+        Gtk.Button delete_button;
+
+        [GtkChild]
+        Gtk.Button back_button;
 
         [GtkChild]
         Gtk.ListBox subkey_list_box;
 
         [GtkChild]
-        Gtk.Grid properties_grid;
+        Gtk.ListBox user_id_list_box;
 
-        Gtk.Label _pubkey_algo_label;
-        Gtk.Label _length_label;
-        Gtk.Label _fingerprint_label;
-        Gtk.Label _expires_label;
-        Gtk.Label _usage_label;
+        [GtkChild]
+        Gtk.ComboBox trust_combobox;
+
+        [GtkChild]
+        Gtk.Stack stack;
+
+        [GtkChild]
+        Gtk.Label key_id_label;
+
+        [GtkChild]
+        Gtk.Label pubkey_algo_label;
+
+        [GtkChild]
+        Gtk.Label length_label;
+
+        [GtkChild]
+        Gtk.Label fingerprint_label;
+
+        [GtkChild]
+        Gtk.Label expires_label;
+
+        [GtkChild]
+        Gtk.Label usage_label;
+
+        [GtkChild]
+        Gtk.Label name_label;
+
+        [GtkChild]
+        Gtk.Label email_label;
+
+        [GtkChild]
+        Gtk.Label comment_label;
+
+        [GtkChild]
+        Gtk.Label validity_label;
 
         public GpgEditorDialog (Item item) {
             Object (item: item, use_header_bar: 1);
         }
 
-        Gtk.Label create_name_label (string text) {
-            var label = new Gtk.Label (text);
-            label.get_style_context ().add_class ("dim-label");
-            label.xalign = 1;
-            return label;
+        GpgEditorSubkeyItem? _subkey_item;
+        GpgEditorUserIdItem? _user_id_item;
+
+        GLib.ListStore _subkey_store;
+
+        Gtk.Widget create_subkey_widget (GLib.Object object) {
+            var subkey_item = (GpgEditorSubkeyItem) object;
+            var box = new Gtk.Box (Gtk.Orientation.VERTICAL, 0);
+            var label = new Gtk.Label (subkey_item.subkey.key_id);
+            label.margin_start = 20;
+            label.margin_end = 20;
+            label.margin_top = 6;
+            label.margin_bottom = 6;
+            label.xalign = 0;
+            box.pack_start (label, false, false, 0);
+
+            var usage = GpgUtils.format_usage (subkey_item.subkey.flags);
+            label = new Gtk.Label (_("used for: %s").printf (usage));
+            label.margin_start = 20;
+            label.margin_end = 20;
+            label.xalign = 0;
+            var context = label.get_style_context ();
+            context.add_class ("secondary-label");
+            context.add_class ("dim-label");
+            box.pack_start (label, false, false, 0);
+            box.show_all ();
+            return box;
         }
 
-        Gtk.Label create_value_label (string text) {
-            var label = new Gtk.Label (text);
-            label.xalign = 0;
-            return label;
+        void update_subkey_list () {
+            var _item = (GpgItem) item;
+            this._subkey_store.remove_all ();
+            int index = 0;
+            foreach (var subkey in _item.get_subkeys ()) {
+                this._subkey_store.append (new GpgEditorSubkeyItem (index, subkey));
+                index++;
+            }
+
+            list_box_adjust_scrolling (subkey_list_box);
+        }
+
+        [GtkCallback]
+        void on_delete_subkey_clicked (Gtk.Button button) {
+            var dialog = new Gtk.MessageDialog (
+                this,
+                Gtk.DialogFlags.MODAL,
+                Gtk.MessageType.QUESTION,
+                Gtk.ButtonsType.OK_CANCEL,
+                _("Remove subkey \"%s\"? "),
+                this._subkey_item.subkey.key_id);
+            dialog.response.connect ((res) => {
+                    if (res == Gtk.ResponseType.OK)
+                        call_edit_delkey (this._subkey_item.index);
+                    dialog.destroy ();
+                });
+            dialog.show ();
+        }
+
+        void call_edit_delkey (uint index) {
+            var _item = (GpgItem) item;
+            var window = (Gtk.Window) this.get_toplevel ();
+            var command = new GpgDelKeyEditCommand (index);
+            _item.edit.begin (command, null, (obj, res) => {
+                    try {
+                        _item.edit.end (res);
+                    } catch (GLib.Error e) {
+                        show_error (window,
+                                    "Couldn't remove subkey: %s",
+                                    e.message);
+                    }
+                });
+        }
+
+        [GtkCallback]
+        void on_add_subkey_clicked (Gtk.Button button) {
+            var dialog = new GpgAddSubkeyDialog ((GpgItem) item);
+            dialog.set_transient_for (this);
+            dialog.response.connect_after ((res) => {
+                    dialog.destroy ();
+                });
+            dialog.show ();
+        }
+
+        void update_subkey_properties (GpgEditorSubkeyItem item) {
+            key_id_label.label = item.subkey.key_id;
+            pubkey_algo_label.label = GpgUtils.format_pubkey_algo (item.subkey.pubkey_algo);
+            length_label.label = _("%u bits").printf (item.subkey.length);
+            fingerprint_label.label = GpgUtils.format_fingerprint (item.subkey.fingerprint);
+            expires_label.label = GpgUtils.format_expires (item.subkey.expires);
+            usage_label.label = GpgUtils.format_usage (item.subkey.flags);
+        }
+
+        [GtkCallback]
+        void on_subkey_selected (Gtk.ListBox list_box, Gtk.ListBoxRow? row) {
+            if (row != null) {
+                this._subkey_item = (GpgEditorSubkeyItem) this._subkey_store.get_item (row.get_index ());
+                update_subkey_properties (this._subkey_item);
+                delete_button.hide ();
+                back_button.show ();
+                stack.visible_child_name = "subkey";
+            }
         }
 
         GLib.ListStore _user_id_store;
@@ -189,16 +312,17 @@ namespace Credentials {
             list_box_adjust_scrolling (user_id_list_box);
         }
 
-        void on_delete_user_id_clicked (GpgEditorUserIdItem item) {
+        [GtkCallback]
+        void on_delete_user_id_clicked (Gtk.Button button) {
             var dialog = new Gtk.MessageDialog (this,
                                                 Gtk.DialogFlags.MODAL,
                                                 Gtk.MessageType.QUESTION,
                                                 Gtk.ButtonsType.OK_CANCEL,
                                                 _("Remove user ID \"%s\"? "),
-                                                item.user_id.uid);
+                this._user_id_item.user_id.uid);
             dialog.response.connect ((res) => {
                     if (res == Gtk.ResponseType.OK)
-                        call_edit_deluid (item.index);
+                        call_edit_deluid (this._user_id_item.index);
                     dialog.destroy ();
                 });
             dialog.show ();
@@ -219,7 +343,7 @@ namespace Credentials {
         }
 
         [GtkCallback]
-        void on_add_user_id_clicked (Gtk.ToolButton button) {
+        void on_add_user_id_clicked (Gtk.Button button) {
             var dialog = new GpgAddUserIdDialog ((GpgItem) item);
             dialog.set_transient_for (this);
             dialog.response.connect_after ((res) => {
@@ -228,71 +352,33 @@ namespace Credentials {
             dialog.show ();
         }
 
-        GLib.ListStore _subkey_store;
-
-        Gtk.Widget create_subkey_widget (GLib.Object object) {
-            var subkey_item = (GpgEditorSubkeyItem) object;
-            var box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 0);
-            var label = new Gtk.Label (subkey_item.subkey.key_id);
-            label.margin_start = 20;
-            label.margin_end = 20;
-            label.margin_top = 6;
-            label.margin_bottom = 6;
-            box.pack_start (label, false, false, 0);
-            box.show_all ();
-            return box;
-        }
-
-        void update_subkey_list () {
-            var _item = (GpgItem) item;
-            this._subkey_store.remove_all ();
-            int index = 0;
-            foreach (var subkey in _item.get_subkeys ()) {
-                this._subkey_store.append (new GpgEditorSubkeyItem (index, subkey));
-                index++;
+        void set_nullable_label (Gtk.Label label, string text) {
+            var context = label.get_style_context ();
+            if (text == "") {
+                label.label = _("(none)");
+                context.add_class ("dim-label");
+            } else {
+                label.label = text;
+                context.remove_class ("dim-label");
             }
-
-            list_box_adjust_scrolling (subkey_list_box);
         }
 
-        void on_delete_subkey_clicked (GpgEditorSubkeyItem item) {
-            var dialog = new Gtk.MessageDialog (this,
-                                                Gtk.DialogFlags.MODAL,
-                                                Gtk.MessageType.QUESTION,
-                                                Gtk.ButtonsType.OK_CANCEL,
-                                                _("Remove subkey \"%s\"? "),
-                                                item.subkey.key_id);
-            dialog.response.connect ((res) => {
-                    if (res == Gtk.ResponseType.OK)
-                        call_edit_delkey (item.index);
-                    dialog.destroy ();
-                });
-            dialog.show ();
-        }
-
-        void call_edit_delkey (uint index) {
-            var _item = (GpgItem) item;
-            var window = (Gtk.Window) this.get_toplevel ();
-            var command = new GpgDelKeyEditCommand (index);
-            _item.edit.begin (command, null, (obj, res) => {
-                    try {
-                        _item.edit.end (res);
-                    } catch (GLib.Error e) {
-                        show_error (window,
-                                    "Couldn't remove subkey: %s",
-                                    e.message);
-                    }
-                });
+        void update_user_id_properties (GpgEditorUserIdItem item) {
+            set_nullable_label (name_label, item.user_id.name);
+            set_nullable_label (email_label, item.user_id.email);
+            set_nullable_label (comment_label, item.user_id.comment);
+            validity_label.label = GpgUtils.format_validity (item.user_id.validity);
         }
 
         [GtkCallback]
-        void on_add_subkey_clicked (Gtk.ToolButton button) {
-            var dialog = new GpgAddSubkeyDialog ((GpgItem) item);
-            dialog.set_transient_for (this);
-            dialog.response.connect_after ((res) => {
-                    dialog.destroy ();
-                });
-            dialog.show ();
+        void on_user_id_selected (Gtk.ListBox list_box, Gtk.ListBoxRow? row) {
+            if (row != null) {
+                this._user_id_item = (GpgEditorUserIdItem) this._user_id_store.get_item (row.get_index ());
+                update_user_id_properties (this._user_id_item);
+                delete_button.hide ();
+                back_button.show ();
+                stack.visible_child_name = "user_id";
+            }
         }
 
         construct {
@@ -312,58 +398,61 @@ namespace Credentials {
             _item.changed.connect (update_subkey_list);
             update_subkey_list ();
 
-            var row_index = 0;
-            var label = create_name_label (_("Owner trust"));
-            properties_grid.attach (label, 0, row_index, 1, 1);
-            label = create_value_label (GpgUtils.format_validity (_item.owner_trust));
-            properties_grid.attach (label, 1, row_index, 1, 1);
-            row_index++;
-
-            label = create_name_label (_("Algorithm"));
-            properties_grid.attach (label, 0, row_index, 1, 1);
-            this._pubkey_algo_label = create_value_label ("");
-            properties_grid.attach (this._pubkey_algo_label, 1, row_index, 1, 1);
-            row_index++;
-
-            label = create_name_label (_("Strength"));
-            properties_grid.attach (label, 0, row_index, 1, 1);
-            this._length_label = create_value_label ("");
-            properties_grid.attach (this._length_label, 1, row_index, 1, 1);
-            row_index++;
-
-            label = create_name_label (_("Fingerprint"));
-            properties_grid.attach (label, 0, row_index, 1, 1);
-            this._fingerprint_label = create_value_label ("");
-            this._fingerprint_label.max_width_chars = 28;
-            this._fingerprint_label.wrap = true;
-            this._fingerprint_label.wrap_mode = Pango.WrapMode.WORD;
-            properties_grid.attach (this._fingerprint_label, 1, row_index, 1, 1);
-            row_index++;
-
-            label = create_name_label (_("Valid until"));
-            properties_grid.attach (label, 0, row_index, 1, 1);
-            this._expires_label = create_value_label ("");
-            properties_grid.attach (this._expires_label, 1, row_index, 1, 1);
-            row_index++;
-
-            label = create_name_label (_("Use for"));
-            properties_grid.attach (label, 0, row_index, 1, 1);
-            this._usage_label = create_value_label ("");
-            properties_grid.attach (this._usage_label, 1, row_index, 1, 1);
-            row_index++;
-
-            var row = subkey_list_box.get_row_at_index (0);
-            if (row != null)
-                subkey_list_box.select_row (row);
-            properties_grid.show_all ();
+            var store = (Gtk.ListStore) trust_combobox.get_model ();
+            var enum_class = (EnumClass) typeof (GGpg.Validity).class_ref ();
+            for (var i = enum_class.minimum; i <= enum_class.maximum; i++) {
+                var enum_value = enum_class.get_value (i);
+                Gtk.TreeIter iter;
+                store.append (out iter);
+                store.set (iter, 0, enum_value.value_nick, 1, i);
+            }
+            var renderer = new Gtk.CellRendererText ();
+            trust_combobox.pack_start (renderer, true);
+            trust_combobox.set_attributes (renderer, "text", 0);
+            trust_combobox.changed.connect (on_trust_changed);
+            _item.changed.connect (update_trust);
+            update_trust ();
         }
 
-        void update_subkey_properties (GpgEditorSubkeyItem item) {
-            this._pubkey_algo_label.label = GpgUtils.format_pubkey_algo (item.subkey.pubkey_algo);
-            this._length_label.label = _("%u bits").printf (item.subkey.length);
-            this._fingerprint_label.label = GpgUtils.format_fingerprint (item.subkey.fingerprint);
-            this._expires_label.label = GpgUtils.format_expires (item.subkey.expires);
-            this._usage_label.label = GpgUtils.format_usage (item.subkey.flags);
+        void update_trust () {
+            var _item = (GpgItem) item;
+
+            var model = trust_combobox.get_model ();
+            Gtk.TreeIter iter;
+            if (model.get_iter_first (out iter)) {
+                do {
+                    GGpg.Validity validity;
+                    model.get (iter, 1, out validity);
+                    if (validity == _item.owner_trust) {
+                        trust_combobox.set_active_iter (iter);
+                        break;
+                    }
+                } while (model.iter_next (ref iter));
+            }
+        }
+
+        void on_trust_changed () {
+            var _item = (GpgItem) item;
+
+            Gtk.TreeIter iter;
+            trust_combobox.get_active_iter (out iter);
+
+            GGpg.Validity validity;
+            trust_combobox.get_model ().get (iter, 1, out validity);
+            if (validity == _item.owner_trust)
+                return;
+
+            var command = new GpgTrustEditCommand (validity);
+            var window = (Gtk.Window) this.get_toplevel ();
+            _item.edit.begin (command, null, (obj, res) => {
+                    try {
+                        _item.edit.end (res);
+                    } catch (GLib.Error e) {
+                        show_error (window,
+                                    "Couldn't change owner trust: %s",
+                                    e.message);
+                    }
+                });
         }
 
         [GtkCallback]
@@ -382,11 +471,10 @@ namespace Credentials {
         }
 
         [GtkCallback]
-        void on_subkey_selected (Gtk.ListBox list_box, Gtk.ListBoxRow? row) {
-            if (row != null) {
-                var item = (GpgEditorSubkeyItem) this._subkey_store.get_item (row.get_index ());
-                update_subkey_properties (item);
-            }
+        void on_back_clicked (Gtk.Button button) {
+            delete_button.show ();
+            back_button.hide ();
+            stack.visible_child_name = "main";
         }
     }
 }
