@@ -16,6 +16,11 @@ namespace Credentials {
         [GtkChild]
         Gtk.Entry comment_entry;
 
+        [GtkChild]
+        Gtk.MenuButton expires_button;
+
+        GpgExpirationSpec _expires;
+
         public GpgGeneratorDialog (GenerativeCollection collection) {
             Object (collection: collection, use_header_bar: 1);
         }
@@ -39,6 +44,13 @@ namespace Credentials {
             key_type_combobox.set_active (0);
 
             name_entry.set_text (GLib.Environment.get_real_name ());
+
+            var popover = new GpgExpiresPopover (0, false);
+            expires_button.set_popover (popover);
+            popover.closed.connect (() => {
+                    this._expires = popover.get_spec ();
+                    expires_button.label = this._expires.to_string ();
+                });
         }
 
         void on_key_type_changed () {
@@ -68,7 +80,7 @@ namespace Credentials {
                 email_entry.get_text (),
                 comment_entry.get_text (),
                 length_spinbutton.get_value_as_int (),
-                0);
+                this._expires);
         }
     }
 }

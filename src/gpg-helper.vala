@@ -1,4 +1,65 @@
 namespace Credentials {
+    enum GpgExpirationFormat {
+        NEVER = 0,
+        DAYS = 1,
+        WEEKS = 2,
+        MONTHS = 3,
+        YEARS = 4,
+        DATE = 5
+    }
+
+    struct GpgExpirationSpec {
+        GpgExpirationFormat format;
+        int64 value;
+
+        public string to_string () {
+            switch (format) {
+            case GpgExpirationFormat.NEVER:
+                return _("Forever");
+
+            case GpgExpirationFormat.DAYS:
+                return ngettext ("%d day", "%d days", (ulong) value).printf (value);
+
+            case GpgExpirationFormat.WEEKS:
+                return ngettext ("%d week", "%d weeks", (ulong) value).printf (value);
+
+            case GpgExpirationFormat.MONTHS:
+                return ngettext ("%d month", "%d months", (ulong) value).printf (value);
+
+            case GpgExpirationFormat.YEARS:
+                return ngettext ("%d year", "%d years", (ulong) value).printf (value);
+
+            case GpgExpirationFormat.DATE:
+                return new GLib.DateTime.from_unix_utc (value).to_local ().format ("%Y-%m-%d");
+            }
+            return_val_if_reached (null);
+        }
+
+        public string indicator () {
+            switch (format) {
+            case GpgExpirationFormat.NEVER:
+                return "0";
+
+            case GpgExpirationFormat.DAYS:
+                return value.to_string ();
+
+            case GpgExpirationFormat.WEEKS:
+                return "%dw".printf ((int) value);
+
+            case GpgExpirationFormat.MONTHS:
+                return "%dm".printf ((int) value);
+
+            case GpgExpirationFormat.YEARS:
+                return "%dy".printf ((int) value);
+
+            case GpgExpirationFormat.DATE:
+                return new GLib.DateTime.from_unix_utc (value).format (
+                    "%Y%m%dT%H%M%S");
+            }
+            return_val_if_reached (null);
+        }
+    }
+
     namespace GpgUtils {
         static string format_generator_progress_type (string what) {
             if (what == "pk_dsa")
@@ -80,7 +141,7 @@ namespace Credentials {
                 return _("Forever");
 
             var date = new DateTime.from_unix_utc (expires);
-            return format_date (date.to_local (), DateFormat.FULL);
+            return date.to_local ().format ("%Y-%m-%d");
         }
 
         static string format_subkey_status (GGpg.SubkeyFlags flags) {
@@ -94,6 +155,9 @@ namespace Credentials {
                 status += _("disabled");
             if ((flags & GGpg.SubkeyFlags.INVALID) != 0)
                 status += _("invalid");
+
+            if (status.length == 0)
+                return _("enabled");
 
             return string.joinv (", ", status);
         }
@@ -380,11 +444,11 @@ namespace Credentials {
     class GpgAddKeyEditCommand : GpgEditCommand {
         public GpgGeneratedKeyType key_type { construct set; get; default = GpgGeneratedKeyType.DSA_SIGN; }
         public uint length { construct set; get; }
-        public uint64 expires { construct set; get; }
+        public int64 expires { construct set; get; }
 
         public GpgAddKeyEditCommand (GpgGeneratedKeyType key_type,
                                      uint length,
-                                     uint64 expires)
+                                     int64 expires)
         {
             Object (key_type: key_type, length: length, expires: expires);
         }
@@ -639,6 +703,99 @@ namespace Credentials {
                     return GpgTrustState.QUIT;
                 else
                     return GpgTrustState.ERROR;
+            default:
+                throw new GGpg.Error.GENERAL ("invalid state %u", state);
+            }
+        }
+    }
+
+    enum GpgExpireState {
+        START,
+        SELECT,
+        COMMAND,
+        DATE,
+        QUIT,
+        SAVE,
+        ERROR
+    }
+
+    class GpgExpireEditCommand : GpgEditCommand {
+        public uint index { construct set; get; }
+        public GpgExpirationSpec spec { construct set; get; }
+
+        public GpgExpireEditCommand (uint index, GpgExpirationSpec spec) {
+            Object (index: index, spec: spec);
+        }
+
+        public override void action (uint state, int fd) throws GLib.Error {
+            switch (state) {
+            case GpgExpireState.SELECT:
+                send_string (fd, "key %u".printf (index));
+                break;
+
+            case GpgExpireState.COMMAND:
+                send_string (fd, "expire");
+                break;
+
+            case GpgExpireState.DATE:
+                send_string (fd, spec.indicator ());
+                break;
+
+            case GpgExpireState.QUIT:
+                send_string (fd, QUIT);
+                break;
+
+            case GpgExpireState.SAVE:
+                send_string (fd, YES);
+                break;
+
+            default:
+                throw new GGpg.Error.GENERAL ("invalid state in expire command");
+            }
+            send_string (fd, "\n");
+        }
+
+        public override uint transit (uint state,
+                                      GGpg.StatusCode status,
+                                      string args) throws GLib.Error
+        {
+            switch (state) {
+            case GpgExpireState.START:
+                if (status == GGpg.StatusCode.GET_LINE && args == PROMPT)
+                    return GpgExpireState.SELECT;
+                throw new GGpg.Error.GENERAL ("invalid response at state %u",
+                                              state);
+
+            case GpgExpireState.SELECT:
+                if (status == GGpg.StatusCode.GET_LINE && args == PROMPT)
+                    return GpgExpireState.COMMAND;
+                throw new GGpg.Error.GENERAL ("invalid response at state %u",
+                                              state);
+
+            case GpgExpireState.COMMAND:
+                if (status == GGpg.StatusCode.GET_LINE &&
+                    args == "keygen.valid")
+                    return GpgExpireState.DATE;
+                throw new GGpg.Error.GENERAL ("invalid response at state %u",
+                                              state);
+
+            case GpgExpireState.DATE:
+                if (status == GGpg.StatusCode.GET_LINE && args == PROMPT)
+                    return GpgExpireState.QUIT;
+                throw new GGpg.Error.GENERAL ("invalid response at state %u",
+                                              state);
+
+            case GpgExpireState.QUIT:
+                if (status == GGpg.StatusCode.GET_BOOL && args == SAVE)
+                    return GpgExpireState.SAVE;
+                throw new GGpg.Error.GENERAL ("invalid response at state %u",
+                                              state);
+
+            case GpgExpireState.ERROR:
+                if (status == GGpg.StatusCode.GET_LINE && args == PROMPT)
+                    return GpgExpireState.QUIT;
+                else
+                    return GpgExpireState.ERROR;
             default:
                 throw new GGpg.Error.GENERAL ("invalid state %u", state);
             }

@@ -7,7 +7,12 @@ namespace Credentials {
         [GtkChild]
         Gtk.SpinButton length_spinbutton;
 
+        [GtkChild]
+        Gtk.MenuButton expires_button;
+
         public GpgItem item { construct set; get; }
+
+        GpgExpirationSpec _expires;
 
         public GpgAddSubkeyDialog (GpgItem item) {
             Object (item: item, use_header_bar: 1);
@@ -29,6 +34,13 @@ namespace Credentials {
             key_type_combobox.set_attributes (renderer, "text", 1);
             key_type_combobox.changed.connect (on_key_type_changed);
             key_type_combobox.set_active (0);
+
+            var popover = new GpgExpiresPopover (0, false);
+            popover.closed.connect (() => {
+                    this._expires = popover.get_spec ();
+                    expires_button.label = this._expires.to_string ();
+                });
+            expires_button.set_popover (popover);
         }
 
         void on_key_type_changed () {
@@ -43,7 +55,6 @@ namespace Credentials {
                                                  1,
                                                  0);
             length_spinbutton.set_adjustment (adjustment);
-            length_spinbutton.set_editable (true);
         }
 
         public override void response (int res) {
@@ -57,7 +68,7 @@ namespace Credentials {
                 var command = new GpgAddKeyEditCommand (
                     spec.key_type,
                     length_spinbutton.get_value_as_int (),
-                    0);
+                    this._expires);
                 item.edit.begin (command, null, (obj, res) => {
                         try {
                             item.edit.end (res);
@@ -128,6 +139,117 @@ namespace Credentials {
         }
     }
 
+    [GtkTemplate (ui = "/org/gnome/Credentials/gpg-expires.ui")]
+    class GpgExpiresPopover : Gtk.Popover {
+        [GtkChild]
+        Gtk.ToggleButton forever_button;
+
+        [GtkChild]
+        Gtk.Box date_box;
+
+        [GtkChild]
+        Gtk.SpinButton date_spinbutton;
+
+        [GtkChild]
+        Gtk.ComboBox date_combobox;
+
+        public int64 expires { construct set; get; }
+        public bool use_calendar { construct set; get; }
+        Gtk.Calendar _calendar;
+
+        public GpgExpiresPopover (int64 expires, bool use_calendar) {
+            Object (expires: expires, use_calendar: use_calendar);
+        }
+
+        construct {
+            if (expires == 0)
+                forever_button.active = true;
+
+            if (use_calendar) {
+                var parent = date_box.get_parent ();
+                parent.remove (date_box);
+                this._calendar = new Gtk.Calendar ();
+                this._calendar.show ();
+                parent.add (this._calendar);
+                forever_button.bind_property ("active",
+                                              this._calendar, "sensitive",
+                                              GLib.BindingFlags.SYNC_CREATE |
+                                              GLib.BindingFlags.INVERT_BOOLEAN);
+
+                var date = new GLib.DateTime.from_unix_utc (expires).to_local ();
+                this._calendar.select_month (date.get_month () - 1,
+                                             date.get_year ());
+                this._calendar.select_day (date.get_day_of_month ());
+            } else {
+                forever_button.bind_property ("active",
+                                              date_spinbutton, "sensitive",
+                                              GLib.BindingFlags.SYNC_CREATE |
+                                              GLib.BindingFlags.INVERT_BOOLEAN);
+                forever_button.bind_property ("active",
+                                              date_combobox, "sensitive",
+                                              GLib.BindingFlags.SYNC_CREATE |
+                                              GLib.BindingFlags.INVERT_BOOLEAN);
+
+                var adjustment = new Gtk.Adjustment (0,
+                                                     0,
+                                                     double.MAX,
+                                                     1,
+                                                     1,
+                                                     0);
+                date_spinbutton.set_adjustment (adjustment);
+
+                var renderer = new Gtk.CellRendererText ();
+                date_combobox.pack_start (renderer, true);
+                date_combobox.set_attributes (renderer, "text", 0);
+                date_combobox.set_active (0);
+            }
+        }
+
+        public GpgExpirationSpec get_spec () {
+            if (forever_button.active) {
+                return GpgExpirationSpec () {
+                    format = GpgExpirationFormat.NEVER, value = 0
+                };
+            }
+
+            if (this._use_calendar) {
+                uint year, month, day;
+                this._calendar.get_date (out year, out month, out day);
+                var new_date = new GLib.DateTime.local ((int) year,
+                                                        (int) month + 1,
+                                                        (int) day,
+                                                        0,
+                                                        0,
+                                                        0);
+                var date = new GLib.DateTime.from_unix_utc (expires).to_local ();
+                if (new_date.get_year () == date.get_year () &&
+                    new_date.get_month () == date.get_month () &&
+                    new_date.get_day_of_month () == date.get_day_of_month ())
+                    new_date = date;
+
+                return GpgExpirationSpec () {
+                    format = GpgExpirationFormat.DATE,
+                        value = new_date.to_utc ().to_unix ()
+                };
+            }
+
+            var value = date_spinbutton.get_value_as_int ();
+            if (value == 0) {
+                return GpgExpirationSpec () {
+                    format = GpgExpirationFormat.NEVER, value = 0
+                };
+            }
+
+            Gtk.TreeIter iter;
+            date_combobox.get_active_iter (out iter);
+            GpgExpirationFormat format;
+            date_combobox.get_model ().get (iter, 1, out format);
+            return GpgExpirationSpec () {
+                format = format, value = value
+            };
+        }
+    }
+
     [GtkTemplate (ui = "/org/gnome/Credentials/gpg-editor.ui")]
     class GpgEditorDialog : EditorDialog {
         [GtkChild]
@@ -161,7 +283,10 @@ namespace Credentials {
         Gtk.Label fingerprint_label;
 
         [GtkChild]
-        Gtk.Label expires_label;
+        Gtk.Label status_label;
+
+        [GtkChild]
+        Gtk.MenuButton expires_button;
 
         [GtkChild]
         Gtk.Label usage_label;
@@ -216,11 +341,18 @@ namespace Credentials {
             this._subkey_store.remove_all ();
             int index = 0;
             foreach (var subkey in _item.get_subkeys ()) {
-                this._subkey_store.append (new GpgEditorSubkeyItem (index, subkey));
+                var subkey_item = new GpgEditorSubkeyItem (index, subkey);
+                this._subkey_store.append (subkey_item);
+                if (this._subkey_item != null &&
+                    this._subkey_item.index == index)
+                    this._subkey_item = subkey_item;
                 index++;
             }
 
             list_box_adjust_scrolling (subkey_list_box);
+
+            if (this._subkey_item != null)
+                update_subkey_properties (this._subkey_item);
         }
 
         [GtkCallback]
@@ -270,8 +402,30 @@ namespace Credentials {
             pubkey_algo_label.label = GpgUtils.format_pubkey_algo (item.subkey.pubkey_algo);
             length_label.label = _("%u bits").printf (item.subkey.length);
             fingerprint_label.label = GpgUtils.format_fingerprint (item.subkey.fingerprint);
-            expires_label.label = GpgUtils.format_expires (item.subkey.expires);
+            status_label.label = GpgUtils.format_subkey_status (item.subkey.flags);
+            expires_button.label = GpgUtils.format_expires (item.subkey.expires);
+            var popover = new GpgExpiresPopover (item.subkey.expires, true);
+            expires_button.set_popover (popover);
+            popover.closed.connect (() => {
+                    var spec = popover.get_spec ();
+                    call_edit_expire (item.index, spec);
+                });
             usage_label.label = GpgUtils.format_usage (item.subkey.flags);
+        }
+
+        void call_edit_expire (uint index, GpgExpirationSpec spec) {
+            var _item = (GpgItem) item;
+            var window = (Gtk.Window) this.get_toplevel ();
+            var command = new GpgExpireEditCommand (index, spec);
+            _item.edit.begin (command, null, (obj, res) => {
+                    try {
+                        _item.edit.end (res);
+                    } catch (GLib.Error e) {
+                        show_error (window,
+                                    "Couldn't change expiration: %s",
+                                    e.message);
+                    }
+                });
         }
 
         [GtkCallback]

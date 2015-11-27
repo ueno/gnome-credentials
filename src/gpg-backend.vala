@@ -58,14 +58,14 @@ namespace Credentials {
         public string email { construct set; get; }
         public string comment { construct set; get; }
         public uint length { construct set; get; }
-        public int64 expires { construct set; get; }
+        public GpgExpirationSpec expires { construct set; get; }
 
         public GpgGeneratedItemParameters (GpgGeneratedKeySpec spec,
-                                          string name,
-                                          string email,
-                                          string comment,
-                                          uint length,
-                                          int64 expires)
+                                           string name,
+                                           string email,
+                                           string comment,
+                                           uint length,
+                                           GpgExpirationSpec expires)
         {
             Object (spec: spec, name: name, email: email, comment: comment,
                     length: length, expires: expires);
@@ -382,7 +382,7 @@ namespace Credentials {
                 buffer.append_printf ("Name-Email: %s\n", parameters.email);
             if (parameters.comment.length > 0)
                 buffer.append_printf ("Name-Comment: %s\n", parameters.comment);
-            buffer.append ("Expire-Date: 0\n");
+            buffer.append ("Expire-Date: %s\n".printf (parameters.expires.indicator ()));
             buffer.append ("</GnupgKeyParms>\n");
             return buffer.str;
         }
