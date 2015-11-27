@@ -176,10 +176,13 @@ namespace Credentials {
                                               GLib.BindingFlags.SYNC_CREATE |
                                               GLib.BindingFlags.INVERT_BOOLEAN);
 
-                var date = new GLib.DateTime.from_unix_utc (expires).to_local ();
-                this._calendar.select_month (date.get_month () - 1,
-                                             date.get_year ());
-                this._calendar.select_day (date.get_day_of_month ());
+                if (expires != 0) {
+                    var date = new GLib.DateTime.from_unix_utc (expires);
+                    date = date.to_local ();
+                    this._calendar.select_month (date.get_month () - 1,
+                                                 date.get_year ());
+                    this._calendar.select_day (date.get_day_of_month ());
+                }
             } else {
                 forever_button.bind_property ("active",
                                               date_spinbutton, "sensitive",
@@ -221,7 +224,8 @@ namespace Credentials {
                                                         0,
                                                         0,
                                                         0);
-                var date = new GLib.DateTime.from_unix_utc (expires).to_local ();
+                var date = new GLib.DateTime.from_unix_utc (expires);
+                date = date.to_local ();
                 if (new_date.get_year () == date.get_year () &&
                     new_date.get_month () == date.get_month () &&
                     new_date.get_day_of_month () == date.get_day_of_month ())
@@ -399,11 +403,15 @@ namespace Credentials {
 
         void update_subkey_properties (GpgEditorSubkeyItem item) {
             key_id_label.label = item.subkey.key_id;
-            pubkey_algo_label.label = GpgUtils.format_pubkey_algo (item.subkey.pubkey_algo);
+            pubkey_algo_label.label =
+                GpgUtils.format_pubkey_algo (item.subkey.pubkey_algo);
             length_label.label = _("%u bits").printf (item.subkey.length);
-            fingerprint_label.label = GpgUtils.format_fingerprint (item.subkey.fingerprint);
-            status_label.label = GpgUtils.format_subkey_status (item.subkey.flags);
-            expires_button.label = GpgUtils.format_expires (item.subkey.expires);
+            fingerprint_label.label =
+                GpgUtils.format_fingerprint (item.subkey.fingerprint);
+            status_label.label =
+                GpgUtils.format_subkey_status (item.subkey.flags);
+            expires_button.label =
+                GpgUtils.format_expires (item.subkey.expires);
             var popover = new GpgExpiresPopover (item.subkey.expires, true);
             expires_button.set_popover (popover);
             popover.closed.connect (() => {
@@ -431,7 +439,9 @@ namespace Credentials {
         [GtkCallback]
         void on_subkey_selected (Gtk.ListBox list_box, Gtk.ListBoxRow? row) {
             if (row != null) {
-                this._subkey_item = (GpgEditorSubkeyItem) this._subkey_store.get_item (row.get_index ());
+                var index = row.get_index ();
+                this._subkey_item =
+                    (GpgEditorSubkeyItem) this._subkey_store.get_item (index);
                 update_subkey_properties (this._subkey_item);
                 delete_button.hide ();
                 back_button.show ();
@@ -444,7 +454,8 @@ namespace Credentials {
         Gtk.Widget create_user_id_widget (GLib.Object object) {
             var user_id_item = (GpgEditorUserIdItem) object;
             var box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 3);
-            var label = new Gtk.Label (escape_invalid_chars (user_id_item.user_id.uid));
+            var text = escape_invalid_chars (user_id_item.user_id.uid);
+            var label = new Gtk.Label (text);
             label.margin_start = 20;
             label.margin_end = 20;
             label.margin_top = 6;
@@ -459,7 +470,8 @@ namespace Credentials {
             this._user_id_store.remove_all ();
             int index = 1;
             foreach (var uid in _item.get_uids ()) {
-                this._user_id_store.append (new GpgEditorUserIdItem (index, uid));
+                var item = new GpgEditorUserIdItem (index, uid);
+                this._user_id_store.append (item);
                 index++;
             }
 
@@ -521,13 +533,16 @@ namespace Credentials {
             set_nullable_label (name_label, item.user_id.name);
             set_nullable_label (email_label, item.user_id.email);
             set_nullable_label (comment_label, item.user_id.comment);
-            validity_label.label = GpgUtils.format_validity (item.user_id.validity);
+            validity_label.label =
+                GpgUtils.format_validity (item.user_id.validity);
         }
 
         [GtkCallback]
         void on_user_id_selected (Gtk.ListBox list_box, Gtk.ListBoxRow? row) {
             if (row != null) {
-                this._user_id_item = (GpgEditorUserIdItem) this._user_id_store.get_item (row.get_index ());
+                var index = row.get_index ();
+                this._user_id_item =
+                    (GpgEditorUserIdItem) this._user_id_store.get_item (index);
                 update_user_id_properties (this._user_id_item);
                 delete_button.hide ();
                 back_button.show ();
@@ -538,15 +553,19 @@ namespace Credentials {
         construct {
             var _item = (GpgItem) item;
 
-            this._user_id_store = new GLib.ListStore (typeof (GpgEditorUserIdItem));
-            user_id_list_box.bind_model (this._user_id_store, create_user_id_widget);
+            this._user_id_store =
+                new GLib.ListStore (typeof (GpgEditorUserIdItem));
+            user_id_list_box.bind_model (this._user_id_store,
+                                         create_user_id_widget);
             user_id_list_box.set_header_func (list_box_update_header_func);
             list_box_setup_scrolling (user_id_list_box, 0);
             _item.changed.connect (update_user_id_list);
             update_user_id_list ();
 
-            this._subkey_store = new GLib.ListStore (typeof (GpgEditorSubkeyItem));
-            subkey_list_box.bind_model (this._subkey_store, create_subkey_widget);
+            this._subkey_store =
+                new GLib.ListStore (typeof (GpgEditorSubkeyItem));
+            subkey_list_box.bind_model (this._subkey_store,
+                                        create_subkey_widget);
             subkey_list_box.set_header_func (list_box_update_header_func);
             list_box_setup_scrolling (subkey_list_box, 0);
             _item.changed.connect (update_subkey_list);

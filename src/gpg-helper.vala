@@ -444,11 +444,11 @@ namespace Credentials {
     class GpgAddKeyEditCommand : GpgEditCommand {
         public GpgGeneratedKeyType key_type { construct set; get; default = GpgGeneratedKeyType.DSA_SIGN; }
         public uint length { construct set; get; }
-        public int64 expires { construct set; get; }
+        public GpgExpirationSpec expires { construct set; get; }
 
         public GpgAddKeyEditCommand (GpgGeneratedKeyType key_type,
                                      uint length,
-                                     int64 expires)
+                                     GpgExpirationSpec expires)
         {
             Object (key_type: key_type, length: length, expires: expires);
         }
@@ -468,7 +468,7 @@ namespace Credentials {
                 break;
 
             case GpgAddKeyState.EXPIRES:
-                send_string (fd, expires.to_string ());
+                send_string (fd, expires.indicator ());
                 break;
 
             case GpgAddKeyState.QUIT:
