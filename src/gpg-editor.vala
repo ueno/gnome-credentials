@@ -35,7 +35,8 @@ namespace Credentials {
             key_type_combobox.changed.connect (on_key_type_changed);
             key_type_combobox.set_active (0);
 
-            var popover = new GpgExpiresPopover (0, false);
+            var expires = GpgExpirationSpec (GpgExpirationFormat.NEVER, 0);
+            var popover = new GpgExpiresPopover (expires, false);
             popover.closed.connect (() => {
                     this._expires = popover.get_spec ();
                     expires_button.label = this._expires.to_string ();
@@ -153,17 +154,20 @@ namespace Credentials {
         [GtkChild]
         Gtk.ComboBox date_combobox;
 
-        public int64 expires { construct set; get; }
+        public GpgExpirationSpec expires { construct set; get; }
         public bool use_calendar { construct set; get; }
         Gtk.Calendar _calendar;
 
-        public GpgExpiresPopover (int64 expires, bool use_calendar) {
+        public GpgExpiresPopover (GpgExpirationSpec expires,
+                                  bool use_calendar)
+        {
             Object (expires: expires, use_calendar: use_calendar);
         }
 
         construct {
-            if (expires == 0)
+            if (expires.format == GpgExpirationFormat.NEVER) {
                 forever_button.active = true;
+            }
 
             if (use_calendar) {
                 var parent = date_box.get_parent ();
@@ -171,29 +175,29 @@ namespace Credentials {
                 this._calendar = new Gtk.Calendar ();
                 this._calendar.show ();
                 parent.add (this._calendar);
+
+                if (expires.format == GpgExpirationFormat.DATE) {
+                    var date = new GLib.DateTime.from_unix_utc (expires.value);
+                    date = date.to_local ();
+                    this._calendar.select_month (date.get_month () - 1,
+                                             date.get_year ());
+                    this._calendar.select_day (date.get_day_of_month ());
+                }
+
                 forever_button.bind_property ("active",
                                               this._calendar, "sensitive",
                                               GLib.BindingFlags.SYNC_CREATE |
                                               GLib.BindingFlags.INVERT_BOOLEAN);
 
-                if (expires != 0) {
-                    var date = new GLib.DateTime.from_unix_utc (expires);
-                    date = date.to_local ();
-                    this._calendar.select_month (date.get_month () - 1,
-                                                 date.get_year ());
-                    this._calendar.select_day (date.get_day_of_month ());
-                }
             } else {
-                forever_button.bind_property ("active",
-                                              date_spinbutton, "sensitive",
-                                              GLib.BindingFlags.SYNC_CREATE |
-                                              GLib.BindingFlags.INVERT_BOOLEAN);
-                forever_button.bind_property ("active",
-                                              date_combobox, "sensitive",
-                                              GLib.BindingFlags.SYNC_CREATE |
-                                              GLib.BindingFlags.INVERT_BOOLEAN);
+                int64 value;
+                if (expires.format == GpgExpirationFormat.NEVER ||
+                    expires.format == GpgExpirationFormat.DATE)
+                    value = 0;
+                else
+                    value = expires.value;
 
-                var adjustment = new Gtk.Adjustment (0,
+                var adjustment = new Gtk.Adjustment (value,
                                                      0,
                                                      double.MAX,
                                                      1,
@@ -205,17 +209,24 @@ namespace Credentials {
                 date_combobox.pack_start (renderer, true);
                 date_combobox.set_attributes (renderer, "text", 0);
                 date_combobox.set_active (0);
+
+                forever_button.bind_property ("active",
+                                              date_spinbutton, "sensitive",
+                                              GLib.BindingFlags.SYNC_CREATE |
+                                              GLib.BindingFlags.INVERT_BOOLEAN);
+                forever_button.bind_property ("active",
+                                              date_combobox, "sensitive",
+                                              GLib.BindingFlags.SYNC_CREATE |
+                                              GLib.BindingFlags.INVERT_BOOLEAN);
             }
         }
 
         public GpgExpirationSpec get_spec () {
             if (forever_button.active) {
-                return GpgExpirationSpec () {
-                    format = GpgExpirationFormat.NEVER, value = 0
-                };
+                return GpgExpirationSpec (GpgExpirationFormat.NEVER, 0);
             }
 
-            if (this._use_calendar) {
+            if (this._calendar != null) {
                 uint year, month, day;
                 this._calendar.get_date (out year, out month, out day);
                 var new_date = new GLib.DateTime.local ((int) year,
@@ -224,33 +235,27 @@ namespace Credentials {
                                                         0,
                                                         0,
                                                         0);
-                var date = new GLib.DateTime.from_unix_utc (expires);
+                var date = new GLib.DateTime.from_unix_utc (expires.value);
                 date = date.to_local ();
                 if (new_date.get_year () == date.get_year () &&
                     new_date.get_month () == date.get_month () &&
                     new_date.get_day_of_month () == date.get_day_of_month ())
                     new_date = date;
 
-                return GpgExpirationSpec () {
-                    format = GpgExpirationFormat.DATE,
-                        value = new_date.to_utc ().to_unix ()
-                };
+                return GpgExpirationSpec (GpgExpirationFormat.DATE,
+                                          new_date.to_utc ().to_unix ());
             }
 
             var value = date_spinbutton.get_value_as_int ();
             if (value == 0) {
-                return GpgExpirationSpec () {
-                    format = GpgExpirationFormat.NEVER, value = 0
-                };
+                return GpgExpirationSpec (GpgExpirationFormat.NEVER, 0);
             }
 
             Gtk.TreeIter iter;
             date_combobox.get_active_iter (out iter);
             GpgExpirationFormat format;
             date_combobox.get_model ().get (iter, 1, out format);
-            return GpgExpirationSpec () {
-                format = format, value = value
-            };
+            return GpgExpirationSpec (format, value);
         }
     }
 
@@ -263,7 +268,19 @@ namespace Credentials {
         Gtk.Button back_button;
 
         [GtkChild]
+        Gtk.Button add_subkey_button;
+
+        [GtkChild]
+        Gtk.Button delete_subkey_button;
+
+        [GtkChild]
         Gtk.ListBox subkey_list_box;
+
+        [GtkChild]
+        Gtk.Button add_user_id_button;
+
+        [GtkChild]
+        Gtk.Button delete_user_id_button;
 
         [GtkChild]
         Gtk.ListBox user_id_list_box;
@@ -290,7 +307,10 @@ namespace Credentials {
         Gtk.Label status_label;
 
         [GtkChild]
-        Gtk.MenuButton expires_button;
+        Gtk.Label created_label;
+
+        [GtkChild]
+        Gtk.Stack expires_stack;
 
         [GtkChild]
         Gtk.Button change_password_button;
@@ -299,13 +319,10 @@ namespace Credentials {
         Gtk.Label usage_label;
 
         [GtkChild]
-        Gtk.Label name_label;
+        Gtk.Label user_id_label;
 
         [GtkChild]
-        Gtk.Label email_label;
-
-        [GtkChild]
-        Gtk.Label comment_label;
+        Gtk.Grid user_id_properties_grid;
 
         [GtkChild]
         Gtk.Label validity_label;
@@ -375,6 +392,7 @@ namespace Credentials {
                     if (res == Gtk.ResponseType.OK)
                         call_edit_delkey (this._subkey_item.index);
                     dialog.destroy ();
+                    back_to_main_view ();
                 });
             dialog.show ();
         }
@@ -413,16 +431,31 @@ namespace Credentials {
                 GpgUtils.format_fingerprint (item.subkey.fingerprint);
             status_label.label =
                 GpgUtils.format_subkey_status (item.subkey.flags);
-            expires_button.label =
-                GpgUtils.format_expires (item.subkey.expires);
-            var popover = new GpgExpiresPopover (item.subkey.expires, true);
-            expires_button.set_popover (popover);
-            popover.closed.connect (() => {
-                    var spec = popover.get_spec ();
-                    call_edit_expire (item.index, spec);
-                });
-            if ((item.subkey.flags & GGpg.SubkeyFlags.SECRET) == 0) {
-                expires_button.sensitive = false;
+            created_label.label =
+                format_date (new GLib.DateTime.from_unix_utc (item.subkey.created), DateFormat.FULL);
+            var expires_text = GpgUtils.format_expires (item.subkey.expires);
+            if (((GpgItem) this.item).has_secret) {
+                expires_stack.visible_child_name = "button";
+                var expires_button =
+                    (Gtk.MenuButton) expires_stack.visible_child;
+                expires_button.label = expires_text;
+                GpgExpirationSpec expires;
+                if (item.subkey.expires == 0)
+                    expires = GpgExpirationSpec (GpgExpirationFormat.NEVER, 0);
+                else
+                    expires = GpgExpirationSpec (GpgExpirationFormat.DATE,
+                                                 item.subkey.expires);
+                var popover = new GpgExpiresPopover (expires, true);
+                expires_button.set_popover (popover);
+                popover.closed.connect (() => {
+                        var spec = popover.get_spec ();
+                        if (!spec.equal (expires))
+                            call_edit_expire (item.index, spec);
+                    });
+            } else {
+                expires_stack.visible_child_name = "label";
+                var expires_label = (Gtk.Label) expires_stack.visible_child;
+                expires_label.label = expires_text;
             }
             usage_label.label = GpgUtils.format_usage (item.subkey.flags);
         }
@@ -496,6 +529,7 @@ namespace Credentials {
                     if (res == Gtk.ResponseType.OK)
                         call_edit_deluid (this._user_id_item.index);
                     dialog.destroy ();
+                    back_to_main_view ();
                 });
             dialog.show ();
         }
@@ -524,21 +558,36 @@ namespace Credentials {
             dialog.show ();
         }
 
-        void set_nullable_label (Gtk.Label label, string text) {
-            var context = label.get_style_context ();
-            if (text == "") {
-                label.label = _("(none)");
-                context.add_class ("dim-label");
-            } else {
-                label.label = text;
-                context.remove_class ("dim-label");
-            }
+        void insert_property (Gtk.Grid grid, int row,
+                              string name, string value) {
+            grid.insert_row (row);
+            var name_label = new Gtk.Label (name);
+            name_label.xalign = 1;
+            var context = name_label.get_style_context ();
+            context.add_class ("dim-label");
+            name_label.show ();
+            grid.attach (name_label, 0, row, 1, 1);
+
+            var value_label = new Gtk.Label (value);
+            value_label.xalign = 0;
+            value_label.show ();
+            grid.attach (value_label, 1, row, 1, 1);
         }
 
         void update_user_id_properties (GpgEditorUserIdItem item) {
-            set_nullable_label (name_label, item.user_id.name);
-            set_nullable_label (email_label, item.user_id.email);
-            set_nullable_label (comment_label, item.user_id.comment);
+            user_id_label.label = item.user_id.uid;
+            if (item.user_id.comment != "" &&
+                item.user_id.comment != item.user_id.uid)
+                insert_property (user_id_properties_grid, 1,
+                                 _("Comment"), item.user_id.comment);
+            if (item.user_id.email != "" &&
+                item.user_id.email != item.user_id.uid)
+                insert_property (user_id_properties_grid, 1,
+                                 _("Email"), item.user_id.email);
+            if (item.user_id.name != "" &&
+                item.user_id.name != item.user_id.uid)
+                insert_property (user_id_properties_grid, 1,
+                                 _("Name"), item.user_id.name);
             validity_label.label =
                 GpgUtils.format_validity (item.user_id.validity);
         }
@@ -592,9 +641,21 @@ namespace Credentials {
             _item.changed.connect (update_trust);
             update_trust ();
 
-            if (!_item.has_secret) {
-                change_password_button.visible = false;
-            }
+            _item.bind_property ("has-secret",
+                                 add_subkey_button, "visible",
+                                 GLib.BindingFlags.SYNC_CREATE);
+            _item.bind_property ("has-secret",
+                                 delete_subkey_button, "visible",
+                                 GLib.BindingFlags.SYNC_CREATE);
+            _item.bind_property ("has-secret",
+                                 add_user_id_button, "visible",
+                                 GLib.BindingFlags.SYNC_CREATE);
+            _item.bind_property ("has-secret",
+                                 delete_user_id_button, "visible",
+                                 GLib.BindingFlags.SYNC_CREATE);
+            _item.bind_property ("has-secret",
+                                 change_password_button, "visible",
+                                 GLib.BindingFlags.SYNC_CREATE);
         }
 
         void update_trust () {
@@ -653,11 +714,15 @@ namespace Credentials {
                 });
         }
 
-        [GtkCallback]
-        void on_back_clicked (Gtk.Button button) {
+        void back_to_main_view () {
             delete_button.show ();
             back_button.hide ();
             stack.visible_child_name = "main";
+        }
+
+        [GtkCallback]
+        void on_back_clicked (Gtk.Button button) {
+            back_to_main_view ();
         }
     }
 }

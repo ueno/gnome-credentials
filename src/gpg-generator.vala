@@ -45,7 +45,8 @@ namespace Credentials {
 
             name_entry.set_text (GLib.Environment.get_real_name ());
 
-            var popover = new GpgExpiresPopover (0, false);
+            var expires = GpgExpirationSpec (GpgExpirationFormat.NEVER, 0);
+            var popover = new GpgExpiresPopover (expires, false);
             expires_button.set_popover (popover);
             popover.closed.connect (() => {
                     this._expires = popover.get_spec ();
