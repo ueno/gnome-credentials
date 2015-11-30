@@ -12,6 +12,17 @@ namespace Credentials {
         GpgExpirationFormat format;
         int64 value;
 
+        public GpgExpirationSpec (GpgExpirationFormat format,
+                                  int64 value)
+        {
+            this.format = format;
+            this.value = value;
+        }
+
+        public bool equal (GpgExpirationSpec spec) {
+            return format == spec.format && value == spec.value;
+        }
+
         public string to_string () {
             switch (format) {
             case GpgExpirationFormat.NEVER:
