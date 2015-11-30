@@ -376,10 +376,11 @@ namespace Credentials {
                 _("Remove subkey \"%s\"? "),
                 this._subkey_item.subkey.key_id);
             dialog.response.connect ((res) => {
-                    if (res == Gtk.ResponseType.OK)
+                    if (res == Gtk.ResponseType.OK) {
                         call_edit_delkey (this._subkey_item.index);
+                        visible_child_name = "main";
+                    }
                     dialog.destroy ();
-                    visible_child_name = "main";
                 });
             dialog.show ();
         }
@@ -512,10 +513,11 @@ namespace Credentials {
                 _("Remove user ID \"%s\"? "),
                 this._user_id_item.user_id.uid);
             dialog.response.connect ((res) => {
-                    if (res == Gtk.ResponseType.OK)
+                    if (res == Gtk.ResponseType.OK) {
                         call_edit_deluid (this._user_id_item.index);
+                        visible_child_name = "main";
+                    }
                     dialog.destroy ();
-                    visible_child_name = "main";
                 });
             dialog.show ();
         }
