@@ -42,22 +42,6 @@
             <property name="pack-type">start</property>
 	  </packing>
         </child>
-	<child>
-	  <object class="GtkToggleButton" id="select_button">
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-	    <signal name="toggled" handler="on_selection_mode_toggled"/>
-            <child>
-              <object class="GtkImage">
-		<property name="visible">True</property>
-		<property name="icon-name">object-select-symbolic</property>
-              </object>
-            </child>
-	  </object>
-	  <packing>
-            <property name="pack-type">end</property>
-	  </packing>
-	</child>
       </object>
     </child>
     <child internal-child="vbox">
@@ -66,7 +50,7 @@
         <property name="can_focus">False</property>
         <property name="orientation">vertical</property>
         <child>
-          <object class="GtkStack" id="main-stack">
+          <object class="GtkStack" id="main_stack">
             <property name="visible">True</property>
             <property name="vexpand">True</property>
             <property name="hexpand">True</property>
@@ -83,7 +67,7 @@
 		  </object>
 		</child>
 		<child>
-		  <object class="GtkStack" id="stack">
+		  <object class="GtkStack" id="search_stack">
 		    <property name="visible">True</property>
 		    <property name="height_request">340</property>
 		    <child>
@@ -116,7 +100,7 @@
 			</child>
 		      </object>
 		      <packing>
-			<property name="name">default</property>
+			<property name="name">initial</property>
 		      </packing>
 		    </child>
 		    <child>
@@ -161,6 +145,8 @@
 			  <object class="GtkListBox" id="list_box">
 			    <property name="visible">True</property>
 			    <property name="selection-mode">none</property>
+                            <property name="activate-on-single-click">True</property>
+                            <signal name="row-activated" handler="on_key_selected"/>
 			    <property name="valign">fill</property>
 			  </object>
 			</child>
@@ -174,6 +160,14 @@
 	      </object>
 	      <packing>
 		<property name="name">search</property>
+	      </packing>
+	    </child>
+	    <child>
+	      <object class="GtkBox" id="box">
+		<property name="visible">True</property>
+	      </object>
+	      <packing>
+		<property name="name">browse</property>
 	      </packing>
 	    </child>
 	  </object>

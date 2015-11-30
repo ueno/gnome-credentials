@@ -12,13 +12,19 @@ namespace Credentials {
         Gtk.Button import_button;
 
         [GtkChild]
-        Gtk.Button select_button;
+        Gtk.Button back_button;
+
+        [GtkChild]
+        Gtk.Stack main_stack;
 
         [GtkChild]
         Gtk.Spinner spinner;
 
         [GtkChild]
-        Gtk.Stack stack;
+        Gtk.Stack search_stack;
+        
+        [GtkChild]
+        Gtk.Box box;
 
         GLib.ListStore _store;
         GLib.Cancellable _cancellable;
@@ -27,18 +33,19 @@ namespace Credentials {
 
         uint _spinner_timeout_id = 0;
 
+        GpgItem _item = null;
+        GpgEditorWidget _widget = null;
+
         public GpgFetcherDialog (GpgCollection collection) {
             Object (collection: collection, use_header_bar: 1);
         }
 
         construct {
-            this.stack.set_visible_child_name ("default");
+            this.search_stack.set_visible_child_name ("initial");
             this._store = new GLib.ListStore (typeof (GpgItem));
             list_box.bind_model (this._store, create_key_widget);
             list_box.set_header_func (list_box_update_header_func);
             list_box_setup_scrolling (list_box, 6);
-            select_button.bind_property ("active", import_button, "visible",
-                                         GLib.BindingFlags.SYNC_CREATE);
             this._cancellable = new GLib.Cancellable ();
             this._cancellable.connect (clear_matches);
         }
@@ -123,10 +130,6 @@ namespace Credentials {
             hbox.margin_top = 3;
             hbox.margin_bottom = 3;
             hbox.pack_start (vbox, false, false, 0);
-            var button = new Gtk.CheckButton ();
-            select_button.bind_property ("active", button, "visible",
-                                         GLib.BindingFlags.SYNC_CREATE);
-            hbox.pack_end (button, false, false, 0);
             return hbox;
         }
 
@@ -137,7 +140,7 @@ namespace Credentials {
 
         void start_spinner () {
             this._spinner_timeout_id = GLib.Timeout.add (500, () => {
-                    this.stack.visible_child_name = "loading";
+                    this.search_stack.visible_child_name = "loading";
                     spinner.start ();
                     this._spinner_timeout_id = 0;
                     return GLib.Source.REMOVE;
@@ -151,9 +154,9 @@ namespace Credentials {
             }
             spinner.stop ();
             if (this._store.get_n_items () > 0)
-                this.stack.visible_child_name = "listing";
+                this.search_stack.visible_child_name = "listing";
             else
-                this.stack.visible_child_name = "default";
+                this.search_stack.visible_child_name = "initial";
         }
 
         [GtkCallback]
@@ -196,36 +199,51 @@ namespace Credentials {
         }
 
         [GtkCallback]
-        void on_selection_mode_toggled (Gtk.ToggleButton button) {
-            var context = this.get_header_bar ().get_style_context ();
-            if (button.active)
-                context.add_class ("selection-mode");
-            else
-                context.remove_class ("selection-mode");
+        void on_key_selected (Gtk.ListBox list_box, Gtk.ListBoxRow? row) {
+            if (row != null) {
+                var index = row.get_index ();
+                this._item = (GpgItem) this._store.get_item (index);
+                if (this._widget != null) {
+                    box.remove (this._widget);
+                }
+                this._widget = new GpgEditorWidget (this._item);
+                this._widget.notify["visible-child"].connect (() => {
+                        if (this._widget.visible_child_name == "main") {
+                            import_button.show ();
+                        } else {
+                            import_button.hide ();
+                        }
+                    });
+                if (this._widget.visible_child_name == "main") {
+                    import_button.show ();
+                } else {
+                    import_button.hide ();
+                }
+                this._widget.show ();
+                box.pack_start (this._widget, true, true, 0);
+                main_stack.visible_child_name = "browse";
+                back_button.show ();
+            }
+        }
+
+        [GtkCallback]
+        void on_back_clicked (Gtk.Button button) {
+            if (this._widget != null &&
+                this._widget.visible_child_name != "main") {
+                this._widget.visible_child_name = "main";
+            } else {
+                main_stack.visible_child_name = "search";
+                import_button.hide ();
+                back_button.hide ();
+            }
         }
 
         public override void response (int res) {
             if (res == GpgFetcherResponse.IMPORT) {
-                GpgItem[] items = {};
-                for (var i = 0; i < this._store.get_n_items (); i++) {
-                    var selected = false;
-                    var row = list_box.get_row_at_index (i);
-                    var box = (Gtk.Box) row.get_child ();
-                    foreach (var child in box.get_children ()) {
-                        if (child is Gtk.CheckButton) {
-                            selected = ((Gtk.ToggleButton) child).active;
-                            break;
-                        }
-                    }
-                    if (selected) {
-                        var item = (GpgItem) this._store.get_item (i);
-                        items += item;
-                    }
-                }
-                if (items.length > 0) {
+                if (this._item != null) {
                     var window = (Gtk.Window) this.get_transient_for ();
                     collection.import_items.begin (
-                        items, this._cancellable,
+                        new GpgItem[] { this._item }, this._cancellable,
                         (obj, res) => {
                             try {
                                 var result = collection.import_items.end (res);
@@ -242,10 +260,6 @@ namespace Credentials {
                         });
                 }
             }
-        }
-
-        [GtkCallback]
-        void on_back_clicked (Gtk.Button button) {
         }
     }
 }
