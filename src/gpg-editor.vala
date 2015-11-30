@@ -293,6 +293,9 @@ namespace Credentials {
         Gtk.MenuButton expires_button;
 
         [GtkChild]
+        Gtk.Button change_password_button;
+
+        [GtkChild]
         Gtk.Label usage_label;
 
         [GtkChild]
@@ -418,6 +421,9 @@ namespace Credentials {
                     var spec = popover.get_spec ();
                     call_edit_expire (item.index, spec);
                 });
+            if ((item.subkey.flags & GGpg.SubkeyFlags.SECRET) == 0) {
+                expires_button.sensitive = false;
+            }
             usage_label.label = GpgUtils.format_usage (item.subkey.flags);
         }
 
@@ -585,6 +591,10 @@ namespace Credentials {
             trust_combobox.changed.connect (on_trust_changed);
             _item.changed.connect (update_trust);
             update_trust ();
+
+            if (!_item.has_secret) {
+                change_password_button.visible = false;
+            }
         }
 
         void update_trust () {

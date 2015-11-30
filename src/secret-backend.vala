@@ -51,6 +51,9 @@ namespace Credentials {
             collection.item_removed (this);
         }
 
+        public override async void load_content (GLib.Cancellable? cancellable) throws GLib.Error {
+        }
+
         public SecretItem (Collection collection, Secret.Item content) {
             Object (collection: collection, content: content);
         }

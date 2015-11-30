@@ -8,6 +8,8 @@ namespace Credentials {
         public virtual async void delete (GLib.Cancellable? cancellable) throws GLib.Error {
         }
 
+        public abstract async void load_content (GLib.Cancellable? cancellable) throws GLib.Error;
+
         public abstract int compare (Item other);
 
         public virtual bool match (string[] words) {

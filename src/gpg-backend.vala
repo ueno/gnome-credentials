@@ -86,6 +86,14 @@ namespace Credentials {
             }
         }
 
+        public bool has_secret {
+            get {
+                var subkeys = this._content.get_subkeys ();
+                var pubkey = subkeys.first ().data;
+                return (pubkey.flags & GGpg.SubkeyFlags.SECRET) != 0;
+            }
+        }
+
         GLib.List<GpgGeneratedKeySpec?> _specs;
 
         construct {
@@ -144,14 +152,27 @@ namespace Credentials {
             return this._content.get_subkeys ();
         }
 
-        async void load_content (GLib.Cancellable? cancellable) throws GLib.Error {
+        public override async void load_content (GLib.Cancellable? cancellable) throws GLib.Error {
             var pubkey = this._content.get_subkeys ().first ().data;
             var ctx = new GGpg.Ctx ();
             ctx.protocol = ((GpgCollection) collection).protocol;
-            yield ctx.keylist (pubkey.fingerprint, false, (key) => {
-                    this._content = key;
-                },
-                cancellable);
+
+            // First, try to load the secret key.
+            yield ctx.keylist (pubkey.fingerprint, true,
+                               (key) => {
+                                   this._content = key;
+                               },
+                               cancellable);
+
+            // If there is no corresponding secret key, load
+            // the public key.
+            if (!has_secret) {
+                yield ctx.keylist (pubkey.fingerprint, false,
+                                   (key) => {
+                                       this._content = key;
+                                   },
+                                   cancellable);
+            }
         }
 
         public GLib.List<GGpg.UserId> get_uids () {
@@ -403,7 +424,7 @@ namespace Credentials {
                 parameters_to_string ((GpgGeneratedItemParameters) parameters),
                 null, null,
                 cancellable);
-            load_items.begin (cancellable);
+            yield load_items (cancellable);
         }
 
         public async GGpg.ImportResult import_keys (GGpg.Key[] keys,
@@ -411,7 +432,7 @@ namespace Credentials {
             var ctx = new GGpg.Ctx ();
             ctx.protocol = protocol;
             yield ctx.import_keys (keys, cancellable);
-            load_items.begin (cancellable);
+            yield load_items (cancellable);
             return ctx.import_result ();
         }
         

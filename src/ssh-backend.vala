@@ -66,7 +66,7 @@ namespace Credentials {
                     path: path, etag: etag);
         }
 
-        async void load_content (GLib.Cancellable? cancellable) throws GLib.Error {
+        public override async void load_content (GLib.Cancellable? cancellable) throws GLib.Error {
             var file = GLib.File.new_for_path (this.path);
             uint8[] contents;
             file.load_contents (cancellable, out contents, out this._etag);
@@ -95,7 +95,7 @@ namespace Credentials {
                                    GLib.FileCreateFlags.NONE,
                                    out this._etag,
                                    cancellable);
-            load_content.begin (cancellable);
+            yield load_content (cancellable);
         }
 
         public override int compare (Item other) {
@@ -410,7 +410,7 @@ namespace Credentials {
             yield subprocess.wait_async (null);
             if (subprocess.get_exit_status () != 0)
                 throw new SshError.FAILED ("cannot generate key");
-            load_items.begin (cancellable);
+            yield load_items (cancellable);
         }
 
         public override int compare (Collection other) {

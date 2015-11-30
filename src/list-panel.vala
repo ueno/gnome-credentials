@@ -135,14 +135,19 @@ namespace Credentials {
         void row_activated (Gtk.ListBox list_box, Gtk.ListBoxRow? row) {
             if (row != null) {
                 var item = (Item) this._store.get_item (row.get_index ());
-                var factory = this._factories.lookup (item.collection.backend);
-                var dialog = factory.create_editor_dialog (item);
-                dialog.response.connect_after ((res) => {
-                        dialog.destroy ();
+                item.load_content.begin (
+                    null,
+                    (obj, res) => {
+                        item.load_content.end (res);
+                        var factory = this._factories.lookup (item.collection.backend);
+                        var dialog = factory.create_editor_dialog (item);
+                        dialog.response.connect_after ((res) => {
+                                dialog.destroy ();
+                            });
+                        dialog.set_transient_for (
+                            (Gtk.Window) this.get_toplevel ());
+                        dialog.show ();
                     });
-                dialog.set_transient_for (
-                    (Gtk.Window) this.get_toplevel ());
-                dialog.show ();
             }
         }
     }
