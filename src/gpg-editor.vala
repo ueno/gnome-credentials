@@ -259,14 +259,8 @@ namespace Credentials {
         }
     }
 
-    [GtkTemplate (ui = "/org/gnome/Credentials/gpg-editor.ui")]
-    class GpgEditorDialog : EditorDialog {
-        [GtkChild]
-        Gtk.Button delete_button;
-
-        [GtkChild]
-        Gtk.Button back_button;
-
+    [GtkTemplate (ui = "/org/gnome/Credentials/gpg-editor-widget.ui")]
+    class GpgEditorWidget : Gtk.Stack {
         [GtkChild]
         Gtk.Button add_subkey_button;
 
@@ -287,9 +281,6 @@ namespace Credentials {
 
         [GtkChild]
         Gtk.ComboBox trust_combobox;
-
-        [GtkChild]
-        Gtk.Stack stack;
 
         [GtkChild]
         Gtk.Label key_id_label;
@@ -326,10 +317,6 @@ namespace Credentials {
 
         [GtkChild]
         Gtk.Label validity_label;
-
-        public GpgEditorDialog (Item item) {
-            Object (item: item, use_header_bar: 1);
-        }
 
         GpgEditorSubkeyItem? _subkey_item;
         GpgEditorUserIdItem? _user_id_item;
@@ -382,7 +369,7 @@ namespace Credentials {
         [GtkCallback]
         void on_delete_subkey_clicked (Gtk.Button button) {
             var dialog = new Gtk.MessageDialog (
-                this,
+                (Gtk.Window) this.get_toplevel (),
                 Gtk.DialogFlags.MODAL,
                 Gtk.MessageType.QUESTION,
                 Gtk.ButtonsType.OK_CANCEL,
@@ -392,7 +379,7 @@ namespace Credentials {
                     if (res == Gtk.ResponseType.OK)
                         call_edit_delkey (this._subkey_item.index);
                     dialog.destroy ();
-                    back_to_main_view ();
+                    visible_child_name = "main";
                 });
             dialog.show ();
         }
@@ -415,7 +402,7 @@ namespace Credentials {
         [GtkCallback]
         void on_add_subkey_clicked (Gtk.Button button) {
             var dialog = new GpgAddSubkeyDialog ((GpgItem) item);
-            dialog.set_transient_for (this);
+            dialog.set_transient_for ((Gtk.Window) this.get_toplevel ());
             dialog.response.connect_after ((res) => {
                     dialog.destroy ();
                 });
@@ -482,9 +469,7 @@ namespace Credentials {
                 this._subkey_item =
                     (GpgEditorSubkeyItem) this._subkey_store.get_item (index);
                 update_subkey_properties (this._subkey_item);
-                delete_button.hide ();
-                back_button.show ();
-                stack.visible_child_name = "subkey";
+                visible_child_name = "subkey";
             }
         }
 
@@ -519,17 +504,18 @@ namespace Credentials {
 
         [GtkCallback]
         void on_delete_user_id_clicked (Gtk.Button button) {
-            var dialog = new Gtk.MessageDialog (this,
-                                                Gtk.DialogFlags.MODAL,
-                                                Gtk.MessageType.QUESTION,
-                                                Gtk.ButtonsType.OK_CANCEL,
-                                                _("Remove user ID \"%s\"? "),
+            var dialog = new Gtk.MessageDialog (
+                (Gtk.Window) this.get_toplevel (),
+                Gtk.DialogFlags.MODAL,
+                Gtk.MessageType.QUESTION,
+                Gtk.ButtonsType.OK_CANCEL,
+                _("Remove user ID \"%s\"? "),
                 this._user_id_item.user_id.uid);
             dialog.response.connect ((res) => {
                     if (res == Gtk.ResponseType.OK)
                         call_edit_deluid (this._user_id_item.index);
                     dialog.destroy ();
-                    back_to_main_view ();
+                    visible_child_name = "main";
                 });
             dialog.show ();
         }
@@ -551,7 +537,7 @@ namespace Credentials {
         [GtkCallback]
         void on_add_user_id_clicked (Gtk.Button button) {
             var dialog = new GpgAddUserIdDialog ((GpgItem) item);
-            dialog.set_transient_for (this);
+            dialog.set_transient_for ((Gtk.Window) this.get_toplevel ());
             dialog.response.connect_after ((res) => {
                     dialog.destroy ();
                 });
@@ -599,22 +585,24 @@ namespace Credentials {
                 this._user_id_item =
                     (GpgEditorUserIdItem) this._user_id_store.get_item (index);
                 update_user_id_properties (this._user_id_item);
-                delete_button.hide ();
-                back_button.show ();
-                stack.visible_child_name = "user_id";
+                visible_child_name = "user_id";
             }
         }
 
-        construct {
-            var _item = (GpgItem) item;
+        public GpgItem item { construct set; get; }
 
+        public GpgEditorWidget (GpgItem item) {
+            Object (item: item);
+        }
+
+        construct {
             this._user_id_store =
                 new GLib.ListStore (typeof (GpgEditorUserIdItem));
             user_id_list_box.bind_model (this._user_id_store,
                                          create_user_id_widget);
             user_id_list_box.set_header_func (list_box_update_header_func);
             list_box_setup_scrolling (user_id_list_box, 0);
-            _item.changed.connect (update_user_id_list);
+            item.changed.connect (update_user_id_list);
             update_user_id_list ();
 
             this._subkey_store =
@@ -623,7 +611,7 @@ namespace Credentials {
                                         create_subkey_widget);
             subkey_list_box.set_header_func (list_box_update_header_func);
             list_box_setup_scrolling (subkey_list_box, 0);
-            _item.changed.connect (update_subkey_list);
+            item.changed.connect (update_subkey_list);
             update_subkey_list ();
 
             var store = (Gtk.ListStore) trust_combobox.get_model ();
@@ -638,36 +626,34 @@ namespace Credentials {
             trust_combobox.pack_start (renderer, true);
             trust_combobox.set_attributes (renderer, "text", 0);
             trust_combobox.changed.connect (on_trust_changed);
-            _item.changed.connect (update_trust);
+            item.changed.connect (update_trust);
             update_trust ();
 
-            _item.bind_property ("has-secret",
-                                 add_subkey_button, "visible",
-                                 GLib.BindingFlags.SYNC_CREATE);
-            _item.bind_property ("has-secret",
-                                 delete_subkey_button, "visible",
-                                 GLib.BindingFlags.SYNC_CREATE);
-            _item.bind_property ("has-secret",
-                                 add_user_id_button, "visible",
-                                 GLib.BindingFlags.SYNC_CREATE);
-            _item.bind_property ("has-secret",
-                                 delete_user_id_button, "visible",
-                                 GLib.BindingFlags.SYNC_CREATE);
-            _item.bind_property ("has-secret",
-                                 change_password_button, "visible",
-                                 GLib.BindingFlags.SYNC_CREATE);
+            item.bind_property ("has-secret",
+                                add_subkey_button, "visible",
+                                GLib.BindingFlags.SYNC_CREATE);
+            item.bind_property ("has-secret",
+                                delete_subkey_button, "visible",
+                                GLib.BindingFlags.SYNC_CREATE);
+            item.bind_property ("has-secret",
+                                add_user_id_button, "visible",
+                                GLib.BindingFlags.SYNC_CREATE);
+            item.bind_property ("has-secret",
+                                delete_user_id_button, "visible",
+                                GLib.BindingFlags.SYNC_CREATE);
+            item.bind_property ("has-secret",
+                                change_password_button, "visible",
+                                GLib.BindingFlags.SYNC_CREATE);
         }
 
         void update_trust () {
-            var _item = (GpgItem) item;
-
             var model = trust_combobox.get_model ();
             Gtk.TreeIter iter;
             if (model.get_iter_first (out iter)) {
                 do {
                     GGpg.Validity validity;
                     model.get (iter, 1, out validity);
-                    if (validity == _item.owner_trust) {
+                    if (validity == item.owner_trust) {
                         trust_combobox.set_active_iter (iter);
                         break;
                     }
@@ -676,21 +662,19 @@ namespace Credentials {
         }
 
         void on_trust_changed () {
-            var _item = (GpgItem) item;
-
             Gtk.TreeIter iter;
             trust_combobox.get_active_iter (out iter);
 
             GGpg.Validity validity;
             trust_combobox.get_model ().get (iter, 1, out validity);
-            if (validity == _item.owner_trust)
+            if (validity == item.owner_trust)
                 return;
 
             var command = new GpgTrustEditCommand (validity);
             var window = (Gtk.Window) this.get_toplevel ();
-            _item.edit.begin (command, null, (obj, res) => {
+            item.edit.begin (command, null, (obj, res) => {
                     try {
-                        _item.edit.end (res);
+                        item.edit.end (res);
                     } catch (GLib.Error e) {
                         show_error (window,
                                     "Couldn't change owner trust: %s",
@@ -701,28 +685,54 @@ namespace Credentials {
 
         [GtkCallback]
         void on_change_password_clicked (Gtk.Button button) {
-            var _item = (GpgItem) item;
             var window = (Gtk.Window) this.get_toplevel ();
-            _item.change_password.begin (null, (obj, res) => {
-                        try {
-                            _item.change_password.end (res);
-                        } catch (GLib.Error e) {
-                            show_error (window,
-                                        _("Couldn't change password: %s"),
-                                        e.message);
-                        }
+            item.change_password.begin (null, (obj, res) => {
+                    try {
+                        item.change_password.end (res);
+                    } catch (GLib.Error e) {
+                        show_error (window,
+                                    _("Couldn't change password: %s"),
+                                    e.message);
+                    }
                 });
         }
+    }
 
-        void back_to_main_view () {
-            delete_button.show ();
-            back_button.hide ();
-            stack.visible_child_name = "main";
+    [GtkTemplate (ui = "/org/gnome/Credentials/gpg-editor.ui")]
+    class GpgEditorDialog : EditorDialog {
+        [GtkChild]
+        Gtk.Button delete_button;
+
+        [GtkChild]
+        Gtk.Button back_button;
+
+        [GtkChild]
+        Gtk.Box box;
+
+        GpgEditorWidget _widget;
+
+        public GpgEditorDialog (Item item) {
+            Object (item: item, use_header_bar: 1);
+        }
+
+        construct {
+            this._widget = new GpgEditorWidget ((GpgItem) item);
+            this._widget.notify["visible-child"].connect (() => {
+                    if (this._widget.visible_child_name == "main") {
+                        delete_button.show ();
+                        back_button.hide ();
+                    } else {
+                        delete_button.hide ();
+                        back_button.show ();
+                    }
+                });
+            this._widget.show ();
+            box.pack_start (this._widget, true, true, 0);
         }
 
         [GtkCallback]
         void on_back_clicked (Gtk.Button button) {
-            back_to_main_view ();
+            this._widget.visible_child_name = "main";
         }
     }
 }
