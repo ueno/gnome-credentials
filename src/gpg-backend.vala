@@ -80,6 +80,10 @@ namespace Credentials {
             }
         }
 
+        internal GGpg.Key get_content () {
+            return this._content;
+        }
+
         public GGpg.Validity owner_trust {
             get {
                 return this._content.owner_trust;
@@ -416,7 +420,8 @@ namespace Credentials {
         }
 
         public override async void generate_item (GeneratedItemParameters parameters,
-                                         GLib.Cancellable? cancellable) throws GLib.Error {
+                                         GLib.Cancellable? cancellable) throws GLib.Error
+        {
             var ctx = new GGpg.Ctx ();
             ctx.protocol = protocol;
             ctx.set_progress_callback (this.progress_callback_wrapper);
@@ -427,10 +432,15 @@ namespace Credentials {
             yield load_items (cancellable);
         }
 
-        public async GGpg.ImportResult import_keys (GGpg.Key[] keys,
-                                                    GLib.Cancellable? cancellable) throws GLib.Error {
+        public async GGpg.ImportResult import_items (GpgItem[] items,
+                                                     GLib.Cancellable? cancellable) throws GLib.Error
+        {
             var ctx = new GGpg.Ctx ();
             ctx.protocol = protocol;
+            GGpg.Key[] keys = {};
+            foreach (var item in items) {
+                keys += item.get_content ();
+            }
             yield ctx.import_keys (keys, cancellable);
             yield load_items (cancellable);
             return ctx.import_result ();

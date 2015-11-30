@@ -26,6 +26,22 @@
             <property name="pack-type">start</property>
 	  </packing>
 	</child>
+        <child>
+          <object class="GtkButton" id="back_button">
+            <property name="use_underline">True</property>
+            <property name="can_focus">True</property>
+            <signal name="clicked" handler="on_back_clicked"/>
+            <child>
+              <object class="GtkImage">
+                <property name="visible">True</property>
+                <property name="icon-name">go-previous-symbolic</property>
+              </object>
+            </child>
+          </object>
+	  <packing>
+            <property name="pack-type">start</property>
+	  </packing>
+        </child>
 	<child>
 	  <object class="GtkToggleButton" id="select_button">
             <property name="visible">True</property>
@@ -49,104 +65,115 @@
 	<property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="orientation">vertical</property>
-	<child>
-	  <object class="GtkBox">
-	    <property name="visible">True</property>
-	    <property name="orientation">horizontal</property>
-	    <child>
-	      <object class="GtkSearchEntry" id="search_entry">
-		<property name="visible">True</property>
-		<property name="hexpand">True</property>
-		<signal name="activate" handler="on_search_activate"/>
-	      </object>
-	    </child>
-	  </object>
-	</child>
-	<child>
-	  <object class="GtkStack" id="stack">
-	    <property name="visible">True</property>
-	    <property name="height_request">340</property>
-	    <child>
-	      <object class="GtkGrid">
-		<property name="can_focus">False</property>
-		<property name="visible">True</property>
-		<property name="orientation">vertical</property>
-		<property name="halign">center</property>
-		<property name="valign">center</property>
-		<style>
-		  <class name="banner"/>
-		</style>
-		<child>
-		  <object class="GtkImage">
-		    <property name="can_focus">False</property>
-		    <property name="visible">True</property>
-		    <property name="pixel_size">128</property>
-		    <property name="icon_name">dialog-information-symbolic</property>
-		  </object>
-		</child>
-		<child>
-		  <object class="GtkLabel">
-		    <property name="can_focus">False</property>
-		    <property name="visible">True</property>
-		    <property name="label" translatable="yes">Type keyword and hit Enter</property>
-		    <style>
-		      <class name="banner-label"/>
-		    </style>
-		  </object>
-		</child>
-	      </object>
-	      <packing>
-		<property name="name">default</property>
-	      </packing>
-	    </child>
-	    <child>
-	      <object class="GtkGrid">
-		<property name="can_focus">False</property>
-		<property name="visible">True</property>
-		<property name="orientation">vertical</property>
-		<property name="halign">center</property>
-		<property name="valign">center</property>
-		<style>
-		  <class name="banner"/>
-		</style>
-		<child>
-		  <object class="GtkSpinner" id="spinner">
-		    <property name="can_focus">False</property>
-		    <property name="visible">True</property>
-		    <property name="width-request">128</property>
-		    <property name="height-request">128</property>
-		  </object>
-		</child>
-		<child>
-		  <object class="GtkLabel">
-		    <property name="can_focus">False</property>
-		    <property name="visible">True</property>
-		    <property name="label" translatable="yes">Loading…</property>
-		    <style>
-		      <class name="banner-label"/>
-		    </style>
-		  </object>
-		</child>
-	      </object>
-	      <packing>
-		<property name="name">loading</property>
-	      </packing>
-	    </child>
+        <child>
+          <object class="GtkStack" id="main-stack">
+            <property name="visible">True</property>
+            <property name="vexpand">True</property>
+            <property name="hexpand">True</property>
+            <property name="vhomogeneous">False</property>
 	    <child>
 	      <object class="GtkBox">
 		<property name="visible">True</property>
 		<property name="orientation">vertical</property>
-		<property name="vexpand">True</property>
 		<child>
-		  <object class="GtkListBox" id="list_box">
+		  <object class="GtkSearchEntry" id="search_entry">
 		    <property name="visible">True</property>
-		    <property name="selection-mode">none</property>
-		    <property name="valign">fill</property>
+		    <property name="hexpand">True</property>
+		    <signal name="activate" handler="on_search_activate"/>
+		  </object>
+		</child>
+		<child>
+		  <object class="GtkStack" id="stack">
+		    <property name="visible">True</property>
+		    <property name="height_request">340</property>
+		    <child>
+		      <object class="GtkGrid">
+			<property name="can_focus">False</property>
+			<property name="visible">True</property>
+			<property name="orientation">vertical</property>
+			<property name="halign">center</property>
+			<property name="valign">center</property>
+			<style>
+			  <class name="banner"/>
+			</style>
+			<child>
+			  <object class="GtkImage">
+			    <property name="can_focus">False</property>
+			    <property name="visible">True</property>
+			    <property name="pixel_size">128</property>
+			    <property name="icon_name">dialog-information-symbolic</property>
+			  </object>
+			</child>
+			<child>
+			  <object class="GtkLabel">
+			    <property name="can_focus">False</property>
+			    <property name="visible">True</property>
+			    <property name="label" translatable="yes">Type keyword and hit Enter</property>
+			    <style>
+			      <class name="banner-label"/>
+			    </style>
+			  </object>
+			</child>
+		      </object>
+		      <packing>
+			<property name="name">default</property>
+		      </packing>
+		    </child>
+		    <child>
+		      <object class="GtkGrid">
+			<property name="can_focus">False</property>
+			<property name="visible">True</property>
+			<property name="orientation">vertical</property>
+			<property name="halign">center</property>
+			<property name="valign">center</property>
+			<style>
+			  <class name="banner"/>
+			</style>
+			<child>
+			  <object class="GtkSpinner" id="spinner">
+			    <property name="can_focus">False</property>
+			    <property name="visible">True</property>
+			    <property name="width-request">128</property>
+			    <property name="height-request">128</property>
+			  </object>
+			</child>
+			<child>
+			  <object class="GtkLabel">
+			    <property name="can_focus">False</property>
+			    <property name="visible">True</property>
+			    <property name="label" translatable="yes">Loading…</property>
+			    <style>
+			      <class name="banner-label"/>
+			    </style>
+			  </object>
+			</child>
+		      </object>
+		      <packing>
+			<property name="name">loading</property>
+		      </packing>
+		    </child>
+		    <child>
+		      <object class="GtkBox">
+			<property name="visible">True</property>
+			<property name="orientation">vertical</property>
+			<property name="vexpand">True</property>
+			<child>
+			  <object class="GtkListBox" id="list_box">
+			    <property name="visible">True</property>
+			    <property name="selection-mode">none</property>
+			    <property name="valign">fill</property>
+			  </object>
+			</child>
+		      </object>
+		      <packing>
+			<property name="name">listing</property>
+		      </packing>
+		    </child>
 		  </object>
 		</child>
 	      </object>
 	      <packing>
-		<property name="name">listing</property>
+		<property name="name">search</property>
 	      </packing>
 	    </child>
 	  </object>

@@ -33,7 +33,7 @@ namespace Credentials {
 
         construct {
             this.stack.set_visible_child_name ("default");
-            this._store = new GLib.ListStore (typeof (GGpg.Key));
+            this._store = new GLib.ListStore (typeof (GpgItem));
             list_box.bind_model (this._store, create_key_widget);
             list_box.set_header_func (list_box_update_header_func);
             list_box_setup_scrolling (list_box, 6);
@@ -44,8 +44,8 @@ namespace Credentials {
         }
 
         Gtk.Widget create_key_widget (GLib.Object object) {
-            var key = (GGpg.Key) object;
-            GLib.List<GGpg.UserId> uids = key.get_uids ();
+            var item = (GpgItem) object;
+            GLib.List<GGpg.UserId> uids = item.get_uids ();
             string[] secondary_labels = {};
             string primary_label = "";
             string primary_name = "";
@@ -177,7 +177,7 @@ namespace Credentials {
                     context.invoke (() => {
                             var uids = key.get_uids ();
                             if (uids != null) {
-                                this._store.append (key);
+                                this._store.append (new GpgItem (collection, key));
                                 list_box_adjust_scrolling (list_box);
                             }
                             return GLib.Source.REMOVE;
@@ -206,7 +206,7 @@ namespace Credentials {
 
         public override void response (int res) {
             if (res == GpgFetcherResponse.IMPORT) {
-                GGpg.Key[] keys = {};
+                GpgItem[] items = {};
                 for (var i = 0; i < this._store.get_n_items (); i++) {
                     var selected = false;
                     var row = list_box.get_row_at_index (i);
@@ -218,17 +218,17 @@ namespace Credentials {
                         }
                     }
                     if (selected) {
-                        var key = (GGpg.Key) this._store.get_item (i);
-                        keys += key;
+                        var item = (GpgItem) this._store.get_item (i);
+                        items += item;
                     }
                 }
-                if (keys.length > 0) {
+                if (items.length > 0) {
                     var window = (Gtk.Window) this.get_transient_for ();
-                    collection.import_keys.begin (
-                        keys, this._cancellable,
+                    collection.import_items.begin (
+                        items, this._cancellable,
                         (obj, res) => {
                             try {
-                                var result = collection.import_keys.end (res);
+                                var result = collection.import_items.end (res);
                                 show_notification (window,
                                                    _("%d keys imported (%d new, %d unchanged)"),
                                                    result.considered,
@@ -242,6 +242,10 @@ namespace Credentials {
                         });
                 }
             }
+        }
+
+        [GtkCallback]
+        void on_back_clicked (Gtk.Button button) {
         }
     }
 }
