@@ -698,7 +698,7 @@ namespace Credentials {
         }
     }
 
-    [GtkTemplate (ui = "/org/gnome/Credentials/gpg-editor.ui")]
+    [GtkTemplate (ui = "/org/gnome/Credentials/gpg-editor-dialog.ui")]
     class GpgEditorDialog : EditorDialog {
         [GtkChild]
         Gtk.Button delete_button;
