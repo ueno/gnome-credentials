@@ -187,33 +187,33 @@
                         <child>
                           <object class="GtkGrid">
                             <property name="visible">True</property>
-                        <property name="row-spacing">12</property>
-                        <property name="column-spacing">12</property>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="label" translatable="yes">Trust</property>
-                            <property name="xalign">1</property>
-                            <style>
-                              <class name="dim-label"/>
-                            </style>
-                          </object>
-                          <packing>
-                            <property name="left_attach">0</property>
-                            <property name="top_attach">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkComboBox" id="trust_combobox">
-                            <property name="visible">True</property>
-			    <property name="can_default">False</property>
-			    <property name="model">trust_liststore</property>
-                          </object>
-                          <packing>
-                            <property name="left_attach">1</property>
-                            <property name="top_attach">0</property>
-                          </packing>
-                        </child>
+                            <property name="row-spacing">12</property>
+                            <property name="column-spacing">12</property>
+                            <child>
+                              <object class="GtkLabel">
+				<property name="visible">True</property>
+				<property name="label" translatable="yes">Trust</property>
+				<property name="xalign">1</property>
+				<style>
+				  <class name="dim-label"/>
+				</style>
+                              </object>
+                              <packing>
+				<property name="left_attach">0</property>
+				<property name="top_attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkComboBox" id="trust_combobox">
+				<property name="visible">True</property>
+				<property name="can_default">False</property>
+				<property name="model">trust_liststore</property>
+                              </object>
+                              <packing>
+				<property name="left_attach">1</property>
+				<property name="top_attach">0</property>
+                              </packing>
+                            </child>
                           </object>
                           <packing>
                             <property name="left_attach">0</property>
@@ -221,22 +221,20 @@
                             <property name="width">2</property>
                           </packing>
                         </child>
-                        <child>
-                          <object class="GtkButton" id="change_password_button">
-                            <property name="label" translatable="yes">_Change Password...</property>
-                            <property name="use-underline">True</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="halign">start</property>
-                            <signal name="clicked" handler="on_change_password_clicked"/>
-                          </object>
-                          <packing>
-                            <property name="left_attach">0</property>
-                            <property name="top_attach">5</property>
-                            <property name="width">2</property>
-                          </packing>
-                        </child>
                       </object>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="change_password_button">
+                        <property name="label" translatable="yes">_Change Password...</property>
+                        <property name="use-underline">True</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <signal name="clicked" handler="on_change_password_clicked"/>
+                      </object>
+                      <packing>
+                        <property name="pack_type">end</property>
+                      </packing>
                     </child>
                   </object>
                 </child>
@@ -253,7 +251,7 @@
                 <property name="margin_end">10</property>
                 <property name="margin_top">10</property>
                 <property name="margin_bottom">10</property>
-                <property name="orientation">horizontal</property>
+                <property name="orientation">vertical</property>
                 <property name="spacing">2</property>
                 <child>
                   <object class="GtkGrid">
@@ -410,7 +408,7 @@
                     <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">Valid until</property>
+                        <property name="label" translatable="yes">Created at</property>
                         <property name="xalign">1</property>
                         <style>
                           <class name="dim-label"/>
@@ -421,37 +419,76 @@
                         <property name="top_attach">6</property>
                       </packing>
                     </child>
-                    <child>
-                      <object class="GtkMenuButton" id="expires_button">
+		    <child>
+		      <object class="GtkLabel" id="created_label">
                         <property name="visible">True</property>
-                        <property name="halign">start</property>
-                      </object>
-                      <packing>
+			<property name="xalign">0</property>
+		      </object>
+		      <packing>
                         <property name="left_attach">1</property>
                         <property name="top_attach">6</property>
                       </packing>
-                    </child>
+		    </child>
                     <child>
-                      <object class="GtkButton">
-                        <property name="label" translatable="yes">_Delete</property>
-                        <property name="use-underline">True</property>
+                      <object class="GtkLabel">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="halign">start</property>
-                        <signal name="clicked" handler="on_delete_subkey_clicked"/>
+                        <property name="label" translatable="yes">Valid until</property>
+                        <property name="xalign">1</property>
                         <style>
-                          <class name="destructive-action"/>
+                          <class name="dim-label"/>
                         </style>
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
                         <property name="top_attach">7</property>
-                        <property name="width">2</property>
                       </packing>
                     </child>
+		    <child>
+		      <object class="GtkStack" id="expires_stack">
+			<property name="visible">True</property>
+			<child>
+			  <object class="GtkMenuButton" id="expires_button">
+                            <property name="visible">True</property>
+                            <property name="halign">start</property>
+			  </object>
+			  <packing>
+			    <property name="name">button</property>
+			  </packing>
+			</child>
+			<child>
+			  <object class="GtkLabel" id="expires_label">
+                            <property name="visible">True</property>
+			    <property name="xalign">0</property>
+			  </object>
+			  <packing>
+			    <property name="name">label</property>
+			  </packing>
+			</child>
+		      </object>
+		      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">7</property>
+                      </packing>
+		    </child>
                   </object>
                 </child>
-              </object>
+                <child>
+                  <object class="GtkButton" id="delete_subkey_button">
+                    <property name="label" translatable="yes">_Delete</property>
+                    <property name="use-underline">True</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="halign">start</property>
+                    <signal name="clicked" handler="on_delete_subkey_clicked"/>
+                    <style>
+                      <class name="destructive-action"/>
+                    </style>
+                  </object>
+                  <packing>
+                    <property name="pack_type">end</property>
+                  </packing>
+                </child>
+	      </object>
               <packing>
                 <property name="name">subkey</property>
               </packing>
@@ -464,10 +501,10 @@
                 <property name="margin_end">10</property>
                 <property name="margin_top">10</property>
                 <property name="margin_bottom">10</property>
-                <property name="orientation">horizontal</property>
+                <property name="orientation">vertical</property>
                 <property name="spacing">2</property>
                 <child>
-                  <object class="GtkGrid">
+                  <object class="GtkGrid" id="user_id_properties_grid">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="row_spacing">10</property>
@@ -475,7 +512,7 @@
                     <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">Name</property>
+                        <property name="label" translatable="yes">ID</property>
                         <property name="xalign">1</property>
                         <style>
                           <class name="dim-label"/>
@@ -487,61 +524,13 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel" id="name_label">
+                      <object class="GtkLabel" id="user_id_label">
                         <property name="visible">True</property>
                         <property name="xalign">0</property>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
                         <property name="top_attach">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="label" translatable="yes">Email</property>
-                        <property name="xalign">1</property>
-                        <style>
-                          <class name="dim-label"/>
-                        </style>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="email_label">
-                        <property name="visible">True</property>
-                        <property name="xalign">0</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="label" translatable="yes">Comment</property>
-                        <property name="xalign">1</property>
-                        <style>
-                          <class name="dim-label"/>
-                        </style>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">2</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="comment_label">
-                        <property name="visible">True</property>
-                        <property name="xalign">0</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">2</property>
                       </packing>
                     </child>
                     <child>
@@ -555,7 +544,7 @@
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
-                        <property name="top_attach">3</property>
+                        <property name="top_attach">1</property>
                       </packing>
                     </child>
                     <child>
@@ -565,28 +554,29 @@
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
-                        <property name="top_attach">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButton">
-                        <property name="label" translatable="yes">_Delete</property>
-                        <property name="use-underline">True</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="halign">start</property>
-                        <signal name="clicked" handler="on_delete_user_id_clicked"/>
-                        <style>
-                          <class name="destructive-action"/>
-                        </style>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">6</property>
-                        <property name="width">2</property>
+                        <property name="top_attach">1</property>
                       </packing>
                     </child>
                   </object>
+                  <packing>
+                    <property name="pack_type">start</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="delete_user_id_button">
+                    <property name="label" translatable="yes">_Delete</property>
+                    <property name="use-underline">True</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="halign">start</property>
+                    <signal name="clicked" handler="on_delete_user_id_clicked"/>
+                    <style>
+                      <class name="destructive-action"/>
+                    </style>
+                  </object>
+                  <packing>
+                    <property name="pack_type">end</property>
+                  </packing>
                 </child>
               </object>
               <packing>
