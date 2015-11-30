@@ -567,18 +567,33 @@ namespace Credentials {
 
         void update_user_id_properties (GpgEditorUserIdItem item) {
             user_id_label.label = item.user_id.uid;
+
+            // Remove previously added rows before the "Valid until" row.
+            int index;
+            user_id_properties_grid.child_get (validity_label,
+                                               "top-attach", out index);
+            for (; index > 1; index--)
+                user_id_properties_grid.remove_row (index - 1);
+
+            // Add basic properties before the "Valid until" row.
             if (item.user_id.comment != "" &&
-                item.user_id.comment != item.user_id.uid)
+                item.user_id.comment != item.user_id.uid) {
                 insert_property (user_id_properties_grid, 1,
                                  _("Comment"), item.user_id.comment);
+            }
+
             if (item.user_id.email != "" &&
-                item.user_id.email != item.user_id.uid)
+                item.user_id.email != item.user_id.uid) {
                 insert_property (user_id_properties_grid, 1,
                                  _("Email"), item.user_id.email);
+            }
+
             if (item.user_id.name != "" &&
-                item.user_id.name != item.user_id.uid)
+                item.user_id.name != item.user_id.uid) {
                 insert_property (user_id_properties_grid, 1,
                                  _("Name"), item.user_id.name);
+            }
+
             validity_label.label =
                 GpgUtils.format_validity (item.user_id.validity);
         }
