@@ -45,7 +45,12 @@ namespace Credentials {
             this._store = new GLib.ListStore (typeof (GpgItem));
             list_box.bind_model (this._store, create_key_widget);
             list_box.set_header_func (list_box_update_header_func);
-            list_box_setup_scrolling (list_box, 6);
+            list_box_setup_scrolling (list_box, 7);
+            var header_bar = this.get_header_bar ();
+            back_button.bind_property ("visible",
+                                       header_bar, "show-close-button",
+                                       GLib.BindingFlags.SYNC_CREATE |
+                                       GLib.BindingFlags.INVERT_BOOLEAN);
             this._cancellable = new GLib.Cancellable ();
             this._cancellable.connect (clear_matches);
         }
@@ -98,7 +103,7 @@ namespace Credentials {
                 }
             }
 
-            while (secondary_labels.length < 2)
+            while (secondary_labels.length < 1)
                 secondary_labels += "";
 
             if (primary_label == "")
@@ -207,23 +212,24 @@ namespace Credentials {
                     box.remove (this._widget);
                 }
                 this._widget = new GpgEditorWidget (this._item);
-                this._widget.notify["visible-child"].connect (() => {
-                        if (this._widget.visible_child_name == "main") {
-                            import_button.show ();
-                        } else {
-                            import_button.hide ();
-                        }
-                    });
-                if (this._widget.visible_child_name == "main") {
-                    import_button.show ();
-                } else {
-                    import_button.hide ();
-                }
+                this._widget.bind_property ("visible-child-name",
+                                            import_button, "visible",
+                                            GLib.BindingFlags.SYNC_CREATE,
+                                            transform_visible_child_name);
                 this._widget.show ();
                 box.pack_start (this._widget, true, true, 0);
                 main_stack.visible_child_name = "browse";
                 back_button.show ();
             }
+        }
+
+        bool transform_visible_child_name (GLib.Binding binding,
+                                           GLib.Value source_value,
+                                           ref GLib.Value target_value)
+        {
+            var name = source_value.get_string ();
+            target_value.set_boolean (name == "main");
+            return true;
         }
 
         [GtkCallback]

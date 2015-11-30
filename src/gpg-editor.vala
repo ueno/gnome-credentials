@@ -485,6 +485,7 @@ namespace Credentials {
             label.margin_end = 20;
             label.margin_top = 6;
             label.margin_bottom = 6;
+            label.ellipsize = Pango.EllipsizeMode.END;
             box.pack_start (label, false, false, 6);
             box.show_all ();
             return box;
@@ -558,6 +559,8 @@ namespace Credentials {
 
             var value_label = new Gtk.Label (value);
             value_label.xalign = 0;
+            value_label.wrap = true;
+            value_label.max_width_chars = 28;
             value_label.show ();
             grid.attach (value_label, 1, row, 1, 1);
         }
