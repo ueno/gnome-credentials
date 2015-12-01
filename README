@@ -6,12 +6,7 @@ gnome-credentials is a prototyping effort to implement the new
 https://bugzilla.gnome.org/show_bug.cgi?id=711252
 https://raw.githubusercontent.com/gnome-design-team/gnome-mockups/master/passwords-and-keys/passwords-and-keys.png
 
-Currently only passwords, GnuPG keys, and SSH keys are supported.
-
-For GnuPG keys, the GPGME library is required:
-https://www.gnupg.org/related_software/swlist.html#gpgme
-
-The code is largely based on Seahorse, and it will be eventually
+The code is largely based on Seahorse, and it might be eventually
 merged back, once the design and features have been finalized.
 
 License
