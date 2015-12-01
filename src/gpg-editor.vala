@@ -313,7 +313,13 @@ namespace Credentials {
         Gtk.Label user_id_label;
 
         [GtkChild]
-        Gtk.Grid user_id_properties_grid;
+        Gtk.Label name_label;
+
+        [GtkChild]
+        Gtk.Label email_label;
+
+        [GtkChild]
+        Gtk.Label comment_label;
 
         [GtkChild]
         Gtk.Label validity_label;
@@ -448,8 +454,9 @@ namespace Credentials {
                 var expires_label = (Gtk.Label) expires_stack.visible_child;
                 expires_label.label = expires_text;
             }
+
             usage_label.label = GpgUtils.format_usage (item.subkey.flags);
-        }
+       }
 
         void call_edit_expire (uint index, GpgExpirationSpec spec) {
             var _item = (GpgItem) item;
@@ -550,51 +557,28 @@ namespace Credentials {
             dialog.show ();
         }
 
-        void insert_property (Gtk.Grid grid, int row,
-                              string name, string value) {
-            grid.insert_row (row);
-            var name_label = new Gtk.Label (name);
-            name_label.xalign = 1;
-            var context = name_label.get_style_context ();
-            context.add_class ("dim-label");
-            name_label.show ();
-            grid.attach (name_label, 0, row, 1, 1);
-
-            var value_label = new Gtk.Label (value);
-            value_label.xalign = 0;
-            value_label.wrap = true;
-            value_label.max_width_chars = 28;
-            value_label.show ();
-            grid.attach (value_label, 1, row, 1, 1);
-        }
-
         void update_user_id_properties (GpgEditorUserIdItem item) {
             user_id_label.label = item.user_id.uid;
 
-            // Remove previously added rows before the "Valid until" row.
-            int index;
-            user_id_properties_grid.child_get (validity_label,
-                                               "top-attach", out index);
-            for (; index > 1; index--)
-                user_id_properties_grid.remove_row (index - 1);
-
-            // Add basic properties before the "Valid until" row.
-            if (item.user_id.comment != "" &&
-                item.user_id.comment != item.user_id.uid) {
-                insert_property (user_id_properties_grid, 1,
-                                 _("Comment"), item.user_id.comment);
+            if (item.user_id.name != "" &&
+                item.user_id.name != item.user_id.uid) {
+                name_label.label = item.user_id.name;
+            } else {
+                name_label.label = "";
             }
 
             if (item.user_id.email != "" &&
                 item.user_id.email != item.user_id.uid) {
-                insert_property (user_id_properties_grid, 1,
-                                 _("Email"), item.user_id.email);
+                email_label.label = item.user_id.email;
+            } else {
+                email_label.label = "";
             }
 
-            if (item.user_id.name != "" &&
-                item.user_id.name != item.user_id.uid) {
-                insert_property (user_id_properties_grid, 1,
-                                 _("Name"), item.user_id.name);
+            if (item.user_id.comment != "" &&
+                item.user_id.comment != item.user_id.uid) {
+                comment_label.label = item.user_id.comment;
+            } else {
+                comment_label.label = "";
             }
 
             validity_label.label =
@@ -652,18 +636,6 @@ namespace Credentials {
             item.changed.connect (update_trust);
             update_trust ();
 
-            var grid = (Gtk.Grid) trust_combobox.get_parent ();
-            int index;
-            grid.child_get (trust_combobox, "top-attach", out index);
-            var trust_label = (Gtk.Label) grid.get_child_at (0, index);
-            item.bind_property ("keylist-mode",
-                                trust_combobox, "visible",
-                                GLib.BindingFlags.SYNC_CREATE,
-                                transform_keylist_mode);
-            item.bind_property ("keylist-mode",
-                                trust_label, "visible",
-                                GLib.BindingFlags.SYNC_CREATE,
-                                transform_keylist_mode);
             item.bind_property ("has-secret",
                                 add_subkey_button, "visible",
                                 GLib.BindingFlags.SYNC_CREATE);
@@ -679,11 +651,50 @@ namespace Credentials {
             item.bind_property ("has-secret",
                                 change_password_button, "visible",
                                 GLib.BindingFlags.SYNC_CREATE);
+
+            Gtk.Grid grid;
+            int index;
+
+            grid = (Gtk.Grid) trust_combobox.get_parent ();
+            grid.child_get (trust_combobox, "top-attach", out index);
+            grid_bind_row_property (item,
+                                   "keylist-mode",
+                                    grid, index, "visible",
+                                    GLib.BindingFlags.SYNC_CREATE,
+                                    transform_keylist_mode_is_local);
+
+            grid = (Gtk.Grid) usage_label.get_parent ();
+            grid.child_get (usage_label, "top-attach", out index);
+            grid_bind_row_property (usage_label, "label",
+                                    grid, index, "visible",
+                                    GLib.BindingFlags.SYNC_CREATE,
+                                    transform_is_non_empty_string);
+
+            grid = (Gtk.Grid) name_label.get_parent ();
+            grid.child_get (name_label, "top-attach", out index);
+            grid_bind_row_property (name_label, "label",
+                                    grid, index, "visible",
+                                    GLib.BindingFlags.SYNC_CREATE,
+                                    transform_is_non_empty_string);
+
+            grid = (Gtk.Grid) email_label.get_parent ();
+            grid.child_get (email_label, "top-attach", out index);
+            grid_bind_row_property (email_label, "label",
+                                    grid, index, "visible",
+                                    GLib.BindingFlags.SYNC_CREATE,
+                                    transform_is_non_empty_string);
+
+            grid = (Gtk.Grid) comment_label.get_parent ();
+            grid.child_get (comment_label, "top-attach", out index);
+            grid_bind_row_property (comment_label, "label",
+                                    grid, index, "visible",
+                                    GLib.BindingFlags.SYNC_CREATE,
+                                    transform_is_non_empty_string);
         }
 
-        bool transform_keylist_mode (GLib.Binding binding,
-                                     GLib.Value source_value,
-                                     ref GLib.Value target_value)
+        bool transform_keylist_mode_is_local (GLib.Binding binding,
+                                              GLib.Value source_value,
+                                              ref GLib.Value target_value)
         {
             var flags = source_value.get_flags ();
             target_value.set_boolean ((flags & GGpg.KeylistMode.EXTERN) == 0);

@@ -171,4 +171,32 @@ namespace Credentials {
         notification.timeout = 5;
         ((Window) window).add_notification (notification);
     }
+
+    static void grid_bind_row_property (GLib.Object source_object,
+                                        string source_property,
+                                        Gtk.Grid grid,
+                                        int row,
+                                        string target_property,
+                                        GLib.BindingFlags flags,
+                                        GLib.BindingTransformFunc? transform = null)
+    {
+        for (var column = 0; ; column++) {
+            var widget = grid.get_child_at (column, row);
+            if (widget == null)
+                break;
+            source_object.bind_property (source_property,
+                                         widget, target_property,
+                                         flags,
+                                         transform);
+        }
+    }
+
+    static bool transform_is_non_empty_string (GLib.Binding binding,
+                                               GLib.Value source_value,
+                                               ref GLib.Value target_value)
+    {
+        var s = source_value.get_string ();
+        target_value.set_boolean (s != "");
+        return true;
+    }
 }
