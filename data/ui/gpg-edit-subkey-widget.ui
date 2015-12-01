@@ -230,7 +230,7 @@
       </object>
     </child>
     <child>
-      <object class="GtkButton" id="delete_subkey_button">
+      <object class="GtkButton" id="delete_button">
         <property name="label" translatable="yes">_Delete</property>
         <property name="use-underline">True</property>
         <property name="visible">True</property>

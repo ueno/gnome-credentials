@@ -268,7 +268,7 @@ namespace Credentials {
         Gtk.Stack expires_stack;
 
         [GtkChild]
-        Gtk.Button delete_subkey_button;
+        Gtk.Button delete_button;
 
         public GpgItem item { construct set; get; }
 
@@ -304,10 +304,6 @@ namespace Credentials {
                                     grid, index, "visible",
                                     GLib.BindingFlags.SYNC_CREATE,
                                     transform_is_non_empty_string);
-
-            item.bind_property ("has-secret",
-                                delete_subkey_button, "visible",
-                                GLib.BindingFlags.SYNC_CREATE);
         }
 
         public signal void deleted ();
@@ -357,6 +353,12 @@ namespace Credentials {
             }
 
             usage_label.label = GpgUtils.format_usage (this._subkey.flags);
+
+            var primary = item.get_subkeys ().first ().data;
+            if (!item.has_secret || this._subkey.key_id == primary.key_id)
+                delete_button.hide ();
+            else
+                delete_button.show ();
        }
 
         void call_edit_expire (uint index, GpgExpirationSpec spec) {
@@ -377,7 +379,7 @@ namespace Credentials {
     [GtkTemplate (ui = "/org/gnome/Credentials/gpg-edit-user-id-widget.ui")]
     class GpgEditUserIdWidget : Gtk.Box {
         [GtkChild]
-        Gtk.Button delete_user_id_button;
+        Gtk.Button delete_button;
 
         [GtkChild]
         Gtk.Label user_id_label;
@@ -432,10 +434,6 @@ namespace Credentials {
                                     grid, index, "visible",
                                     GLib.BindingFlags.SYNC_CREATE,
                                     transform_is_non_empty_string);
-
-            item.bind_property ("has-secret",
-                                delete_user_id_button, "visible",
-                                GLib.BindingFlags.SYNC_CREATE);
         }
 
         public signal void deleted ();
@@ -471,6 +469,11 @@ namespace Credentials {
 
             validity_label.label =
                 GpgUtils.format_validity (this._user_id.validity);
+
+            if (!item.has_secret || item.get_uids ().next == null)
+                delete_button.hide ();
+            else
+                delete_button.show ();
         }
     }
 
@@ -621,7 +624,15 @@ namespace Credentials {
             dialog.show ();
         }
 
-        void delete_subkey (uint index, GGpg.Subkey subkey) {
+        void delete_subkey (GGpg.Subkey subkey) {
+            // Re-enumerate subkeys, considering the case where a new
+            // subkey is added during the session.
+            var index = 0;
+            foreach (var _subkey in item.get_subkeys ()) {
+                if (_subkey.key_id == subkey.key_id)
+                    break;
+                index++;
+            }
             var dialog = new Gtk.MessageDialog (
                 (Gtk.Window) this.get_toplevel (),
                 Gtk.DialogFlags.MODAL,
@@ -662,7 +673,7 @@ namespace Credentials {
                 if (edit_widget == null) {
                     edit_widget = new GpgEditSubkeyWidget (item, index, this._subkey);
                     edit_widget.deleted.connect (() => {
-                            delete_subkey (index, this._subkey);
+                            delete_subkey (this._subkey);
                         });
                     add_named (edit_widget, "subkey");
                 } else {
@@ -720,7 +731,7 @@ namespace Credentials {
                 if (edit_widget == null) {
                     edit_widget = new GpgEditUserIdWidget (item, this._user_id);
                     edit_widget.deleted.connect (() => {
-                            delete_user_id (index, this._user_id);
+                            delete_user_id (this._user_id);
                         });
                     add_named (edit_widget, "user_id");
                 } else {
@@ -730,7 +741,16 @@ namespace Credentials {
             }
         }
 
-        void delete_user_id (uint index, GGpg.UserId user_id) {
+        void delete_user_id (GGpg.UserId user_id) {
+            // Re-enumerate user IDs, considering the case where a new
+            // user ID is added during the session.
+            var index = 0;
+            foreach (var _user_id in item.get_uids ()) {
+                if (_user_id.uid == user_id.uid)
+                    break;
+                index++;
+            }
+
             var dialog = new Gtk.MessageDialog (
                 (Gtk.Window) this.get_toplevel (),
                 Gtk.DialogFlags.MODAL,
