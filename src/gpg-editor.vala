@@ -601,8 +601,11 @@ namespace Credentials {
             foreach (var subkey in item.get_subkeys ()) {
                 this._subkey_store.append (subkey);
                 if (this._subkey != null &&
-                    subkey.key_id == this._subkey.key_id)
+                    subkey.key_id == this._subkey.key_id) {
                     this._subkey = subkey;
+                    var edit_widget = (GpgEditSubkeyWidget) get_child_by_name ("subkey");
+                    edit_widget.subkey = this._subkey;
+                }
             }
 
             list_box_adjust_scrolling (subkey_list_box);
@@ -688,8 +691,11 @@ namespace Credentials {
             this._user_id_store.remove_all ();
             foreach (var user_id in item.get_uids ()) {
                 this._user_id_store.append (user_id);
-                if (this._user_id != null && user_id.uid == this._user_id.uid)
+                if (this._user_id != null && user_id.uid == this._user_id.uid) {
                     this._user_id = user_id;
+                    var edit_widget = (GpgEditUserIdWidget) get_child_by_name ("user_id");
+                    edit_widget.user_id = this._user_id;
+                }
             }
 
             list_box_adjust_scrolling (user_id_list_box);
