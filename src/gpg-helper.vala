@@ -371,7 +371,7 @@ namespace Credentials {
         public override void action (uint state, int fd) throws GLib.Error {
             switch (state) {
             case GpgDelUidState.SELECT:
-                send_string (fd, "uid %u".printf (index));
+                send_string (fd, "uid %u".printf (index + 1));
                 break;
             case GpgDelUidState.COMMAND:
                 send_string (fd, "deluid");
