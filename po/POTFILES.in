@@ -1,7 +1,47 @@
-[type: gettext/glade]data/app-menu.ui
-[type: gettext/glade]data/main.ui
-data/com.example.Gtk.ValaApplication.desktop.in
-data/com.example.Gtk.ValaApplication.appdata.xml.in
-data/com.example.Gtk.ValaApplication.gschema.xml
+[type: gettext/glade]data/ui/app-menu.ui
+[type: gettext/glade]data/ui/gpg-add-subkey-dialog.ui
+[type: gettext/glade]data/ui/gpg-add-user-id-dialog.ui
+[type: gettext/glade]data/ui/gpg-editor-dialog.ui
+[type: gettext/glade]data/ui/gpg-editor-widget.ui
+[type: gettext/glade]data/ui/gpg-edit-subkey-widget.ui
+[type: gettext/glade]data/ui/gpg-edit-user-id-widget.ui
+[type: gettext/glade]data/ui/gpg-expires-popover.ui
+[type: gettext/glade]data/ui/gpg-fetcher-dialog.ui
+[type: gettext/glade]data/ui/gpg-generator-dialog.ui
+[type: gettext/glade]data/ui/list-panel.ui
+[type: gettext/glade]data/ui/menu.ui
+[type: gettext/glade]data/ui/secret-editor-dialog.ui
+[type: gettext/glade]data/ui/ssh-editor-dialog.ui
+[type: gettext/glade]data/ui/ssh-generator-dialog.ui
+[type: gettext/glade]data/ui/window.ui
+
+data/org.gnome.Credentials.appdata.xml.in
+data/org.gnome.Credentials.desktop.in
+data/org.gnome.Credentials.gschema.xml
+
+src/backend.vala
+src/editor.vala
+src/generator.vala
+src/gpg-backend.vala
+src/gpg-editor.vala
+src/gpg-fetcher.vala
+src/gpg-generator.vala
+src/gpg-helper.vala
+src/gpg-widget-factory.vala
+src/key-list-panel.vala
+src/list-box-helper.vala
+src/list-panel.vala
 src/main.vala
+src/model-button.vala
+src/password-list-panel.vala
+src/secret-backend.vala
+src/secret-editor.vala
+src/secret-widget-factory.vala
+src/ssh-backend.vala
+src/ssh-editor.vala
+src/ssh-generator.vala
+src/ssh-parser.vala
+src/ssh-widget-factory.vala
+src/utils.vala
+src/widget-factory.vala
 src/window.vala
