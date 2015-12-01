@@ -3,7 +3,7 @@ namespace Credentials {
         IMPORT = -11
     }
 
-    [GtkTemplate (ui = "/org/gnome/Credentials/gpg-fetcher.ui")]
+    [GtkTemplate (ui = "/org/gnome/Credentials/gpg-fetcher-dialog.ui")]
     class GpgFetcherDialog : Gtk.Dialog {
         [GtkChild]
         Gtk.ListBox list_box;

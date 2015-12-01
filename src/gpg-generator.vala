@@ -1,5 +1,5 @@
 namespace Credentials {
-    [GtkTemplate (ui = "/org/gnome/Credentials/gpg-generator.ui")]
+    [GtkTemplate (ui = "/org/gnome/Credentials/gpg-generator-dialog.ui")]
     class GpgGeneratorDialog : GeneratorDialog {
         [GtkChild]
         Gtk.ComboBox key_type_combobox;

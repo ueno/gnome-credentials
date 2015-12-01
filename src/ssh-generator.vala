@@ -1,5 +1,5 @@
 namespace Credentials {
-    [GtkTemplate (ui = "/org/gnome/Credentials/ssh-generator.ui")]
+    [GtkTemplate (ui = "/org/gnome/Credentials/ssh-generator-dialog.ui")]
     class SshGeneratorDialog : GeneratorDialog {
         [GtkChild]
         Gtk.ComboBox key_type_combobox;

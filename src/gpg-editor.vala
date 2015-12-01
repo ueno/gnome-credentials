@@ -1,5 +1,5 @@
 namespace Credentials {
-    [GtkTemplate (ui = "/org/gnome/Credentials/gpg-add-subkey.ui")]
+    [GtkTemplate (ui = "/org/gnome/Credentials/gpg-add-subkey-dialog.ui")]
     class GpgAddSubkeyDialog : Gtk.Dialog {
         [GtkChild]
         Gtk.ComboBox key_type_combobox;
@@ -83,7 +83,7 @@ namespace Credentials {
         }
     }
 
-    [GtkTemplate (ui = "/org/gnome/Credentials/gpg-add-user-id.ui")]
+    [GtkTemplate (ui = "/org/gnome/Credentials/gpg-add-user-id-dialog.ui")]
     class GpgAddUserIdDialog : Gtk.Dialog {
         [GtkChild]
         Gtk.Entry name_entry;
@@ -122,7 +122,7 @@ namespace Credentials {
         }
     }
 
-    [GtkTemplate (ui = "/org/gnome/Credentials/gpg-expires.ui")]
+    [GtkTemplate (ui = "/org/gnome/Credentials/gpg-expires-popover.ui")]
     class GpgExpiresPopover : Gtk.Popover {
         [GtkChild]
         Gtk.ToggleButton forever_button;

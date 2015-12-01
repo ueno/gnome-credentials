@@ -1,5 +1,5 @@
 namespace Credentials {
-    [GtkTemplate (ui = "/org/gnome/Credentials/main.ui")]
+    [GtkTemplate (ui = "/org/gnome/Credentials/window.ui")]
     class Window : Gtk.ApplicationWindow {
         [GtkChild]
         Gtk.Overlay overlay;

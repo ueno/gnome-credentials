@@ -1,5 +1,5 @@
 namespace Credentials {
-    [GtkTemplate (ui = "/org/gnome/Credentials/ssh-editor.ui")]
+    [GtkTemplate (ui = "/org/gnome/Credentials/ssh-editor-dialog.ui")]
     class SshEditorDialog : EditorDialog {
         [GtkChild]
         Gtk.Grid properties_grid;

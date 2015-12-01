@@ -1,5 +1,5 @@
 namespace Credentials {
-    [GtkTemplate (ui = "/org/gnome/Credentials/secret-editor.ui")]
+    [GtkTemplate (ui = "/org/gnome/Credentials/secret-editor-dialog.ui")]
     class SecretEditorDialog : EditorDialog {
         [GtkChild]
         Gtk.Entry label_entry;
