@@ -53,7 +53,7 @@ namespace Credentials {
                     chooser.response.connect ((res) => {
                             if (res == Gtk.ResponseType.OK) {
                                 var path = chooser.get_filename ();
-                                path_button.set_label (format_path (path));
+                                path_button.set_label (Utils.format_path (path));
                                 path_button.set_data ("credentails-selected-path", path);
                             }
                             chooser.destroy ();
@@ -81,7 +81,7 @@ namespace Credentials {
             var homedir = GLib.Environment.get_home_dir ();
             var basename = spec.keygen_argument;
             var path = GLib.Path.build_filename (homedir, ".ssh", basename);
-            path_button.set_label (format_path (path));
+            path_button.set_label (Utils.format_path (path));
             path_button.set_data ("credentials-selected-path", path);
         }
 

@@ -76,7 +76,7 @@ namespace Credentials {
         }
 
         public override string get_label () {
-            return format_path (this.path);
+            return Utils.format_path (this.path);
         }
 
         public string get_fingerprint () {

@@ -63,7 +63,7 @@ namespace Credentials {
             string primary_name = "";
             if (uids != null) {
                 GGpg.UserId uid = uids.first ().data;
-                primary_name = escape_invalid_chars (uid.name);
+                primary_name = Utils.escape_invalid_chars (uid.name);
                 if (primary_name != "") {
                     primary_label = primary_name;
                     if (uid.email != "")
@@ -74,7 +74,7 @@ namespace Credentials {
                 var count = 0;
                 foreach (var uid2 in uids.next) {
                     string secondary_label = "";
-                    var secondary_name = escape_invalid_chars (uid2.name);
+                    var secondary_name = Utils.escape_invalid_chars (uid2.name);
                     if (secondary_name == "")
                         secondary_label = uid2.email;
                     else {
@@ -178,7 +178,9 @@ namespace Credentials {
                 ctx = new GGpg.Ctx ();
             } catch (GLib.Error e) {
                 var window = (Gtk.Window) this.get_toplevel ();
-                show_error (window, "failed to create context: %s", e.message);
+                Utils.show_error (window,
+                                  "failed to create context: %s",
+                                  e.message);
                 return;
             }
             ctx.protocol = GGpg.Protocol.OPENPGP;
@@ -248,15 +250,16 @@ namespace Credentials {
                         (obj, res) => {
                             try {
                                 var result = collection.import_items.end (res);
-                                show_notification (window,
-                                                   _("%d keys imported (%d new, %d unchanged)"),
-                                                   result.considered,
-                                                   result.imported,
-                                                   result.unchanged);
+                                Utils.show_notification (
+                                    window,
+                                    _("%d keys imported (%d new, %d unchanged)"),
+                                    result.considered,
+                                    result.imported,
+                                    result.unchanged);
                             } catch (GLib.Error e) {
-                                show_error (window,
-                                            "Couldn't import keys: %s",
-                                            e.message);
+                                Utils.show_error (window,
+                                                  "Couldn't import keys: %s",
+                                                  e.message);
                             }
                         });
                 }

@@ -42,14 +42,24 @@ namespace Credentials {
                             try {
                                 _item.set_comment.end (res);
                             } catch (GLib.Error e) {
-                                show_error (window,
-                                            _("Couldn't write comment: %s"),
-                                            e.message);
+                                Utils.show_error (window,
+                                                  _("Couldn't write comment: %s"),
+                                                  e.message);
                             }
                         });
                     this._set_comment_idle_handler = 0;
                     return GLib.Source.REMOVE;
                 });
+        }
+
+        string format_fingerprint (string fingerprint) {
+            var builder = new GLib.StringBuilder ();
+            for (var i = 0; i < fingerprint.length / 2; i++) {
+                if (i > 0)
+                    builder.append_c (':');
+                builder.append (fingerprint[2 * i : 2 * i + 2]);
+            }
+            return builder.str;
         }
 
         construct {
@@ -77,7 +87,7 @@ namespace Credentials {
 
             label = create_name_label (_("Location"));
             properties_grid.attach (label, 0, row_index, 1, 1);
-            label = create_value_label (format_path (_item.path));
+            label = create_value_label (Utils.format_path (_item.path));
             properties_grid.attach (label, 1, row_index, 1, 1);
             row_index++;
 
@@ -109,9 +119,9 @@ namespace Credentials {
                         try {
                             _item.change_password.end (res);
                         } catch (GLib.Error e) {
-                            show_error (window,
-                                        _("Couldn't change password: %s"),
-                                        e.message);
+                            Utils.show_error (window,
+                                              _("Couldn't change password: %s"),
+                                              e.message);
                         }
                 });
         }

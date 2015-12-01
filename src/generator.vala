@@ -12,13 +12,13 @@ namespace Credentials {
                 (obj, res) => {
                     try {
                         collection.generate_item.end (res);
-                        show_notification (window,
-                                           _("%s generated"),
-                                           collection.item_type);
+                        Utils.show_notification (window,
+                                                 _("%s generated"),
+                                                 collection.item_type);
                     } catch (GLib.Error e) {
-                        show_error (window,
-                                    "Couldn't generate item: %s",
-                                    e.message);
+                        Utils.show_error (window,
+                                          "Couldn't generate item: %s",
+                                          e.message);
                     }
                 });
         }

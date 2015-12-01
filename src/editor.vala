@@ -13,9 +13,9 @@ namespace Credentials {
                     try {
                         item.delete.end (res);
                     } catch (GLib.Error e) {
-                        show_error (window,
-                                    _("Couldn't delete item: %s"),
-                                    e.message);
+                        Utils.show_error (window,
+                                          _("Couldn't delete item: %s"),
+                                          e.message);
                     }
                 });
         }

@@ -74,9 +74,9 @@ namespace Credentials {
                         try {
                             item.edit.end (res);
                         } catch (GLib.Error e) {
-                            show_error (window,
-                                        "Couldn't add subkey: %s",
-                                        e.message);
+                            Utils.show_error (window,
+                                              "Couldn't add subkey: %s",
+                                              e.message);
                         }
                     });
             }
@@ -113,9 +113,9 @@ namespace Credentials {
                         try {
                             item.edit.end (res);
                         } catch (GLib.Error e) {
-                            show_error (window,
-                                        "Couldn't add user ID: %s",
-                                        e.message);
+                            Utils.show_error (window,
+                                              "Couldn't add user ID: %s",
+                                              e.message);
                         }
                     });
             }
@@ -300,10 +300,10 @@ namespace Credentials {
 
             grid = (Gtk.Grid) usage_label.get_parent ();
             grid.child_get (usage_label, "top-attach", out index);
-            grid_bind_row_property (usage_label, "label",
-                                    grid, index, "visible",
-                                    GLib.BindingFlags.SYNC_CREATE,
-                                    transform_is_non_empty_string);
+            Utils.grid_bind_row_property (usage_label, "label",
+                                          grid, index, "visible",
+                                          GLib.BindingFlags.SYNC_CREATE,
+                                          Utils.transform_is_non_empty_string);
         }
 
         public signal void deleted ();
@@ -324,7 +324,8 @@ namespace Credentials {
                 GpgUtils.format_subkey_status (this._subkey.flags);
             var created_date =
                 new GLib.DateTime.from_unix_utc (this._subkey.created);
-            created_label.label = format_date (created_date, DateFormat.FULL);
+            created_label.label = Utils.format_date (created_date,
+                                                     Utils.DateFormat.FULL);
 
             var expires_text =
                 GpgUtils.format_expires (this._subkey.expires);
@@ -368,9 +369,9 @@ namespace Credentials {
                     try {
                         item.edit.end (res);
                     } catch (GLib.Error e) {
-                        show_error (window,
-                                    "Couldn't change expiration: %s",
-                                    e.message);
+                        Utils.show_error (window,
+                                          "Couldn't change expiration: %s",
+                                          e.message);
                     }
                 });
         }
@@ -416,24 +417,24 @@ namespace Credentials {
 
             grid = (Gtk.Grid) name_label.get_parent ();
             grid.child_get (name_label, "top-attach", out index);
-            grid_bind_row_property (name_label, "label",
-                                    grid, index, "visible",
-                                    GLib.BindingFlags.SYNC_CREATE,
-                                    transform_is_non_empty_string);
+            Utils.grid_bind_row_property (name_label, "label",
+                                          grid, index, "visible",
+                                          GLib.BindingFlags.SYNC_CREATE,
+                                          Utils.transform_is_non_empty_string);
 
             grid = (Gtk.Grid) email_label.get_parent ();
             grid.child_get (email_label, "top-attach", out index);
-            grid_bind_row_property (email_label, "label",
-                                    grid, index, "visible",
-                                    GLib.BindingFlags.SYNC_CREATE,
-                                    transform_is_non_empty_string);
+            Utils.grid_bind_row_property (email_label, "label",
+                                          grid, index, "visible",
+                                          GLib.BindingFlags.SYNC_CREATE,
+                                          Utils.transform_is_non_empty_string);
 
             grid = (Gtk.Grid) comment_label.get_parent ();
             grid.child_get (comment_label, "top-attach", out index);
-            grid_bind_row_property (comment_label, "label",
-                                    grid, index, "visible",
-                                    GLib.BindingFlags.SYNC_CREATE,
-                                    transform_is_non_empty_string);
+            Utils.grid_bind_row_property (comment_label, "label",
+                                          grid, index, "visible",
+                                          GLib.BindingFlags.SYNC_CREATE,
+                                          Utils.transform_is_non_empty_string);
         }
 
         public signal void deleted ();
@@ -546,11 +547,11 @@ namespace Credentials {
 
             grid = (Gtk.Grid) trust_combobox.get_parent ();
             grid.child_get (trust_combobox, "top-attach", out index);
-            grid_bind_row_property (item,
-                                   "keylist-mode",
-                                    grid, index, "visible",
-                                    GLib.BindingFlags.SYNC_CREATE,
-                                    transform_keylist_mode_is_local);
+            Utils.grid_bind_row_property (item,
+                                          "keylist-mode",
+                                          grid, index, "visible",
+                                          GLib.BindingFlags.SYNC_CREATE,
+                                          transform_keylist_mode_is_local);
 
             item.bind_property ("has-secret",
                                 add_subkey_button, "visible",
@@ -657,9 +658,9 @@ namespace Credentials {
                     try {
                         item.edit.end (res);
                     } catch (GLib.Error e) {
-                        show_error (window,
-                                    "Couldn't remove subkey: %s",
-                                    e.message);
+                        Utils.show_error (window,
+                                          "Couldn't remove subkey: %s",
+                                          e.message);
                     }
                 });
         }
@@ -686,7 +687,7 @@ namespace Credentials {
         Gtk.Widget create_user_id_widget (GLib.Object object) {
             var user_id = (GGpg.UserId) object;
             var box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 3);
-            var text = escape_invalid_chars (user_id.uid);
+            var text = Utils.escape_invalid_chars (user_id.uid);
             var label = new Gtk.Label (text);
             label.margin_start = 20;
             label.margin_end = 20;
@@ -775,8 +776,9 @@ namespace Credentials {
                     try {
                         item.edit.end (res);
                     } catch (GLib.Error e) {
-                        show_error (window,
-                                    "Couldn't add user ID: %s", e.message);
+                        Utils.show_error (window,
+                                          "Couldn't add user ID: %s",
+                                          e.message);
                     }
                 });
         }
@@ -811,9 +813,9 @@ namespace Credentials {
                     try {
                         item.edit.end (res);
                     } catch (GLib.Error e) {
-                        show_error (window,
-                                    "Couldn't change owner trust: %s",
-                                    e.message);
+                        Utils.show_error (window,
+                                          "Couldn't change owner trust: %s",
+                                          e.message);
                     }
                 });
         }
@@ -825,9 +827,9 @@ namespace Credentials {
                     try {
                         item.change_password.end (res);
                     } catch (GLib.Error e) {
-                        show_error (window,
-                                    _("Couldn't change password: %s"),
-                                    e.message);
+                        Utils.show_error (window,
+                                          _("Couldn't change password: %s"),
+                                          e.message);
                     }
                 });
         }

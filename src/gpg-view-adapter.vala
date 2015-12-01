@@ -18,7 +18,7 @@ namespace Credentials {
             var item = (GpgItem) _item;
             var box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 10);
 
-            var heading = new Gtk.Label (escape_invalid_chars (item.get_label ()));
+            var heading = new Gtk.Label (Utils.escape_invalid_chars (item.get_label ()));
             var context = heading.get_style_context ();
             context.add_class ("key-list-heading");
             heading.xalign = 0;

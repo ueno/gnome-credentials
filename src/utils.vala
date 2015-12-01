@@ -1,4 +1,4 @@
-namespace Credentials {
+namespace Credentials.Utils {
     static string format_path (string path) {
         var home_dir = GLib.Environment.get_home_dir ();
         if (path.has_prefix (home_dir))
@@ -14,16 +14,6 @@ namespace Credentials {
         *dest = '\0';
 
         return (owned) result;
-    }
-
-    static string format_fingerprint (string fingerprint) {
-        var builder = new GLib.StringBuilder ();
-        for (var i = 0; i < fingerprint.length / 2; i++) {
-            if (i > 0)
-                builder.append_c (':');
-            builder.append (fingerprint[2 * i : 2 * i + 2]);
-        }
-        return builder.str;
     }
 
     static string escape_invalid_chars (string s) {
@@ -55,16 +45,15 @@ namespace Credentials {
     }
 
     static string format_date (GLib.DateTime date,
-                               Credentials.DateFormat date_format)
+                               DateFormat date_format)
     {
         unowned string format;
 
-        if (date_format != Credentials.DateFormat.FULL) {
+        if (date_format != DateFormat.FULL) {
             var now = new GLib.DateTime.now_local ();
             var days_ago = now.difference (date) / (24 * 60 * 60 * 1000 * 1000L);
             var settings = new GLib.Settings ("org.gnome.desktop.interface");
-            var use_24 = settings.get_enum ("clock-format") ==
-                Credentials.ClockFormat.24H;
+            var use_24 = settings.get_enum ("clock-format") == ClockFormat.24H;
 
             // Show only the time if date is on today
             if (days_ago < 1) {
@@ -78,7 +67,7 @@ namespace Credentials {
             }
             // Show the word "Yesterday" and time if date is on yesterday
             else if (days_ago < 2) {
-                if (date_format == Credentials.DateFormat.REGULAR) {
+                if (date_format == DateFormat.REGULAR) {
                     // xgettext:no-c-format
                     format = N_("Yesterday");
                 } else {
@@ -95,7 +84,7 @@ namespace Credentials {
                     }
                 }
             } else if (date.get_year () == now.get_year ()) {
-                if (date_format == Credentials.DateFormat.REGULAR) {
+                if (date_format == DateFormat.REGULAR) {
                     /* Translators: this is the day of the month followed
                      * by the abbreviated month name i.e. "3 Feb" */
                     // xgettext:no-c-format
@@ -116,7 +105,7 @@ namespace Credentials {
                     }
                 }
             } else {
-                if (date_format == Credentials.DateFormat.REGULAR) {
+                if (date_format == DateFormat.REGULAR) {
                     /* Translators: this is the day of the month
                      * followed by the abbreviated month name followed
                      * by the year i.e. "3 Feb 2015" */

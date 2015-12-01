@@ -59,9 +59,9 @@ namespace Credentials {
                                 try {
                                     _item.set_label.end (res);
                                 } catch (GLib.Error e) {
-                                    show_error (window,
-                                                _("Couldn't write label: %s"),
-                                                e.message);
+                                    Utils.show_error (window,
+                                                      _("Couldn't write label: %s"),
+                                                      e.message);
                                 }
                             });
                     }
@@ -92,9 +92,9 @@ namespace Credentials {
                                 try {
                                     _item.set_secret.end (res);
                                 } catch (GLib.Error e) {
-                                    show_error (window,
-                                                _("Couldn't write password: %s"),
-                                                e.message);
+                                    Utils.show_error (window,
+                                                      _("Couldn't write password: %s"),
+                                                      e.message);
                                 }
                             });
                     }

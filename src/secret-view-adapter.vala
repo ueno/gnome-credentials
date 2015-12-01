@@ -26,9 +26,8 @@ namespace Credentials {
 
             var modified = (int64) item.get_modified ();
             var date = new GLib.DateTime.from_unix_utc (modified);
-            var date_string =
-                Credentials.format_date (date.to_local (),
-                                         Credentials.DateFormat.REGULAR);
+            var date_string = Utils.format_date (date.to_local (),
+                                                 Utils.DateFormat.REGULAR);
             var date_label = new Gtk.Label (date_string);
             context = date_label.get_style_context ();
             context.add_class ("password-list-modified");

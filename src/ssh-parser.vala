@@ -173,7 +173,7 @@ namespace Credentials {
                 throw new SshError.INVALID_FORMAT ("no space after key type");
 
             var magic_bytes = bytes.slice (start_offset, end_offset);
-            var magic_string = bytes_to_string (magic_bytes);
+            var magic_string = Utils.bytes_to_string (magic_bytes);
 
             end_offset++;
             if (end_offset == bytes.get_size ())
@@ -188,7 +188,7 @@ namespace Credentials {
                 throw new SshError.INVALID_FORMAT ("no space after key data");
 
             var key_bytes = bytes.slice (start_offset, end_offset);
-            var key_bytes_encoded = bytes_to_string (key_bytes);
+            var key_bytes_encoded = Utils.bytes_to_string (key_bytes);
             var key_bytes_decoded = GLib.Base64.decode (key_bytes_encoded);
 
             key_bytes = new GLib.Bytes (key_bytes_decoded);
@@ -209,7 +209,7 @@ namespace Credentials {
             }
 
             var comment_bytes = bytes.slice (start_offset, end_offset);
-            var comment = bytes_to_string (comment_bytes);
+            var comment = Utils.bytes_to_string (comment_bytes);
 
             var blob_parser = this._blob_parsers.lookup (magic_string);
             if (blob_parser == null) {
@@ -390,7 +390,7 @@ namespace Credentials {
 
             var result = bytes.slice (offset, offset + (int) length);
             offset += (int) length;
-            return bytes_to_string (result);
+            return Utils.bytes_to_string (result);
         }
 
         static GCrypt.MPI read_mpi (GLib.Bytes bytes,
