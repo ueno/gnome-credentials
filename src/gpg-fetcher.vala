@@ -219,24 +219,12 @@ namespace Credentials {
                     box.remove (this._widget);
                 }
                 this._widget = new GpgEditorWidget (this._item);
-                this._widget.bind_property ("visible-child-name",
-                                            import_button, "visible",
-                                            GLib.BindingFlags.SYNC_CREATE,
-                                            transform_visible_child_name);
                 this._widget.show ();
                 box.pack_start (this._widget, true, true, 0);
                 main_stack.visible_child_name = "browse";
+                import_button.show ();
                 back_button.show ();
             }
-        }
-
-        bool transform_visible_child_name (GLib.Binding binding,
-                                           GLib.Value source_value,
-                                           ref GLib.Value target_value)
-        {
-            var name = source_value.get_string ();
-            target_value.set_boolean (name == "main");
-            return true;
         }
 
         [GtkCallback]
