@@ -173,7 +173,14 @@ namespace Credentials {
                 return;
 
             this._cancellable.reset ();
-            var ctx = new GGpg.Ctx ();
+            GGpg.Ctx ctx;
+            try {
+                ctx = new GGpg.Ctx ();
+            } catch (GLib.Error e) {
+                var window = (Gtk.Window) this.get_toplevel ();
+                show_error (window, "failed to create context: %s", e.message);
+                return;
+            }
             ctx.protocol = GGpg.Protocol.OPENPGP;
             ctx.keylist_mode = GGpg.KeylistMode.EXTERN;
 

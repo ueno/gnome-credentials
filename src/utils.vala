@@ -178,7 +178,7 @@ namespace Credentials {
                                         int row,
                                         string target_property,
                                         GLib.BindingFlags flags,
-                                        GLib.BindingTransformFunc? transform = null)
+                                        owned GLib.BindingTransformFunc? transform = null)
     {
         for (var column = 0; ; column++) {
             var widget = grid.get_child_at (column, row);
@@ -187,7 +187,7 @@ namespace Credentials {
             source_object.bind_property (source_property,
                                          widget, target_property,
                                          flags,
-                                         transform);
+                                         (owned) transform);
         }
     }
 

@@ -102,7 +102,6 @@ namespace Credentials {
         GLib.HashTable<string,SshBlobParser> _blob_parsers;
         GLib.HashTable<string,SshKeySpec?> _magic_to_spec;
         GLib.List<SshKeySpec?> _specs;
-        GLib.HashTable<string,SshCurveSpec?> _curve_specs;
 
         construct {
             this._blob_parsers =
@@ -112,19 +111,16 @@ namespace Credentials {
                 new GLib.HashTable<string,SshKeySpec?> (GLib.str_hash,
                                                        GLib.str_equal);
             this._specs = null;
-            this._curve_specs =
-                new GLib.HashTable<string,SshCurveSpec?> (GLib.str_hash,
-                                                         GLib.str_equal);
 
             SshKeySpec spec;
 
             spec = SshKeySpec (SshKeyType.RSA, 1024, 4096, 2048,
                                "rsa", "id_rsa", _("RSA"));
-            register ("ssh-rsa", spec, null, new SshBlobParserRsa ());
+            register ("ssh-rsa", spec, new SshBlobParserRsa ());
 
             spec = SshKeySpec (SshKeyType.DSA, 1024, 3072, 2048,
                                "dsa", "id_dsa", _("DSA"));
-            register ("ssh-dss", spec, null, new SshBlobParserDsa ());
+            register ("ssh-dss", spec, new SshBlobParserDsa ());
 
             spec = SshKeySpec (SshKeyType.ECDSA, 256, 521, 256,
                                "ecdsa", "id_ecdsa", _("ECDSA"));
@@ -133,34 +129,31 @@ namespace Credentials {
 
             curve_spec = SshCurveSpec (SshCurveType.X9_62_PRIME256V1,
                                        "nistp256", 256);
-            register ("ecdsa-sha2-nistp256", spec, curve_spec,
+            register ("ecdsa-sha2-nistp256", spec,
                       new SshBlobParserEcdsa (curve_spec));
 
             curve_spec = SshCurveSpec (SshCurveType.SECP384R1,
                                        "nistp384", 384);
-            register ("ecdsa-sha2-nistp384", spec, curve_spec,
+            register ("ecdsa-sha2-nistp384", spec,
                       new SshBlobParserEcdsa (curve_spec));
 
             curve_spec = SshCurveSpec (SshCurveType.SECP521R1,
                                        "nistp521", 521);
-            register ("ecdsa-sha2-nistp521", spec, curve_spec,
+            register ("ecdsa-sha2-nistp521", spec,
                       new SshBlobParserEcdsa (curve_spec));
 
             spec = SshKeySpec (SshKeyType.ED25519, 256, 256, 256,
                                "ed25519", "id_ed25519", _("Ed25519"));
-            register ("ssh-ed25519", spec, null,
+            register ("ssh-ed25519", spec,
                       new SshBlobParserEd25519 ());
         }
 
         public void register (string magic, SshKeySpec spec,
-                              SshCurveSpec? curve_spec,
                               SshBlobParser parser)
         {
             this._blob_parsers.insert (magic, parser);
             this._specs.append (spec);
             this._magic_to_spec.insert (magic, spec);
-            if (curve_spec != null)
-                this._curve_specs.insert (magic, curve_spec);
         }
 
         public unowned GLib.List<SshKeySpec?> get_specs () {
@@ -225,7 +218,6 @@ namespace Credentials {
             }
             var blob = blob_parser.parse (key_bytes);
             var spec = this._magic_to_spec.lookup (magic_string);
-            var curve_spec = this._curve_specs.lookup (magic_string);
             return new SshKey (magic_string, blob, comment, spec);
         }
     }

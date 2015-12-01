@@ -707,7 +707,7 @@ namespace GCrypt {
 
 		public static Error scan (out MPI ret, MPI.Format format, [CCode (array_length = false)] uchar[] buffer, size_t buflen, out size_t nscanned);
 		[CCode (instance_pos = -1)]
-		public Error print (MPI.Format format, [CCode (array_length = false)] uchar[] buffer, size_t buflen, out size_t nwritter);
+		public Error print (MPI.Format format, [CCode (array_length = false)] uchar[]? buffer, size_t buflen, out size_t nwritter);
 		[CCode (instance_pos = -1)]
 		public Error aprint (MPI.Format format, out uchar[] buffer);
 

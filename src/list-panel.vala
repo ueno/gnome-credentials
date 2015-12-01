@@ -60,10 +60,6 @@ namespace Credentials {
             this._factories.set (backend, factory);
         }
 
-        protected WidgetFactory get_widget_factory (Backend backend) {
-            return this._factories.get (backend);
-        }
-
         void on_collection_added (Collection collection) {
             collection.item_added.connect (on_item_added);
             collection.item_removed.connect (on_item_removed);
@@ -138,7 +134,11 @@ namespace Credentials {
                 item.load_content.begin (
                     null,
                     (obj, res) => {
-                        item.load_content.end (res);
+                        try {
+                            item.load_content.end (res);
+                        } catch (GLib.Error e) {
+                            warning ("failed to load content: %s", e.message);
+                        }
                         var factory = this._factories.lookup (item.collection.backend);
                         var dialog = factory.create_editor_dialog (item);
                         dialog.response.connect_after ((res) => {
