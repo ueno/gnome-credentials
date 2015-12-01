@@ -8,7 +8,7 @@ namespace Credentials {
             this._backend = new SecretBackend ("Secret");
             this._notify_has_locked_id = this._backend.notify["has-locked"].connect (on_notify_has_locked);
 
-            register_backend (this._backend, new SecretWidgetFactory ());
+            register_factory (new SecretWidgetFactory (this._backend));
             map.connect (on_map);
         }
 

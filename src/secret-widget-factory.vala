@@ -1,5 +1,9 @@
 namespace Credentials {
     class SecretWidgetFactory : WidgetFactory {
+        public SecretWidgetFactory (Backend backend) {
+            Object (backend: backend);
+        }
+
         string format_use (SecretUse use) {
             switch (use) {
             case SecretUse.OTHER:

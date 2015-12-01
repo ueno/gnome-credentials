@@ -1,5 +1,28 @@
 namespace Credentials {
     class GpgWidgetFactory : GenerativeWidgetFactory {
+        public GpgWidgetFactory (Backend backend) {
+            Object (backend: backend);
+        }
+
+        public override void attached (ListPanel list_panel) {
+            backend.collection_added.connect ((collection) => {
+                    var action = new GLib.SimpleAction ("locate", null);
+                    action.activate.connect (() => {
+                            show_fetcher_dialog ((Gtk.Window) list_panel.get_toplevel (),
+                                                 (GpgCollection) collection);
+                        });
+                    list_panel.register_tool_action (action);
+
+                    var key_list_panel = (KeyListPanel) list_panel;
+                    action = new GLib.SimpleAction (collection.name, null);
+                    action.activate.connect (() => {
+                            show_generator_dialog ((Gtk.Window) list_panel.get_toplevel (),
+                                                   (GenerativeCollection) collection);
+                        });
+                    key_list_panel.register_generator_action (action);
+                });
+        }
+
         public override Gtk.Widget create_list_box_row (Item _item) {
             var item = (GpgItem) _item;
             var box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 10);
@@ -25,25 +48,14 @@ namespace Credentials {
             return new GpgEditorDialog (item);
         }
 
-        public override void register_tool_actions (Gtk.Widget widget,
-                                                    GLib.ActionMap map,
-                                                    Collection collection)
-        {
-            var action = new GLib.SimpleAction ("locate", null);
-            action.activate.connect (() => {
-                    show_fetcher_dialog (widget, (GpgCollection) collection);
-                });
-            map.add_action (action);
-        }
-
-        void show_fetcher_dialog (Gtk.Widget widget,
+        void show_fetcher_dialog (Gtk.Window transient_for,
                                   GpgCollection collection)
         {
             var dialog = create_fetcher_dialog (collection);
             dialog.response.connect_after ((res) => {
                     dialog.destroy ();
                 });
-            dialog.set_transient_for ((Gtk.Window) widget.get_toplevel ());
+            dialog.set_transient_for (transient_for);
             dialog.show ();
         }
 

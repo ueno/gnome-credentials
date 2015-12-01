@@ -51,13 +51,16 @@ namespace Credentials {
             list_box_adjust_scrolling (list_box);
         }
 
-        protected virtual void register_backend (Backend backend,
-                                                 WidgetFactory factory)
+        protected virtual void register_factory (WidgetFactory factory)
         {
-            this._backends += backend;
-            backend.collection_added.connect (on_collection_added);
-            backend.collection_removed.connect (on_collection_removed);
-            this._factories.set (backend, factory);
+            this._backends += factory.backend;
+            factory.backend.collection_added.connect (on_collection_added);
+            factory.backend.collection_removed.connect (on_collection_removed);
+            this._factories.set (factory.backend, factory);
+            factory.attached (this);
+        }
+
+        public virtual void register_tool_action (GLib.SimpleAction action) {
         }
 
         void on_collection_added (Collection collection) {

@@ -21,8 +21,12 @@ namespace Credentials {
             this._tools_popover.insert_action_group (
                 "tool", this._tool_actions);
 
-            register_backend (new GpgBackend ("Gpg"), new GpgWidgetFactory ());
-            register_backend (new SshBackend ("Ssh"), new SshWidgetFactory ());
+            Backend backend;
+
+            backend = new GpgBackend ("Gpg");
+            register_factory (new GpgWidgetFactory (backend));
+            backend = new SshBackend ("Ssh");
+            register_factory (new SshWidgetFactory (backend));
 
             map.connect (on_map);
         }
@@ -36,19 +40,12 @@ namespace Credentials {
             toplevel.tools_menu_button.set_popover (this._tools_popover);
         }
 
-        protected override void register_backend (Backend backend,
-                                                  WidgetFactory factory)
-        {
-            base.register_backend (backend, factory);
-            backend.collection_added.connect ((collection) => {
-                    ((GenerativeWidgetFactory) factory).register_generator_actions (
-                        this,
-                        this._generator_actions,
-                        (GenerativeCollection) collection);
-                    factory.register_tool_actions (this,
-                                                   this._tool_actions,
-                                                   collection);
-                });
+        public override void register_tool_action (GLib.SimpleAction action) {
+            this._tool_actions.add_action (action);
+        }
+
+        public virtual void register_generator_action (GLib.SimpleAction action) {
+            this._generator_actions.add_action (action);
         }
     }
 }
