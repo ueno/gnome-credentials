@@ -2,7 +2,7 @@
 # 5 different directory declarations
 SUBDIRS = icons
 
-resource_files = $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir=$(srcdir) --generate-dependencies $(srcdir)/$(PACKAGE_DESKTOP_NAME).data.gresource.xml)
+resource_files = $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir=$(srcdir) --generate-dependencies $(srcdir)/$(PACKAGE_DESKTOP_NAME).gresource.xml)
 
 appsdir = $(datadir)/applications
 apps_DATA = $(PACKAGE_DESKTOP_NAME).desktop
@@ -32,7 +32,7 @@ service_DATA = $(PACKAGE_DESKTOP_NAME).service
 EXTRA_DIST = \
 	$(PACKAGE_DESKTOP_NAME).desktop.in \
 	$(PACKAGE_DESKTOP_NAME).service.in \
-	$(PACKAGE_DESKTOP_NAME).data.gresource.xml \
+	$(PACKAGE_DESKTOP_NAME).gresource.xml \
 	$(gsettings_SCHEMAS) \
 	$(PACKAGE_DESKTOP_NAME).appdata.xml.in \
 	$(resource_files) \
