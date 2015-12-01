@@ -98,6 +98,12 @@ namespace Credentials {
             }
         }
 
+        public GGpg.KeylistMode keylist_mode {
+            get {
+                return this._content.keylist_mode;
+            }
+        }
+
         GLib.List<GpgGeneratedKeySpec?> _specs;
 
         construct {

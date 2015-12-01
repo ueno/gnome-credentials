@@ -335,14 +335,17 @@ namespace Credentials {
             box.pack_start (label, false, false, 0);
 
             var usage = GpgUtils.format_usage (subkey_item.subkey.flags);
-            label = new Gtk.Label (_("used for: %s").printf (usage));
-            label.margin_start = 20;
-            label.margin_end = 20;
-            label.xalign = 0;
-            var context = label.get_style_context ();
-            context.add_class ("secondary-label");
-            context.add_class ("dim-label");
-            box.pack_start (label, false, false, 0);
+            if (usage != "") {
+                label = new Gtk.Label (_("used for: %s").printf (usage));
+                label.margin_start = 20;
+                label.margin_end = 20;
+                label.xalign = 0;
+                var context = label.get_style_context ();
+                context.add_class ("secondary-label");
+                context.add_class ("dim-label");
+                box.pack_start (label, false, false, 0);
+            }
+
             box.show_all ();
             return box;
         }
@@ -649,6 +652,18 @@ namespace Credentials {
             item.changed.connect (update_trust);
             update_trust ();
 
+            var grid = (Gtk.Grid) trust_combobox.get_parent ();
+            int index;
+            grid.child_get (trust_combobox, "top-attach", out index);
+            var trust_label = (Gtk.Label) grid.get_child_at (0, index);
+            item.bind_property ("keylist-mode",
+                                trust_combobox, "visible",
+                                GLib.BindingFlags.SYNC_CREATE,
+                                transform_keylist_mode);
+            item.bind_property ("keylist-mode",
+                                trust_label, "visible",
+                                GLib.BindingFlags.SYNC_CREATE,
+                                transform_keylist_mode);
             item.bind_property ("has-secret",
                                 add_subkey_button, "visible",
                                 GLib.BindingFlags.SYNC_CREATE);
@@ -664,6 +679,15 @@ namespace Credentials {
             item.bind_property ("has-secret",
                                 change_password_button, "visible",
                                 GLib.BindingFlags.SYNC_CREATE);
+        }
+
+        bool transform_keylist_mode (GLib.Binding binding,
+                                     GLib.Value source_value,
+                                     ref GLib.Value target_value)
+        {
+            var flags = source_value.get_flags ();
+            target_value.set_boolean ((flags & GGpg.KeylistMode.EXTERN) == 0);
+            return true;
         }
 
         void update_trust () {
