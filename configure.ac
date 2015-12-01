@@ -49,7 +49,7 @@ PKG_CHECK_MODULES([GIO], [gio-2.0], ,
 AM_PATH_GPGME_PTHREAD
 AM_PATH_LIBGCRYPT
 
-LIBGD_INIT([notification vapi])
+LIBGD_INIT([notification static vapi])
 
 AC_ARG_ENABLE(dogtail,
               [AS_HELP_STRING([--enable-dogtail],
