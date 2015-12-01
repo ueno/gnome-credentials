@@ -6,24 +6,24 @@ gnome_credentials_SOURCES =			\
 	backend.vala				\
 	editor.vala				\
 	generator.vala				\
-	widget-factory.vala			\
+	view-adapter.vala			\
 	list-panel.vala				\
 	password-list-panel.vala		\
 	key-list-panel.vala			\
 	secret-backend.vala			\
 	secret-editor.vala			\
-	secret-widget-factory.vala		\
+	secret-view-adapter.vala		\
 	gpg-backend.vala			\
 	gpg-editor.vala				\
 	gpg-generator.vala			\
 	gpg-fetcher.vala			\
-	gpg-widget-factory.vala			\
+	gpg-view-adapter.vala			\
 	gpg-helper.vala				\
 	ssh-backend.vala			\
 	ssh-parser.vala				\
 	ssh-editor.vala				\
 	ssh-generator.vala			\
-	ssh-widget-factory.vala			\
+	ssh-view-adapter.vala			\
 	model-button.vala			\
 	list-box-helper.vala			\
 	utils.vala				\

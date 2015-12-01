@@ -13,7 +13,7 @@ namespace Credentials {
         [GtkChild]
         Gtk.Entry comment_entry;
 
-        public SshGeneratorDialog (GenerativeCollection collection) {
+        public SshGeneratorDialog (Collection collection) {
             Object (collection: collection, use_header_bar: 1);
         }
 

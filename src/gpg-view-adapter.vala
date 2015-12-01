@@ -1,10 +1,6 @@
 namespace Credentials {
-    class GpgWidgetFactory : GenerativeWidgetFactory {
-        public GpgWidgetFactory (Backend backend) {
-            Object (backend: backend);
-        }
-
-        public override void attached (ListPanel list_panel) {
+    class GpgViewAdapter : ViewAdapter {
+        public override void attached (Backend backend, ListPanel list_panel) {
             backend.collection_added.connect ((collection) => {
                     var action = new GLib.SimpleAction ("locate", null);
                     action.activate.connect (() => {
@@ -14,12 +10,7 @@ namespace Credentials {
                     list_panel.register_tool_action (action);
 
                     var key_list_panel = (KeyListPanel) list_panel;
-                    action = new GLib.SimpleAction (collection.name, null);
-                    action.activate.connect (() => {
-                            show_generator_dialog ((Gtk.Window) list_panel.get_toplevel (),
-                                                   (GenerativeCollection) collection);
-                        });
-                    key_list_panel.register_generator_action (action);
+                    key_list_panel.register_generator_action (collection);
                 });
         }
 
@@ -63,7 +54,7 @@ namespace Credentials {
             return new GpgFetcherDialog (collection);
         }
 
-        public override GeneratorDialog create_generator_dialog (GenerativeCollection collection) {
+        public override GeneratorDialog create_generator_dialog (Collection collection) {
             return new GpgGeneratorDialog (collection);
         }
     }

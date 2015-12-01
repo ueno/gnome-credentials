@@ -259,7 +259,7 @@ namespace Credentials {
         }
     }
 
-    class GpgCollection : GenerativeCollection {
+    class GpgCollection : Collection {
         public GGpg.Protocol protocol { construct set; get; }
         GLib.HashTable<string,GpgItem> _items;
         GLib.List<GpgGeneratedKeySpec?> _specs;

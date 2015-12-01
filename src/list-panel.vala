@@ -7,14 +7,13 @@ namespace Credentials {
         GLib.ListStore _store;
         GLib.ListStore _filtered_store;
         Backend[] _backends;
-        GLib.HashTable<Backend,WidgetFactory> _factories;
+        GLib.HashTable<Backend,ViewAdapter> _adapters;
 
         construct {
             this._store = new GLib.ListStore (typeof (Item));
             this._filtered_store = new GLib.ListStore (typeof (Item));
             this._backends = {};
-            this._factories = new GLib.HashTable<Backend,WidgetFactory> (null,
-                                                                         null);
+            this._adapters = new GLib.HashTable<Backend,ViewAdapter> (null, null);
 
             list_box.bind_model (this._store, this.create_item_widget);
             list_box.set_header_func (list_box_update_header_func);
@@ -51,13 +50,18 @@ namespace Credentials {
             list_box_adjust_scrolling (list_box);
         }
 
-        protected virtual void register_factory (WidgetFactory factory)
+        protected virtual void register_backend (Backend backend,
+                                                 ViewAdapter adapter)
         {
-            this._backends += factory.backend;
-            factory.backend.collection_added.connect (on_collection_added);
-            factory.backend.collection_removed.connect (on_collection_removed);
-            this._factories.set (factory.backend, factory);
-            factory.attached (this);
+            this._backends += backend;
+            backend.collection_added.connect (on_collection_added);
+            backend.collection_removed.connect (on_collection_removed);
+            this._adapters.set (backend, adapter);
+            adapter.attached (backend, this);
+        }
+
+        protected ViewAdapter get_view_adapter (Backend backend) {
+            return this._adapters.lookup (backend);
         }
 
         public virtual void register_tool_action (GLib.SimpleAction action) {
@@ -127,8 +131,8 @@ namespace Credentials {
 
         Gtk.Widget create_item_widget (GLib.Object object) {
             var backend = ((Item) object).collection.backend;
-            var factory = this._factories.lookup (backend);
-            return factory.create_list_box_row ((Item) object);
+            var adapter = this._adapters.lookup (backend);
+            return adapter.create_list_box_row ((Item) object);
         }
 
         void row_activated (Gtk.ListBox list_box, Gtk.ListBoxRow? row) {
@@ -142,8 +146,8 @@ namespace Credentials {
                         } catch (GLib.Error e) {
                             warning ("failed to load content: %s", e.message);
                         }
-                        var factory = this._factories.lookup (item.collection.backend);
-                        var dialog = factory.create_editor_dialog (item);
+                        var adapter = this._adapters.lookup (item.collection.backend);
+                        var dialog = adapter.create_editor_dialog (item);
                         dialog.response.connect_after ((res) => {
                                 dialog.destroy ();
                             });

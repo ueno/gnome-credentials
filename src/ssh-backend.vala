@@ -159,7 +159,7 @@ namespace Credentials {
         }
     }
 
-    class SshCollection : GenerativeCollection {
+    class SshCollection : Collection {
         GLib.HashTable<string,SshItem> _items;
 
         public override string item_type {

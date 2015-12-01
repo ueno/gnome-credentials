@@ -32,15 +32,14 @@ namespace Credentials {
         public signal void item_added (Item item);
         public signal void item_removed (Item item);
 
+        public signal void progress_changed (string label, double fraction);
+        public virtual async void generate_item (GeneratedItemParameters parameters, GLib.Cancellable? cancellable) throws GLib.Error {
+        }
+
         public abstract int compare (Collection other);
     }
 
     abstract class GeneratedItemParameters : GLib.Object {
-    }
-
-    abstract class GenerativeCollection : Collection {
-        public signal void progress_changed (string label, double fraction);
-        public abstract async void generate_item (GeneratedItemParameters parameters, GLib.Cancellable? cancellable) throws GLib.Error;
     }
 
     abstract class Backend : GLib.Object {

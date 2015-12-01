@@ -21,7 +21,7 @@ namespace Credentials {
 
         GpgExpirationSpec _expires;
 
-        public GpgGeneratorDialog (GenerativeCollection collection) {
+        public GpgGeneratorDialog (Collection collection) {
             Object (collection: collection, use_header_bar: 1);
         }
 

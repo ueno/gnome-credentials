@@ -21,12 +21,8 @@ namespace Credentials {
             this._tools_popover.insert_action_group (
                 "tool", this._tool_actions);
 
-            Backend backend;
-
-            backend = new GpgBackend ("Gpg");
-            register_factory (new GpgWidgetFactory (backend));
-            backend = new SshBackend ("Ssh");
-            register_factory (new SshWidgetFactory (backend));
+            register_backend (new GpgBackend ("Gpg"), new GpgViewAdapter ());
+            register_backend (new SshBackend ("Ssh"), new SshViewAdapter ());
 
             map.connect (on_map);
         }
@@ -44,8 +40,22 @@ namespace Credentials {
             this._tool_actions.add_action (action);
         }
 
-        public virtual void register_generator_action (GLib.SimpleAction action) {
+        public virtual void register_generator_action (Collection collection) {
+            var action = new GLib.SimpleAction (collection.name, null);
+            action.activate.connect (() => {
+                    show_generator_dialog (collection);
+                });
             this._generator_actions.add_action (action);
+        }
+
+        void show_generator_dialog (Collection collection) {
+            var adapter = get_view_adapter (collection.backend);
+            var dialog = adapter.create_generator_dialog (collection);
+            dialog.response.connect_after ((res) => {
+                    dialog.destroy ();
+                });
+            dialog.set_transient_for ((Gtk.Window) this.get_toplevel ());
+            dialog.show ();
         }
     }
 }
