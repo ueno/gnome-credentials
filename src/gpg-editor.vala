@@ -325,7 +325,7 @@ namespace Credentials {
             var created_date =
                 new GLib.DateTime.from_unix_utc (this._subkey.created);
             created_label.label = Utils.format_date (created_date,
-                                                     Utils.DateFormat.FULL);
+                                                     Utils.DateFormat.REGULAR);
 
             var expires_text =
                 GpgUtils.format_expires (this._subkey.expires);
