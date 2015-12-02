@@ -26,12 +26,14 @@ namespace Credentials {
             context.add_class ("primary-label");
             box.add (primary_label);
 
-            var secondary_label = new Gtk.Label (secondary_text);
-            secondary_label.halign = Gtk.Align.START;
-            context = secondary_label.get_style_context ();
-            context.add_class ("secondary-label");
-            context.add_class ("dim-label");
-            box.add (secondary_label);
+            if (secondary_text != null) {
+                var secondary_label = new Gtk.Label (secondary_text);
+                secondary_label.halign = Gtk.Align.START;
+                context = secondary_label.get_style_context ();
+                context.add_class ("secondary-label");
+                context.add_class ("dim-label");
+                box.add (secondary_label);
+            }
 
             box.show_all ();
         }
