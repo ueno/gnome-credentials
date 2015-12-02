@@ -2071,7 +2071,8 @@ g_gpg_export_keys_source_finalize (GSource *_source)
   for (keys = source->keys; *keys; keys++)
     g_object_unref (*keys);
   g_free (source->keys);
-  g_object_unref (source->keydata);
+  if (source->keydata)
+    g_object_unref (source->keydata);
 }
 
 static void
@@ -2092,7 +2093,8 @@ _g_gpg_ctx_export_keys_begin (GGpgCtx *ctx,
     keys[i] = source->keys[i]->pointer;
 
   err = gpgme_op_export_keys_start (ctx->pointer, keys, source->mode,
-                                    source->keydata->pointer);
+                                    source->keydata
+                                    ? source->keydata->pointer : NULL);
   if (err)
     {
       g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
@@ -2139,7 +2141,8 @@ g_gpg_ctx_export_keys (GGpgCtx *ctx,
     source->keys[i] = g_object_ref (keys[i]);
 
   source->mode = mode;
-  source->keydata = g_object_ref (keydata);
+  if (keydata)
+    source->keydata = g_object_ref (keydata);
   g_task_set_task_data (task, source,
                         (GDestroyNotify) g_gpg_export_keys_source_finalize);
   _g_gpg_ctx_export_keys_begin (ctx, source, task, cancellable);

@@ -85,28 +85,33 @@
       </packing>
     </child>
     <child>
-      <object class="GtkBox" id="box1">
+      <object class="GtkScrolledWindow" id="scrolled_window">
 	<property name="visible">True</property>
-	<property name="orientation">vertical</property>
-	<property name="margin-start">134</property>
-	<property name="margin-end">134</property>
-	<property name="margin-top">10</property>
-	<property name="margin-bottom">22</property>
-	<property name="height-request">350</property>
 	<child>
-	  <object class="GtkFrame" id="frame1">
+	  <object class="GtkBox">
+	    <property name="visible">True</property>
+	    <property name="orientation">vertical</property>
+	    <property name="margin-start">134</property>
+	    <property name="margin-end">134</property>
+	    <property name="margin-top">10</property>
+	    <property name="margin-bottom">22</property>
+	    <property name="height-request">350</property>
 	    <child>
-	      <object class="GtkListBox" id="list_box">
-		<property name="visible">True</property>
-		<property name="can_focus">True</property>
+	      <object class="GtkFrame" id="frame1">
+		<child>
+		  <object class="GtkListBox" id="list_box">
+		    <property name="visible">True</property>
+		    <property name="can_focus">True</property>
+		  </object>
+		</child>
 	      </object>
+	      <packing>
+		<property name="expand">False</property>
+		<property name="fill">True</property>
+		<property name="position">0</property>
+	      </packing>
 	    </child>
 	  </object>
-	  <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">0</property>
-	  </packing>
 	</child>
       </object>
       <packing>

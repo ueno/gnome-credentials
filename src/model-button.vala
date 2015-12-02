@@ -13,10 +13,10 @@ namespace Credentials {
             context.add_class ("menuitem");
 
             var box = new Gtk.Box (Gtk.Orientation.VERTICAL, 3);
-            box.margin_start = 12;
-            box.margin_end = 12;
-            box.margin_top = 3;
-            box.margin_bottom = 3;
+            box.margin_start = 2;
+            box.margin_end = 2;
+            box.margin_top = 0;
+            box.margin_bottom = 0;
             box.halign = Gtk.Align.FILL;
             this.add (box);
 

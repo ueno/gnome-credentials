@@ -7,6 +7,7 @@
       <object class="GtkBox">
 	<property name="visible">True</property>
 	<property name="orientation">vertical</property>
+	<property name="margin">10</property>
 	<style>
           <class name="linked"/>
         </style>
@@ -26,23 +27,12 @@
 	    <property name="secondary-text" translatable="yes">For accessing other computer</property>
           </object>
 	</child>
-      </object>
-    </child>
-  </object>
-  <object class="GtkPopover" id="tools-popover">
-    <property name="modal">True</property>
-    <child>
-      <object class="GtkBox">
-	<property name="visible">True</property>
-	<property name="orientation">vertical</property>
-	<style>
-          <class name="linked"/>
-        </style>
 	<child>
           <object class="GtkModelButton">
             <property name="visible">True</property>
-            <property name="action-name">tool.locate</property>
+            <property name="action-name">generator.locate</property>
 	    <property name="text" translatable="yes">Find Remote Keys...</property>
+	    <property name="halign">fill</property>
           </object>
 	</child>
       </object>

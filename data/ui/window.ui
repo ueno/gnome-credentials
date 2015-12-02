@@ -37,17 +37,16 @@
 	  </packing>
 	</child>
 	<child>
-	  <object class="GtkMenuButton" id="tools_menu_button">
+	  <object class="GtkToggleButton" id="selection_mode_toggle_button">
             <property name="can_focus">False</property>
             <property name="visible">False</property>
-	    <property name="use_popover">True</property>
             <style>
               <class name="image-button"/>
             </style>
             <child>
               <object class="GtkImage">
 		<property name="visible">True</property>
-		<property name="icon-name">open-menu-symbolic</property>
+		<property name="icon-name">object-select-symbolic</property>
               </object>
             </child>
 	  </object>
@@ -101,6 +100,53 @@
 	    <child>
 	      <placeholder/>
 	    </child>
+	    <child>
+              <object class="GtkRevealer" id="selection_bar">
+		<property name="visible">True</property>
+		<property name="transition-type">slide-up</property>
+		<property name="valign">end</property>
+		<child>
+		  <object class="GtkActionBar">
+		    <property name="visible">True</property>
+		    <child>
+		      <object class="GtkButton">
+			<property name="visible">True</property>
+			<property name="valign">center</property>
+			<property name="use-underline">True</property>
+			<property name="label" translatable="yes">_Publish</property>
+			<property name="action-name">list-panel.publish-selected</property>
+			<style>
+			  <class name="text-button"/>
+			</style>
+		      </object>
+		      <packing>
+			<property name="pack-type">start</property>
+		      </packing>
+		    </child>
+		    <child>
+		      <object class="GtkButton">
+			<property name="visible">True</property>
+			<property name="valign">center</property>
+			<property name="use-underline">True</property>
+			<property name="label" translatable="yes">_Delete</property>
+			<property name="action-name">list-panel.delete-selected</property>
+			<style>
+			  <class name="text-button"/>
+			  <class name="destructive-action"/>
+			</style>
+		      </object>
+		      <packing>
+			<property name="pack-type">end</property>
+		      </packing>
+		    </child>
+		  </object>
+		</child>
+              </object>
+	      <packing>
+		<property name="left_attach">0</property>
+		<property name="top_attach">2</property>
+	      </packing>
+            </child>
 	  </object>
 	</child>
       </object>

@@ -10,7 +10,8 @@ namespace Credentials {
         }
     }
 
-    static void list_box_adjust_scrolling (Gtk.ListBox list_box) {
+    static void list_box_adjust_scrolling (Gtk.ListBox list_box,
+                                           bool resize = true) {
         var scrolled_window =
             list_box.get_data<Gtk.ScrolledWindow> (
                 "credentials-scrolling-scrolled-window");
@@ -30,7 +31,7 @@ namespace Credentials {
                 child.get_preferred_height (out row_height, null);
                 total_row_height += row_height;
             }
-            scrolled_window.set_min_content_height (total_row_height);
+            scrolled_window.set_min_content_height (resize ? total_row_height : -1);
             scrolled_window.set_policy (Gtk.PolicyType.NEVER,
                                         Gtk.PolicyType.AUTOMATIC);
         } else {
@@ -41,15 +42,18 @@ namespace Credentials {
     }
 
     static void list_box_setup_scrolling (Gtk.ListBox list_box,
-                                          uint num_max_rows)
+                                          uint num_max_rows,
+                                          owned Gtk.ScrolledWindow? scrolled_window = null)
     {
         var parent = list_box.get_parent ();
-        var scrolled_window = new Gtk.ScrolledWindow (null, null);
-        scrolled_window.show ();
+        if (scrolled_window == null) {
+            scrolled_window = new Gtk.ScrolledWindow (null, null);
+            scrolled_window.show ();
 
-        parent.remove (list_box);
-        scrolled_window.add (list_box);
-        parent.add (scrolled_window);
+            parent.remove (list_box);
+            scrolled_window.add (list_box);
+            parent.add (scrolled_window);
+        }
 
         if (num_max_rows == 0)
             num_max_rows = MAX_ROWS_VISIBLE;

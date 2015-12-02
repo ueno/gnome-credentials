@@ -23,13 +23,17 @@ namespace Credentials {
         public Gtk.MenuButton generators_menu_button;
 
         [GtkChild]
-        public Gtk.MenuButton tools_menu_button;
+        public Gtk.ToggleButton selection_mode_toggle_button;
+
+        [GtkChild]
+        public Gtk.Revealer selection_bar;
 
         [GtkChild]
         Gtk.ToggleButton search_active_button;
 
         public bool search_active { get; set; default = false; }
 
+        Gtk.StackSwitcher _switcher;
         ContentArea _area;
         GLib.Cancellable _cancellable;
 
@@ -42,31 +46,53 @@ namespace Credentials {
 
         construct {
             var action = new GLib.SimpleAction ("about", null);
-            action.activate.connect (() => { this.activate_about (); });
+            action.activate.connect (() => { activate_about (); });
             add_action (action);
 
-            this.bind_property ("search-active",
-                                this.search_active_button, "active",
-                                GLib.BindingFlags.SYNC_CREATE |
-                                GLib.BindingFlags.BIDIRECTIONAL);
-            this.bind_property ("search-active",
-                                this.main_search_bar, "search-mode-enabled",
-                                GLib.BindingFlags.SYNC_CREATE |
-                                GLib.BindingFlags.BIDIRECTIONAL);
-            this.main_search_bar.connect_entry (this.main_search_entry);
+            bind_property ("search-active",
+                           search_active_button, "active",
+                           GLib.BindingFlags.SYNC_CREATE |
+                           GLib.BindingFlags.BIDIRECTIONAL);
+            bind_property ("search-active",
+                           main_search_bar, "search-mode-enabled",
+                           GLib.BindingFlags.SYNC_CREATE |
+                           GLib.BindingFlags.BIDIRECTIONAL);
+            main_search_bar.connect_entry (main_search_entry);
 
             this._area = new Credentials.ContentArea ();
+            this._area.bind_property ("selection-mode",
+                                      generators_menu_button, "visible",
+                                      GLib.BindingFlags.SYNC_CREATE |
+                                      GLib.BindingFlags.INVERT_BOOLEAN);
+            this._area.bind_property ("selection-mode",
+                                      search_active_button, "visible",
+                                      GLib.BindingFlags.SYNC_CREATE |
+                                      GLib.BindingFlags.INVERT_BOOLEAN);
+            this._area.notify["selection-mode"].connect ((s, p) => {
+                    var context = main_header_bar.get_style_context ();
+                    if (this._area.selection_mode) {
+                        context.add_class ("selection-mode");
+                        main_header_bar.set_custom_title (null);
+                        main_header_bar.set_title (_("Selection"));
+                    } else {
+                        context.remove_class ("selection-mode");
+                        main_header_bar.set_custom_title (this._switcher);
+                    }
+                });
 
-            var swicher = new Gtk.StackSwitcher ();
-            swicher.set_stack (this._area);
-            swicher.show ();
-            main_header_bar.set_custom_title (swicher);
+            selection_mode_toggle_button.bind_property ("active",
+                                                        this._area, "selection-mode",
+                                                        GLib.BindingFlags.SYNC_CREATE);
+            this._switcher = new Gtk.StackSwitcher ();
+            this._switcher.set_stack (this._area);
+            this._switcher.show ();
+            main_header_bar.set_custom_title (this._switcher);
 
-            this.main_grid.add (this._area);
-            this.main_grid.show_all ();
+            main_grid.attach (this._area, 0, 1, 1, 1);
+            main_grid.show_all ();
 
             key_press_event.connect ((ev) => {
-                    return this.main_search_bar.handle_event (ev);
+                    return main_search_bar.handle_event (ev);
                 });
 
             this._cancellable = new GLib.Cancellable ();
@@ -125,6 +151,8 @@ namespace Credentials {
     class ContentArea : Gtk.Stack {
         GLib.Settings _settings;
 
+        public bool selection_mode { construct set; get; default = false; }
+
         public ContentArea () {
             Object (hexpand: true, vexpand: true);
         }
@@ -133,16 +161,22 @@ namespace Credentials {
             this._settings = new GLib.Settings (Config.PACKAGE_DESKTOP_NAME);
 
             var passwords_panel = new Credentials.PasswordListPanel ();
-            this.add_titled (passwords_panel, "passwords", _("Passwords"));
+            bind_property ("selection-mode",
+                           passwords_panel, "selection-mode",
+                           GLib.BindingFlags.SYNC_CREATE);
+            add_titled (passwords_panel, "passwords", _("Passwords"));
 
             var keys_panel = new Credentials.KeyListPanel ();
-            this.add_titled (keys_panel, "keys", _("Keys"));
+            bind_property ("selection-mode",
+                           keys_panel, "selection-mode",
+                           GLib.BindingFlags.SYNC_CREATE);
+            add_titled (keys_panel, "keys", _("Keys"));
         }
 
         public async void filter_items (string[] words,
                                         GLib.Cancellable cancellable)
         {
-            var panel = (ListPanel) this.visible_child;
+            var panel = (ListPanel) visible_child;
             yield panel.filter_items (words, cancellable);
         }
     }

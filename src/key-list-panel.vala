@@ -3,9 +3,6 @@ namespace Credentials {
         Gtk.Popover _generators_popover;
         GLib.SimpleActionGroup _generator_actions;
 
-        Gtk.Popover _tools_popover;
-        GLib.SimpleActionGroup _tool_actions;
-
         construct {
             var builder = new Gtk.Builder.from_resource (
                 "/org/gnome/Credentials/menu.ui");
@@ -14,12 +11,6 @@ namespace Credentials {
             this._generator_actions = new GLib.SimpleActionGroup ();
             this._generators_popover.insert_action_group (
                 "generator", this._generator_actions);
-
-            this._tools_popover =
-                (Gtk.Popover) builder.get_object ("tools-popover");
-            this._tool_actions = new GLib.SimpleActionGroup ();
-            this._tools_popover.insert_action_group (
-                "tool", this._tool_actions);
 
             register_backend (new GpgBackend ("Gpg"), new GpgViewAdapter ());
             register_backend (new SshBackend ("Ssh"), new SshViewAdapter ());
@@ -30,22 +21,22 @@ namespace Credentials {
         void on_map () {
             Window toplevel = (Window) this.get_toplevel ();
             toplevel.unlock_button.set_visible (false);
-            toplevel.generators_menu_button.set_visible (true);
+            toplevel.generators_menu_button.show ();
             toplevel.generators_menu_button.set_popover (this._generators_popover);
-            toplevel.tools_menu_button.set_visible (true);
-            toplevel.tools_menu_button.set_popover (this._tools_popover);
+            toplevel.selection_mode_toggle_button.active = false;
+            toplevel.selection_mode_toggle_button.show ();
         }
 
-        public override void register_tool_action (GLib.SimpleAction action) {
-            this._tool_actions.add_action (action);
+        public virtual void register_generator_action (GLib.SimpleAction action) {
+            this._generator_actions.add_action (action);
         }
 
-        public virtual void register_generator_action (Collection collection) {
+        public virtual void register_generator_action_for_collection (Collection collection) {
             var action = new GLib.SimpleAction (collection.name, null);
             action.activate.connect (() => {
                     show_generator_dialog (collection);
                 });
-            this._generator_actions.add_action (action);
+            register_generator_action (action);
         }
 
         void show_generator_dialog (Collection collection) {

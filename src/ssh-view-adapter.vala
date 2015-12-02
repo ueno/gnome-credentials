@@ -3,7 +3,7 @@ namespace Credentials {
         public override void attached (Backend backend, ListPanel list_panel) {
             backend.collection_added.connect ((collection) => {
                     var key_list_panel = (KeyListPanel) list_panel;
-                    key_list_panel.register_generator_action (collection);
+                    key_list_panel.register_generator_action_for_collection (collection);
                 });
         }
 

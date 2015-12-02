@@ -2,15 +2,14 @@ namespace Credentials {
     class GpgViewAdapter : ViewAdapter {
         public override void attached (Backend backend, ListPanel list_panel) {
             backend.collection_added.connect ((collection) => {
+                    var key_list_panel = (KeyListPanel) list_panel;
                     var action = new GLib.SimpleAction ("locate", null);
                     action.activate.connect (() => {
                             show_fetcher_dialog ((Gtk.Window) list_panel.get_toplevel (),
                                                  (GpgCollection) collection);
                         });
-                    list_panel.register_tool_action (action);
-
-                    var key_list_panel = (KeyListPanel) list_panel;
-                    key_list_panel.register_generator_action (collection);
+                    key_list_panel.register_generator_action (action);
+                    key_list_panel.register_generator_action_for_collection (collection);
                 });
         }
 
