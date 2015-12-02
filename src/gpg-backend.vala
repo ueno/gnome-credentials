@@ -460,6 +460,17 @@ namespace Credentials {
             return ctx.import_result ();
         }
 
+        public async GGpg.ImportResult import_from_bytes (GLib.Bytes bytes,
+                                                          GLib.Cancellable? cancellable) throws GLib.Error
+        {
+            var ctx = new GGpg.Ctx ();
+            ctx.protocol = protocol;
+            var data = new GGpg.Data.from_bytes (bytes);
+            yield ctx.import (data, cancellable);
+            yield load_items (cancellable);
+            return ctx.import_result ();
+        }
+
         public override int compare (Collection other) {
             var difference = backend.compare (((Collection) other).backend);
             if (difference != 0)
