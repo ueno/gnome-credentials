@@ -29,6 +29,12 @@ namespace Credentials {
         public Gtk.Revealer selection_bar;
 
         [GtkChild]
+        Gtk.Button selection_publish_button;
+
+        [GtkChild]
+        Gtk.Button selection_delete_button;
+
+        [GtkChild]
         Gtk.ToggleButton search_active_button;
 
         public bool search_active { get; set; default = false; }
@@ -68,6 +74,14 @@ namespace Credentials {
                                       search_active_button, "visible",
                                       GLib.BindingFlags.SYNC_CREATE |
                                       GLib.BindingFlags.INVERT_BOOLEAN);
+            this._area.bind_property ("selection-count",
+                                      selection_publish_button, "sensitive",
+                                      GLib.BindingFlags.SYNC_CREATE,
+                                      transform_is_greater_than_zero);
+            this._area.bind_property ("selection-count",
+                                      selection_delete_button, "sensitive",
+                                      GLib.BindingFlags.SYNC_CREATE,
+                                      transform_is_greater_than_zero);
             this._area.notify["selection-mode"].connect ((s, p) => {
                     var context = main_header_bar.get_style_context ();
                     if (this._area.selection_mode) {
@@ -101,6 +115,15 @@ namespace Credentials {
                     this._cancellable.cancel ();
                     search_active = false;
                 });
+        }
+
+        bool transform_is_greater_than_zero (GLib.Binding binding,
+                                             GLib.Value source_value,
+                                             ref GLib.Value target_value)
+        {
+            var u = source_value.get_uint ();
+            target_value.set_boolean (u > 0);
+            return true;
         }
 
         void activate_about () {
@@ -152,6 +175,15 @@ namespace Credentials {
         GLib.Settings _settings;
 
         public bool selection_mode { construct set; get; default = false; }
+        public uint selection_count {
+            get {
+                var list_panel = visible_child as ListPanel;
+                if (list_panel == null)
+                    return 0;
+                else
+                    return list_panel.get_selected_items ().length ();
+            }
+        }
 
         public ContentArea () {
             Object (hexpand: true, vexpand: true);
@@ -165,11 +197,17 @@ namespace Credentials {
                            passwords_panel, "selection-mode",
                            GLib.BindingFlags.SYNC_CREATE);
             add_titled (passwords_panel, "passwords", _("Passwords"));
+            passwords_panel.selection_changed.connect (() => {
+                    notify_property ("selection-count");
+                });
 
             var keys_panel = new Credentials.KeyListPanel ();
             bind_property ("selection-mode",
                            keys_panel, "selection-mode",
                            GLib.BindingFlags.SYNC_CREATE);
+            keys_panel.selection_changed.connect (() => {
+                    notify_property ("selection-count");
+                });
             add_titled (keys_panel, "keys", _("Keys"));
         }
 

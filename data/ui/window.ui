@@ -109,7 +109,7 @@
 		  <object class="GtkActionBar">
 		    <property name="visible">True</property>
 		    <child>
-		      <object class="GtkButton">
+		      <object class="GtkButton" id="selection_publish_button">
 			<property name="visible">True</property>
 			<property name="valign">center</property>
 			<property name="use-underline">True</property>
@@ -124,7 +124,7 @@
 		      </packing>
 		    </child>
 		    <child>
-		      <object class="GtkButton">
+		      <object class="GtkButton" id="selection_delete_button">
 			<property name="visible">True</property>
 			<property name="valign">center</property>
 			<property name="use-underline">True</property>

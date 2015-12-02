@@ -16,7 +16,7 @@ namespace Credentials {
 
         public bool selection_mode { construct set; get; default = false; }
 
-        GLib.List<Item> get_selected_items () {
+        public GLib.List<Item> get_selected_items () {
             GLib.List<Item> result = null;
             for (var i = 0; i < this._store.get_n_items (); i++) {
                 var row = list_box.get_row_at_index (i);
@@ -57,6 +57,10 @@ namespace Credentials {
             list_box.set_activate_on_single_click (true);
             list_box.row_activated.connect (row_activated);
             list_box_setup_scrolling (list_box, 0, scrolled_window);
+
+            notify["selection-mode"].connect (() => {
+                    selection_changed ();
+                });
 
             map.connect (on_map);
         }
@@ -219,10 +223,10 @@ namespace Credentials {
                            GLib.BindingFlags.SYNC_CREATE);
             notify["selection-mode"].connect (() => {
                     if (!selection_mode)
-
                         check_button.active = false;
                 });
             check_button.halign = Gtk.Align.START;
+            check_button.toggled.connect (on_check_button_toggled);
             overlay.add_overlay (check_button);
 
             var row = adapter.create_list_box_row ((Item) object);
@@ -230,6 +234,12 @@ namespace Credentials {
             row.margin_right = 12;
             overlay.add (row);
             return overlay;
+        }
+
+        public signal void selection_changed ();
+
+        void on_check_button_toggled () {
+            selection_changed ();
         }
 
         void row_activated (Gtk.ListBox list_box, Gtk.ListBoxRow? row) {
