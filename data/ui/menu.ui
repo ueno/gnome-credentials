@@ -31,7 +31,7 @@
           <object class="GtkModelButton">
             <property name="visible">True</property>
             <property name="action-name">generator.locate</property>
-	    <property name="text" translatable="yes">Find Remote Keys...</property>
+	    <property name="text" translatable="yes">Import Remote Keys…</property>
 	    <property name="halign">fill</property>
           </object>
 	</child>
