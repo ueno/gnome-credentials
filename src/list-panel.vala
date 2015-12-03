@@ -53,14 +53,17 @@ namespace Credentials {
 
             list_box.bind_model (this._store, this.create_item_widget);
             list_box.set_header_func (list_box_update_header_func);
-            list_box.set_selection_mode (Gtk.SelectionMode.NONE);
-            list_box.set_activate_on_single_click (true);
             list_box.row_activated.connect (row_activated);
             list_box_setup_scrolling (list_box, 0, scrolled_window);
 
             notify["selection-mode"].connect (() => {
                     selection_changed ();
                 });
+
+            bind_property ("selection-mode",
+                           list_box, "activate-on-single-click",
+                           GLib.BindingFlags.SYNC_CREATE |
+                           GLib.BindingFlags.INVERT_BOOLEAN);
 
             map.connect (on_map);
         }
