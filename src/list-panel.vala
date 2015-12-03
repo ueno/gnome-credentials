@@ -72,12 +72,29 @@ namespace Credentials {
             map.connect (on_map);
         }
 
+        struct ItemSelection {
+            GenericArray<Item> items;
+        }
+
         async void publish_selected () {
             var window = (Gtk.Window) get_toplevel ();
             var items = get_selected_items ();
+            var selections = new GLib.HashTable<Collection,ItemSelection?> (null, null);
             foreach (var item in items) {
+                if (!selections.contains (item.collection)) {
+                    var selection = ItemSelection () { items = new GenericArray<Item> () };
+                    selections.insert (item.collection, selection);
+                }
+                var selection = selections.lookup (item.collection);
+                selection.items.add (item);
+            }
+            var iter = GLib.HashTableIter<Collection,ItemSelection?> (selections);
+            Collection collection;
+            ItemSelection? selection;
+            while (iter.next (out collection, out selection)) {
                 try {
-                    yield item.publish (null);
+                    yield collection.export_to_server (selection.items.data,
+                                                       null);
                 } catch (GLib.Error e) {
                     Utils.show_error (window,
                                       _("Couldn't publish items: %s"),
@@ -86,10 +103,6 @@ namespace Credentials {
                 }
             }
             Utils.show_notification (window, _("Published items"));
-        }
-
-        struct ItemSelection {
-            GenericArray<Item> items;
         }
 
         async void export_selected () {

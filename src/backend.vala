@@ -15,10 +15,6 @@ namespace Credentials {
             throw new BackendError.NOT_SUPPORTED ("not supported");
         }
 
-        public virtual async void publish (GLib.Cancellable? cancellable) throws GLib.Error {
-            throw new BackendError.NOT_SUPPORTED ("not supported");
-        }
-
         public abstract async void load_content (GLib.Cancellable? cancellable) throws GLib.Error;
 
         public abstract int compare (Item other);
@@ -46,6 +42,11 @@ namespace Credentials {
 
         public signal void progress_changed (string label, double fraction);
         public virtual async void generate_item (GeneratedItemParameters parameters, GLib.Cancellable? cancellable) throws GLib.Error {
+            throw new BackendError.NOT_SUPPORTED ("not supported");
+        }
+
+        public virtual async void export_to_server (Item[] items,
+                                                    GLib.Cancellable? cancellable) throws GLib.Error {
             throw new BackendError.NOT_SUPPORTED ("not supported");
         }
 

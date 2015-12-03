@@ -240,14 +240,6 @@ namespace Credentials {
             collection.item_removed (this);
         }
 
-        public override async void publish (GLib.Cancellable? cancellable) throws GLib.Error {
-            var ctx = new GGpg.Ctx ();
-            ctx.protocol = ((GpgCollection) collection).protocol;
-            GGpg.Key[] keys = { this._content };
-            yield ctx.export_keys (keys, GGpg.ExportMode.EXTERN, null,
-                                   cancellable);
-        }
-
         public async void edit (GpgEditCommand command, GLib.Cancellable? cancellable) throws GLib.Error {
             var ctx = new GGpg.Ctx ();
             ctx.protocol = ((GpgCollection) collection).protocol;
@@ -469,6 +461,18 @@ namespace Credentials {
             yield ctx.import (data, cancellable);
             yield load_items (cancellable);
             return ctx.import_result ();
+        }
+
+        public override async void export_to_server (Item[] items,
+                                                     GLib.Cancellable? cancellable) throws GLib.Error {
+            var ctx = new GGpg.Ctx ();
+            ctx.protocol = protocol;
+            GGpg.Key[] keys = {};
+            foreach (var item in items) {
+                keys += ((GpgItem) item).get_content ();
+            }
+            yield ctx.export_keys (keys, GGpg.ExportMode.EXTERN, null,
+                                   cancellable);
         }
 
         public override async GLib.Bytes export_to_bytes (Item[] items,
