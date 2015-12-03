@@ -9,13 +9,14 @@ namespace Credentials {
                                                  (GpgCollection) collection);
                         });
                     key_list_panel.register_generator_action (action);
-                    key_list_panel.register_generator_action_for_collection (collection);
+
                     action = new GLib.SimpleAction ("import", null);
                     action.activate.connect (() => {
                             show_importer_dialog ((Gtk.Window) list_panel.get_toplevel (),
                                                   (GpgCollection) collection);
                         });
                     key_list_panel.register_generator_action (action);
+
                     key_list_panel.register_generator_action_for_collection (collection);
                 });
         }
@@ -106,13 +107,13 @@ namespace Credentials {
                                     } catch (GLib.Error e) {
                                         Utils.show_error (
                                             transient_for,
-                                            "Couldn't import keys: %s",
+                                            _("Couldn't import keys: %s"),
                                             e.message);
                                     }
                                 });
                         } catch (GLib.Error e) {
                             Utils.show_error (transient_for,
-                                              "Couldn't read file %s: %s",
+                                              _("Couldn't read file %s: %s"),
                                               path, e.message);
                         }
                     }

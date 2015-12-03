@@ -73,12 +73,12 @@ namespace Credentials {
                     yield item.publish (null);
                 } catch (GLib.Error e) {
                     Utils.show_error (window,
-                                      "Couldn't publish items: %s",
+                                      _("Couldn't publish items: %s"),
                                       e.message);
                     return;
                 }
             }
-            Utils.show_notification (window, "Published items");
+            Utils.show_notification (window, _("Published items"));
         }
 
         async void delete_selected () {
@@ -89,17 +89,18 @@ namespace Credentials {
                     yield item.delete (null);
                 } catch (GLib.Error e) {
                     Utils.show_error (window,
-                                      "Couldn't delete items: %s",
+                                      _("Couldn't delete items: %s"),
                                       e.message);
                     return;
                 }
             }
-            Utils.show_notification (window, "Deleted items");
+            Utils.show_notification (window, _("Deleted items"));
         }
 
         void on_map () {
             var toplevel = (Window) get_toplevel ();
-            toplevel.insert_action_group ("list-panel", this._selection_actions);
+            toplevel.insert_action_group ("list-panel",
+                                          this._selection_actions);
             toplevel.selection_mode_toggle_button.bind_property (
                 "active",
                 this, "selection-mode",
@@ -155,7 +156,7 @@ namespace Credentials {
             collection.item_added.connect (on_item_added);
             collection.item_removed.connect (on_item_removed);
             collection.load_items.begin (null);
-            adjust_view ();
+            sync_visible_child ();
         }
 
         void on_collection_removed (Collection collection) {
@@ -164,7 +165,7 @@ namespace Credentials {
                 if (item.collection == collection)
                     this._store.remove (i);
             }
-            adjust_view ();
+            sync_visible_child ();
         }
 
         void on_item_added (Item item) {
@@ -181,19 +182,19 @@ namespace Credentials {
                         }
                     }
                 });
-            adjust_view ();
+            sync_visible_child ();
         }
 
         void on_item_removed (Item item) {
             for (var i = 0; i < this._store.get_n_items (); i++) {
                 if (this._store.get_item (i) == item) {
                     this._store.remove (i);
-                    adjust_view ();
+                    sync_visible_child ();
                 }
             }
         }
 
-        void adjust_view () {
+        void sync_visible_child () {
             if (this._store.get_n_items () == 0)
                 this.visible_child_name = "empty";
             else
@@ -253,7 +254,8 @@ namespace Credentials {
                         } catch (GLib.Error e) {
                             warning ("failed to load content: %s", e.message);
                         }
-                        var adapter = this._adapters.lookup (item.collection.backend);
+                        var backend = item.collection.backend;
+                        var adapter = this._adapters.lookup (backend);
                         var dialog = adapter.create_editor_dialog (item);
                         dialog.response.connect_after ((res) => {
                                 dialog.destroy ();
