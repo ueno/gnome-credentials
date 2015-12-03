@@ -28,7 +28,7 @@ namespace Credentials {
         }
 
         public override EditorDialog create_editor_dialog (Item item) {
-            return new SshEditorDialog ((SshItem) item);
+            return new SshEditorDialog (item);
         }
 
         public override GeneratorDialog create_generator_dialog (Collection collection) {

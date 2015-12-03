@@ -9,7 +9,7 @@ namespace Credentials {
 
         Gtk.Switch _authorized_switch;
 
-        public SshEditorDialog (SshItem item) {
+        public SshEditorDialog (Item item) {
             Object (item: item, use_header_bar: 1);
         }
 
