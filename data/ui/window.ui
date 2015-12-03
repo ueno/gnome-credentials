@@ -124,6 +124,21 @@
 		      </packing>
 		    </child>
 		    <child>
+		      <object class="GtkButton" id="selection_export_button">
+			<property name="visible">True</property>
+			<property name="valign">center</property>
+			<property name="use-underline">True</property>
+			<property name="label" translatable="yes">_Export</property>
+			<property name="action-name">list-panel.export-selected</property>
+			<style>
+			  <class name="text-button"/>
+			</style>
+		      </object>
+		      <packing>
+			<property name="pack-type">start</property>
+		      </packing>
+		    </child>
+		    <child>
 		      <object class="GtkButton" id="selection_delete_button">
 			<property name="visible">True</property>
 			<property name="valign">center</property>

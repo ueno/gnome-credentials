@@ -42,6 +42,10 @@ namespace Credentials {
             action.activate.connect (() => { publish_selected.begin (); });
             this._selection_actions.add_action (action);
 
+            action = new GLib.SimpleAction ("export-selected", null);
+            action.activate.connect (() => { export_selected.begin (); });
+            this._selection_actions.add_action (action);
+
             action = new GLib.SimpleAction ("delete-selected", null);
             action.activate.connect (() => { delete_selected.begin (); });
             this._selection_actions.add_action (action);
@@ -82,6 +86,62 @@ namespace Credentials {
                 }
             }
             Utils.show_notification (window, _("Published items"));
+        }
+
+        struct ItemSelection {
+            GenericArray<Item> items;
+        }
+
+        async void export_selected () {
+            var window = (Gtk.Window) get_toplevel ();
+            var items = get_selected_items ();
+            var selections = new GLib.HashTable<Collection,ItemSelection?> (null, null);
+            foreach (var item in items) {
+                if (!selections.contains (item.collection)) {
+                    var selection = ItemSelection () { items = new GenericArray<Item> () };
+                    selections.insert (item.collection, selection);
+                }
+                var selection = selections.lookup (item.collection);
+                selection.items.add (item);
+            }
+            var iter = GLib.HashTableIter<Collection,ItemSelection?> (selections);
+            Collection collection;
+            ItemSelection? selection;
+            while (iter.next (out collection, out selection)) {
+                var dialog = new Gtk.FileChooserDialog (
+                    _("Export %s").printf (collection.item_type),
+                    window,
+                    Gtk.FileChooserAction.SAVE,
+                    _("_Cancel"),
+                    Gtk.ResponseType.CANCEL,
+                    _("_Export"),
+                    Gtk.ResponseType.ACCEPT);
+
+                var res = dialog.run ();
+                if (res == Gtk.ResponseType.ACCEPT) {
+                    try {
+                        var bytes = yield collection.export_to_bytes (
+                            selection.items.data, null);
+                        var path = dialog.get_filename ();
+                        var file = GLib.File.new_for_path (path);
+                        file.replace_contents (bytes.get_data (),
+                                               null,
+                                               true,
+                                               GLib.FileCreateFlags.NONE,
+                                               null,
+                                               null);
+                        Utils.show_notification (
+                            window,
+                            _("Exported %s items").printf (collection.item_type));
+                    } catch (GLib.Error e) {
+                        Utils.show_error (
+                            window,
+                            _("Couldn't export items: %s"),
+                            e.message);
+                    }
+                }
+                dialog.destroy ();
+            }
         }
 
         async void delete_selected () {

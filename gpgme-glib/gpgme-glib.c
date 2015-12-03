@@ -2112,7 +2112,7 @@ _g_gpg_ctx_export_keys_begin (GGpgCtx *ctx,
  * @ctx: a #GGpgCtx
  * @keys: (array zero-terminated=1) (element-type GGpgKey): list of keys
  * @mode: a #GGpgExportMode
- * @keydata: a #GGpgData
+ * @keydata: (nullable): a #GGpgData
  * @cancellable: (nullable): a #GCancellable
  * @callback: a callback
  * @user_data: a user data

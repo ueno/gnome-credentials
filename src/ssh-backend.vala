@@ -144,6 +144,10 @@ namespace Credentials {
             if (subprocess.get_exit_status () != 0)
                 throw new SshError.FAILED ("cannot change password");
         }
+
+        public GLib.Bytes to_bytes () {
+            return this._content.to_bytes ();
+        }
     }
 
     class SshGeneratedItemParameters : GeneratedItemParameters {
@@ -411,6 +415,17 @@ namespace Credentials {
             if (subprocess.get_exit_status () != 0)
                 throw new SshError.FAILED ("cannot generate key");
             yield load_items (cancellable);
+        }
+
+        public override async GLib.Bytes export_to_bytes (Item[] items,
+                                                          GLib.Cancellable? cancellable) throws GLib.Error
+        {
+            var buffer = new GLib.ByteArray ();
+            foreach (var item in items) {
+                var bytes = ((SshItem) item).to_bytes ();
+                buffer.append (bytes.get_data ());
+            }
+            return GLib.ByteArray.free_to_bytes (buffer);
         }
 
         public override int compare (Collection other) {

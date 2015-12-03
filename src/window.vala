@@ -32,6 +32,9 @@ namespace Credentials {
         Gtk.Button selection_publish_button;
 
         [GtkChild]
+        Gtk.Button selection_export_button;
+
+        [GtkChild]
         Gtk.Button selection_delete_button;
 
         [GtkChild]
@@ -79,6 +82,10 @@ namespace Credentials {
                                       GLib.BindingFlags.SYNC_CREATE,
                                       transform_is_greater_than_zero);
             this._area.bind_property ("selection-count",
+                                      selection_export_button, "sensitive",
+                                      GLib.BindingFlags.SYNC_CREATE,
+                                      transform_is_greater_than_zero);
+            this._area.bind_property ("selection-count",
                                       selection_delete_button, "sensitive",
                                       GLib.BindingFlags.SYNC_CREATE,
                                       transform_is_greater_than_zero);
@@ -91,6 +98,16 @@ namespace Credentials {
                     } else {
                         context.remove_class ("selection-mode");
                         main_header_bar.set_custom_title (this._switcher);
+                    }
+                });
+
+            this._area.notify["selection-count"].connect ((s, p) => {
+                    if (this._area.selection_mode) {
+                        if (this._area.selection_count > 0) {
+                            main_header_bar.set_title (_("%d Selected").printf (this._area.selection_count));
+                        } else {
+                            main_header_bar.set_title (_("Selection"));
+                        }
                     }
                 });
 

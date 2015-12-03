@@ -1,4 +1,10 @@
 namespace Credentials {
+    errordomain BackendError {
+        FAILED,
+        INVALID_ARGUMENT,
+        NOT_SUPPORTED
+    }
+
     abstract class Item : GLib.Object {
         public Collection collection { construct set; get; }
         public signal void changed ();
@@ -6,9 +12,11 @@ namespace Credentials {
         public abstract string get_label ();
 
         public virtual async void delete (GLib.Cancellable? cancellable) throws GLib.Error {
+            throw new BackendError.NOT_SUPPORTED ("not supported");
         }
 
         public virtual async void publish (GLib.Cancellable? cancellable) throws GLib.Error {
+            throw new BackendError.NOT_SUPPORTED ("not supported");
         }
 
         public abstract async void load_content (GLib.Cancellable? cancellable) throws GLib.Error;
@@ -30,6 +38,7 @@ namespace Credentials {
         public abstract GLib.List<Item> get_items ();
 
         public virtual async void unlock (GLib.Cancellable? cancellable) throws GLib.Error {
+            throw new BackendError.NOT_SUPPORTED ("not supported");
         }
 
         public signal void item_added (Item item);
@@ -37,6 +46,13 @@ namespace Credentials {
 
         public signal void progress_changed (string label, double fraction);
         public virtual async void generate_item (GeneratedItemParameters parameters, GLib.Cancellable? cancellable) throws GLib.Error {
+            throw new BackendError.NOT_SUPPORTED ("not supported");
+        }
+
+        public virtual async GLib.Bytes export_to_bytes (Item[] items,
+                                                         GLib.Cancellable? cancellable) throws GLib.Error
+        {
+            throw new BackendError.NOT_SUPPORTED ("not supported");
         }
 
         public abstract int compare (Collection other);

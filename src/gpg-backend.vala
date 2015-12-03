@@ -471,6 +471,21 @@ namespace Credentials {
             return ctx.import_result ();
         }
 
+        public override async GLib.Bytes export_to_bytes (Item[] items,
+                                                          GLib.Cancellable? cancellable) throws GLib.Error
+        {
+            var ctx = new GGpg.Ctx ();
+            ctx.protocol = protocol;
+            ctx.armor = true;
+            GGpg.Key[] keys = {};
+            foreach (var item in items) {
+                keys += ((GpgItem) item).get_content ();
+            }
+            var data = new GGpg.Data ();
+            yield ctx.export_keys (keys, 0, data, cancellable);
+            return data.free_to_bytes ();
+        }
+
         public override int compare (Collection other) {
             var difference = backend.compare (((Collection) other).backend);
             if (difference != 0)
