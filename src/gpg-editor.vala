@@ -807,8 +807,14 @@ namespace Credentials {
             if (validity == item.owner_trust)
                 return;
 
-            var command = new GpgTrustEditCommand (validity);
+            if (validity == GGpg.Validity.UNKNOWN ||
+                validity == GGpg.Validity.UNDEFINED) {
+                update_trust ();
+                return;
+            }
+
             var window = (Gtk.Window) this.get_toplevel ();
+            var command = new GpgTrustEditCommand (validity);
             item.edit.begin (command, null, (obj, res) => {
                     try {
                         item.edit.end (res);
