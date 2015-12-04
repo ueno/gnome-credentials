@@ -56,7 +56,7 @@
 	    </child>
 	    <child>
 	      <object class="GtkButton" id="change_password_button">
-		<property name="label" translatable="yes">_Change Password...</property>
+		<property name="label" translatable="yes">_Change Password…</property>
 		<property name="use-underline">True</property>
 		<property name="visible">True</property>
 		<property name="can_focus">True</property>
