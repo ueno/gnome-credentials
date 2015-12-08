@@ -2,11 +2,7 @@
 #include <gpgme.h>
 #include "gpgme-glib/gpgme-glib.h"
 
-GQuark
-g_gpg_error_quark (void)
-{
-  return g_quark_from_static_string ("g-gpg-error-quark");
-}
+G_DEFINE_QUARK (g-gpg-error-quark, g_gpg_error)
 
 /**
  * g_gpg_check_version:
