@@ -166,9 +166,11 @@ namespace Credentials {
             var pubkey = this._content.get_subkeys ().first ().data;
             var ctx = new GGpg.Ctx ();
             ctx.protocol = ((GpgCollection) collection).protocol;
+            var patterns = new string[] { pubkey.fingerprint };
 
             // First, try to load the secret key.
-            yield ctx.keylist (pubkey.fingerprint, true,
+            yield ctx.keylist (patterns,
+                               true,
                                (key) => {
                                    this._content = key;
                                },
@@ -177,7 +179,8 @@ namespace Credentials {
             // If there is no corresponding secret key, load
             // the public key.
             if (!has_secret) {
-                yield ctx.keylist (pubkey.fingerprint, false,
+                yield ctx.keylist (patterns,
+                                   false,
                                    (key) => {
                                        this._content = key;
                                    },

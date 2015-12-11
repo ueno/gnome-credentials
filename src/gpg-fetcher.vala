@@ -188,7 +188,8 @@ namespace Credentials {
 
             start_spinner ();
             ctx.keylist.begin (
-                text, false,
+                text.split_set (" \t"),
+                false,
                 (key) => {
                     var context = GLib.MainContext.default ();
                     context.invoke (() => {

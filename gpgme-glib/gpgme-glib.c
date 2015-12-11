@@ -1595,7 +1595,7 @@ g_gpg_source_connect_cancellable (struct GGpgSource *source,
 struct GGpgKeylistSource
 {
   struct GGpgSource source;
-  gchar *pattern;
+  gchar **patterns;
   gboolean secret_only;
 };
 
@@ -1603,7 +1603,7 @@ static void
 g_gpg_keylist_source_finalize (GSource *_source)
 {
   struct GGpgKeylistSource *source = (struct GGpgKeylistSource *) _source;
-  g_free (source->pattern);
+  g_strfreev (source->patterns);
 }
 
 static void
@@ -1614,8 +1614,9 @@ _g_gpg_ctx_keylist_begin (GGpgCtx *ctx,
 {
   gpgme_error_t err;
 
-  err = gpgme_op_keylist_start (ctx->pointer, source->pattern,
-                                source->secret_only);
+  err = gpgme_op_keylist_ext_start (ctx->pointer,
+                                    (const gchar **) source->patterns,
+                                    source->secret_only, 0);
   if (err)
     {
       g_task_return_new_error (task, G_GPG_ERROR, gpgme_err_code (err),
@@ -1631,7 +1632,7 @@ _g_gpg_ctx_keylist_begin (GGpgCtx *ctx,
 /**
  * g_gpg_ctx_keylist:
  * @ctx: a #GGpgCtx
- * @pattern: (nullable): a string
+ * @patterns: (nullable) (array zero-terminated) (element-type utf8): an array of string
  * @secret_only: if %TRUE, only list secret keys
  * @keylist_callback: (scope notified) (destroy keylist_destroy) (closure keylist_user_data): a #GGpgKeylistCallback
  * @keylist_user_data: a data for @keylist_callback
@@ -1642,7 +1643,9 @@ _g_gpg_ctx_keylist_begin (GGpgCtx *ctx,
  *
  */
 void
-g_gpg_ctx_keylist (GGpgCtx *ctx, const gchar *pattern, gboolean secret_only,
+g_gpg_ctx_keylist (GGpgCtx *ctx,
+                   const gchar * const * patterns,
+                   gboolean secret_only,
                    GGpgKeylistCallback keylist_callback,
                    gpointer keylist_user_data,
                    GDestroyNotify keylist_destroy,
@@ -1658,7 +1661,7 @@ g_gpg_ctx_keylist (GGpgCtx *ctx, const gchar *pattern, gboolean secret_only,
   source->source.keylist_callback = keylist_callback;
   source->source.keylist_user_data = keylist_user_data;
   source->source.keylist_destroy = keylist_destroy;
-  source->pattern = g_strdup (pattern);
+  source->patterns = g_strdupv ((gchar **) patterns);
   source->secret_only = secret_only;
   g_task_set_task_data (task, source,
                         (GDestroyNotify) g_gpg_keylist_source_finalize);

@@ -104,7 +104,9 @@ void g_gpg_ctx_clear_signers (GGpgCtx *ctx);
 
 typedef void (*GGpgKeylistCallback) (gpointer user_data,
                                      GGpgKey *key);
-void g_gpg_ctx_keylist (GGpgCtx *ctx, const gchar *pattern, gboolean secret_only,
+void g_gpg_ctx_keylist (GGpgCtx *ctx,
+                        const gchar * const * patterns,
+                        gboolean secret_only,
                         GGpgKeylistCallback keylist_callback,
                         gpointer keylist_user_data,
                         GDestroyNotify keylist_destroy,
