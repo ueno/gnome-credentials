@@ -23,10 +23,13 @@ namespace Credentials {
         public Gtk.MenuButton generators_menu_button;
 
         [GtkChild]
-        public Gtk.ToggleButton selection_mode_toggle_button;
+        public Gtk.Button selection_mode_enable_button;
 
         [GtkChild]
-        public Gtk.Revealer selection_bar;
+        Gtk.Button selection_mode_cancel_button;
+
+        [GtkChild]
+        Gtk.Revealer selection_bar;
 
         [GtkChild]
         Gtk.Button selection_publish_button;
@@ -70,6 +73,16 @@ namespace Credentials {
 
             this._area = new Credentials.ContentArea ();
             this._area.bind_property ("selection-mode",
+                                      selection_mode_enable_button, "visible",
+                                      GLib.BindingFlags.SYNC_CREATE |
+                                      GLib.BindingFlags.INVERT_BOOLEAN);
+            this._area.bind_property ("selection-mode",
+                                      selection_mode_cancel_button, "visible",
+                                      GLib.BindingFlags.SYNC_CREATE);
+            this._area.bind_property ("selection-mode",
+                                      selection_bar, "reveal-child",
+                                      GLib.BindingFlags.SYNC_CREATE);
+            this._area.bind_property ("selection-mode",
                                       generators_menu_button, "visible",
                                       GLib.BindingFlags.SYNC_CREATE |
                                       GLib.BindingFlags.INVERT_BOOLEAN);
@@ -111,9 +124,8 @@ namespace Credentials {
                     }
                 });
 
-            selection_mode_toggle_button.bind_property ("active",
-                                                        this._area, "selection-mode",
-                                                        GLib.BindingFlags.SYNC_CREATE);
+            selection_mode_enable_button.clicked.connect (on_selection_mode_enable_button_clicked);
+            selection_mode_cancel_button.clicked.connect (on_selection_mode_cancel_button_clicked);
             this._switcher = new Gtk.StackSwitcher ();
             this._switcher.set_stack (this._area);
             this._switcher.show ();
@@ -132,6 +144,14 @@ namespace Credentials {
                     this._cancellable.cancel ();
                     search_active = false;
                 });
+        }
+
+        void on_selection_mode_enable_button_clicked (Gtk.Button button) {
+            this._area.selection_mode = true;
+        }
+
+        void on_selection_mode_cancel_button_clicked (Gtk.Button button) {
+            this._area.selection_mode = false;
         }
 
         bool transform_is_greater_than_zero (GLib.Binding binding,

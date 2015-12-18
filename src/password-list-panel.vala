@@ -43,8 +43,7 @@ namespace Credentials {
         void on_map () {
             Window toplevel = (Window) this.get_toplevel ();
             toplevel.generators_menu_button.hide ();
-            toplevel.selection_mode_toggle_button.active = false;
-            toplevel.selection_mode_toggle_button.hide ();
+            toplevel.selection_mode_enable_button.hide ();
 
             this._backend.bind_property ("has-locked",
                                          toplevel.unlock_button, "visible",

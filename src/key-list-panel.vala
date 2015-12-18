@@ -23,8 +23,7 @@ namespace Credentials {
             toplevel.unlock_button.set_visible (false);
             toplevel.generators_menu_button.show ();
             toplevel.generators_menu_button.set_popover (this._generators_popover);
-            toplevel.selection_mode_toggle_button.active = false;
-            toplevel.selection_mode_toggle_button.show ();
+            toplevel.selection_mode_enable_button.show ();
         }
 
         public virtual void register_generator_action (GLib.SimpleAction action) {

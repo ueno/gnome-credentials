@@ -177,14 +177,6 @@ namespace Credentials {
             var toplevel = (Window) get_toplevel ();
             toplevel.insert_action_group ("list-panel",
                                           this._selection_actions);
-            toplevel.selection_mode_toggle_button.bind_property (
-                "active",
-                this, "selection-mode",
-                GLib.BindingFlags.SYNC_CREATE);
-            toplevel.selection_mode_toggle_button.bind_property (
-                "active",
-                toplevel.selection_bar, "reveal-child",
-                GLib.BindingFlags.SYNC_CREATE);
         }
 
         public override void constructed () {
