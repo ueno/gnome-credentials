@@ -50,6 +50,14 @@ namespace Credentials {
             action.activate.connect (() => { delete_selected.begin (); });
             this._selection_actions.add_action (action);
 
+            action = new GLib.SimpleAction ("select-all", null);
+            action.activate.connect ((v) => { select_all (); });
+            this._selection_actions.add_action (action);
+
+            action = new GLib.SimpleAction ("unselect-all", null);
+            action.activate.connect ((v) => { unselect_all (); });
+            this._selection_actions.add_action (action);
+
             this._store = new GLib.ListStore (typeof (Item));
             this._filtered_store = new GLib.ListStore (typeof (Item));
             this._backends = {};
@@ -171,6 +179,28 @@ namespace Credentials {
                 }
             }
             Utils.show_notification (window, _("Deleted items"));
+        }
+
+        void select_all () {
+            set_selection_active (true);
+        }
+
+        void unselect_all () {
+            set_selection_active (false);
+        }
+
+        void set_selection_active (bool active) {
+            for (var i = 0; i < this._store.get_n_items (); i++) {
+                var row = list_box.get_row_at_index (i);
+                var children = row.get_children ();
+                var container = (Gtk.Container) children.first ().data;
+                foreach (var child in container.get_children ()) {
+                    var check_button = child as Gtk.CheckButton;
+                    if (check_button == null)
+                        continue;
+                    check_button.active = active;
+                }
+            }
         }
 
         void on_map () {

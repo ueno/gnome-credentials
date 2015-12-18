@@ -46,6 +46,7 @@ namespace Credentials {
         public bool search_active { get; set; default = false; }
 
         Gtk.StackSwitcher _switcher;
+        Gtk.MenuButton _selection_menu_button;
         ContentArea _area;
         GLib.Cancellable _cancellable;
 
@@ -102,12 +103,18 @@ namespace Credentials {
                                       selection_delete_button, "sensitive",
                                       GLib.BindingFlags.SYNC_CREATE,
                                       transform_is_greater_than_zero);
+            var builder = new Gtk.Builder.from_resource (
+                "/org/gnome/Credentials/selection-menu.ui");
+            var menu = (GLib.MenuModel) builder.get_object ("selection-menu");
+            this._selection_menu_button = new Gtk.MenuButton ();
+            this._selection_menu_button.get_style_context ().add_class ("selection-menu");
+            this._selection_menu_button.set_menu_model (menu);
+            this._selection_menu_button.show ();
             this._area.notify["selection-mode"].connect ((s, p) => {
                     var context = main_header_bar.get_style_context ();
                     if (this._area.selection_mode) {
                         context.add_class ("selection-mode");
-                        main_header_bar.set_custom_title (null);
-                        main_header_bar.set_title (_("Selection"));
+                        main_header_bar.set_custom_title (this._selection_menu_button);
                     } else {
                         context.remove_class ("selection-mode");
                         main_header_bar.set_custom_title (this._switcher);
@@ -116,11 +123,15 @@ namespace Credentials {
 
             this._area.notify["selection-count"].connect ((s, p) => {
                     if (this._area.selection_mode) {
-                        if (this._area.selection_count > 0) {
-                            main_header_bar.set_title (_("%d Selected").printf (this._area.selection_count));
+                        string label;
+                        if (this._area.selection_count == 0) {
+                            label = _("Click on items to select them");
                         } else {
-                            main_header_bar.set_title (_("Selection"));
+                            label = ngettext ("%d selected",
+                                              "%d selected",
+                                              this._area.selection_count).printf (this._area.selection_count);
                         }
+                        this._selection_menu_button.set_label (label);
                     }
                 });
 
