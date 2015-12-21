@@ -11,6 +11,14 @@
     padding: 10px 10px;
 }
 
+.password-list-details {
+    padding: 6px 6px;
+}
+
+.password-list-account {
+    font-size: x-small;
+}
+
 .key-list-heading {
     padding: 10px 10px;
 }

@@ -13,6 +13,7 @@ gnome_credentials_SOURCES =			\
 	secret-backend.vala			\
 	secret-editor.vala			\
 	secret-view-adapter.vala		\
+	secret-schema.vala			\
 	gpg-backend.vala			\
 	gpg-editor.vala				\
 	gpg-generator.vala			\
@@ -39,7 +40,8 @@ gnome_credentials_LDADD =				\
 gresource_file = $(top_srcdir)/data/org.gnome.Credentials.gresource.xml
 
 AM_CPPFLAGS = -I$(top_srcdir) -include config.h \
-	$(DEPS_CFLAGS) $(LIBGCRYPT_CFLAGS) -I$(top_srcdir)/libgd
+	$(DEPS_CFLAGS) $(LIBGCRYPT_CFLAGS) -I$(top_srcdir)/libgd \
+	-DGOA_API_IS_SUBJECT_TO_CHANGE=1
 AM_VALAFLAGS =					\
 	--target-glib=2.38			\
 	--vapidir=$(srcdir)			\
@@ -50,9 +52,11 @@ AM_VALAFLAGS =					\
 	--pkg config				\
 	--pkg gcrypt				\
 	--pkg gd-1.0				\
+	--pkg goa-1.0				\
 	--pkg gpgme-glib-1.0			\
 	--pkg gtk+-3.0				\
 	--pkg libsecret-1			\
+	--pkg libsoup-2.4			\
 	--pkg pango				\
 	--pkg posix				\
 	--gresources $(gresource_file)

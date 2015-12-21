@@ -1,28 +1,36 @@
 namespace Credentials {
     class SecretViewAdapter : ViewAdapter {
-        string format_use (SecretUse use) {
-            switch (use) {
-            case SecretUse.OTHER:
-                return _("other");
-            case SecretUse.WEBSITE:
-                return _("website");
-            case SecretUse.NETWORK:
-                return _("network");
-            default:
-                return_val_if_reached (_("invalid"));
-            }
-        }
-
         public override Gtk.Widget create_list_box_row (Item _item) {
             var box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 0);
 
             var item = (SecretItem) _item;
 
-            var heading = new Gtk.Label (format_use (item.use));
-            var context = heading.get_style_context ();
-            context.add_class ("password-list-heading");
-            heading.xalign = 0;
-            box.pack_start (heading, false, false, 0);
+            var details_box = new Gtk.Box (Gtk.Orientation.VERTICAL, 0);
+            var context = details_box.get_style_context ();
+            context.add_class ("password-list-details");
+
+            var domain = item.format_domain ();
+            if (domain == null) {
+                domain = item.format_use ();
+            }
+
+            var domain_label = new Gtk.Label (domain);
+            domain_label.xalign = 0;
+            context = domain_label.get_style_context ();
+            context.add_class ("password-list-domain");
+            details_box.pack_start (domain_label, false, false, 0);
+
+            var account = item.format_account ();
+            if (account != null) {
+                var account_label = new Gtk.Label (account);
+                account_label.xalign = 0;
+                context = account_label.get_style_context ();
+                context.add_class ("dim-label");
+                context.add_class ("password-list-account");
+                details_box.pack_end (account_label, false, false, 0);
+            }
+
+            box.pack_start (details_box, true, true, 0);
 
             var modified = (int64) item.get_modified ();
             var date = new GLib.DateTime.from_unix_utc (modified);

@@ -14,9 +14,15 @@ namespace Credentials {
             }
         }
 
+        SecretSchema _schema = null;
+        public override void constructed () {
+            base.constructed ();
+            this._schema = ((SecretBackend) collection.backend).get_schema (this._content.get_schema_name ());
+        }
+
         public SecretUse use {
             get {
-                return ((SecretBackend) collection.backend).get_item_use (_content);
+                return this._schema.use;
             }
         }
 
@@ -30,6 +36,10 @@ namespace Credentials {
 
         public Secret.Value? get_secret () {
             return this._content.get_secret ();
+        }
+
+        public GLib.HashTable<string,string> get_attributes () {
+            return this._content.get_attributes ();
         }
 
         public async void load_secret (GLib.Cancellable? cancellable) throws GLib.Error {
@@ -49,6 +59,31 @@ namespace Credentials {
         public override async void delete (GLib.Cancellable? cancellable) throws GLib.Error {
             yield this._content.delete (cancellable);
             collection.item_removed (this);
+        }
+
+        public string? format_domain () {
+            if (this._schema == null)
+                return null;
+            return this._schema.format_domain (this);
+        }
+
+        public string? format_account () {
+            if (this._schema == null)
+                return null;
+            return this._schema.format_account (this);
+        }
+
+        public string? format_use () {
+            switch (this.use) {
+            case SecretUse.OTHER:
+                return _("other");
+            case SecretUse.WEBSITE:
+                return _("website");
+            case SecretUse.NETWORK:
+                return _("network");
+            default:
+                return_val_if_reached (_("invalid"));
+            }
         }
 
         public override async void load_content (GLib.Cancellable? cancellable) throws GLib.Error {
@@ -201,8 +236,9 @@ namespace Credentials {
         void add_item (Secret.Item _item) {
             var object_path = _item.get_object_path ();
 
-            var use = ((SecretBackend) backend).get_item_use (_item);
-            if (use == SecretUse.INVALID)
+            var name = _item.get_schema_name ();
+            var schema = ((SecretBackend) backend).get_schema (name);
+            if (schema == null)
                 return;
 
             var item = new SecretItem (this, _item);
@@ -225,7 +261,7 @@ namespace Credentials {
     class SecretBackend : Backend {
         GLib.HashTable<string,string> _aliases;
         GLib.HashTable<string,SecretCollection> _collections;
-        GLib.HashTable<string,SecretUse> _uses;
+        GLib.HashTable<string,SecretSchema> _schemas;
 
         public override bool has_locked {
             get {
@@ -246,17 +282,23 @@ namespace Credentials {
             this._collections =
                 new GLib.HashTable<string,SecretCollection> (GLib.str_hash,
                                                              GLib.str_equal);
-            this._uses =
-                new GLib.HashTable<string,SecretUse> (GLib.str_hash,
-                                                      GLib.str_equal);
-            this._uses.insert ("org.epiphany.FormPassword",
-                               SecretUse.WEBSITE);
-            this._uses.insert ("org.gnome.OnlineAccounts",
-                               SecretUse.NETWORK);
-            this._uses.insert ("org.gnome.keyring.NetworkPassword",
-                               SecretUse.NETWORK);
-            this._uses.insert ("org.gnupg.Passphrase",
-                               SecretUse.INVALID);
+            this._schemas =
+                new GLib.HashTable<string,SecretSchema> (GLib.str_hash,
+                                                         GLib.str_equal);
+
+            this._schemas.insert ("org.epiphany.FormPassword",
+                                  new SecretSchemaEpiphany ());
+            this._schemas.insert ("x.internal.Chrome",
+                                  new SecretSchemaChrome ());
+            this._schemas.insert ("org.gnome.keyring.NetworkPassword",
+                                  new SecretSchemaNetworkPassword ());
+            try {
+                var client = new Goa.Client.sync ();
+                this._schemas.insert ("org.gnome.OnlineAccounts",
+                                      new SecretSchemaGoa (client));
+            } catch (Error e) {
+                warning ("cannot create GOA client: %s", e.message);
+            }
         }
 
         public SecretBackend (string name) {
@@ -324,8 +366,8 @@ namespace Credentials {
             }
         }
 
-        public SecretUse get_item_use (Secret.Item item) {
-            return this._uses.lookup (item.get_schema_name ());
+        public SecretSchema? get_schema (string name) {
+            return this._schemas.lookup (name);
         }
 
         public override int compare (Backend other) {
