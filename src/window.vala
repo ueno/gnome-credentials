@@ -88,6 +88,10 @@ namespace Credentials {
                                       GLib.BindingFlags.SYNC_CREATE |
                                       GLib.BindingFlags.INVERT_BOOLEAN);
             this._area.bind_property ("selection-mode",
+                                      main_header_bar, "show-close-button",
+                                      GLib.BindingFlags.SYNC_CREATE |
+                                      GLib.BindingFlags.INVERT_BOOLEAN);
+            this._area.bind_property ("selection-mode",
                                       search_active_button, "visible",
                                       GLib.BindingFlags.SYNC_CREATE |
                                       GLib.BindingFlags.INVERT_BOOLEAN);
