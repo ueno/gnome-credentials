@@ -97,15 +97,29 @@ namespace Credentials {
             properties_grid.attach (label, 1, row_index, 1, 1);
             row_index++;
 
-            label = create_name_label (_("Remote Access"));
-            properties_grid.attach (label, 0, row_index, 1, 1);
+            var vbox = new Gtk.Box (Gtk.Orientation.VERTICAL, 3);
+            label = new Gtk.Label (_("Remote Access"));
+            label.xalign = 0;
+            vbox.pack_start (label, false, false, 0);
+            var hint_label = new Gtk.Label (_("Allows accessing this computer remotely"));
+            hint_label.xalign = 0;
+            hint_label.get_style_context ().add_class ("dim-label");
+            vbox.pack_end (hint_label, false, false, 0);
+
+            var hbox = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 3);
+            hbox.pack_start (vbox, false, false, 0);
+
             this._authorized_switch = new Gtk.Switch ();
             this._authorized_switch.set_halign (Gtk.Align.START);
+            this._authorized_switch.set_valign (Gtk.Align.CENTER);
             _item.bind_property ("authorized",
                                  this._authorized_switch, "active",
                                  GLib.BindingFlags.SYNC_CREATE |
                                  GLib.BindingFlags.BIDIRECTIONAL);
-            properties_grid.attach (this._authorized_switch, 1, row_index, 1, 1);
+            hbox.margin_top = 20;
+            hbox.pack_end (this._authorized_switch, false, false, 0);
+
+            properties_grid.attach (hbox, 0, row_index, 2, 1);
             row_index++;
 
             properties_grid.show_all ();
