@@ -27,6 +27,7 @@ gnome_credentials_SOURCES =			\
 	ssh-generator.vala			\
 	ssh-view-adapter.vala			\
 	model-button.vala			\
+	secret-entry.vala			\
 	list-box-helper.vala			\
 	utils.vala				\
 	resources.c
@@ -52,6 +53,7 @@ AM_VALAFLAGS =					\
 	--pkg config				\
 	--pkg gcrypt				\
 	--pkg gd-1.0				\
+	--pkg gio-unix-2.0			\
 	--pkg goa-1.0				\
 	--pkg gpgme-glib-1.0			\
 	--pkg gtk+-3.0				\

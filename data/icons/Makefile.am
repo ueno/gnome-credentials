@@ -1,14 +1,10 @@
-icondir = $(datadir)/icons/
+icondir = $(datadir)/icons
 
-# ##example## Uncomment when an icon actually exists
+nobase_icon_DATA = \
+	hicolor/scalable/actions/credentials-edit-toggle-visibility-symbolic.svg
 
-#nobase_icon_DATA = \
-#	hicolor/16x16/apps/$(PACKAGE_NAME).png \
-#	hicolor/22x22/apps/$(PACKAGE_NAME).png \
-#	hicolor/32x32/apps/$(PACKAGE_NAME).png \
-#	hicolor/48x48/apps/$(PACKAGE_NAME).png \
-#	hicolor/256x256/apps/$(PACKAGE_NAME).png
-#EXTRA_DIST = $(nobase_icon_DATA) hicolor/$(PACKAGE_NAME).svg
+EXTRA_DIST = $(nobase_icon_DATA) \
+	credentials-stencils.svg render-symbolic.rb
 
 gtk_update_icon_cache = gtk-update-icon-cache -f -t $(datadir)/icons/hicolor; gtk-update-icon-cache -f -t $(datadir)/icons/HighContrast
 

@@ -54,5 +54,9 @@ public int main (string[] args) {
     // GtkBuilder file.
     typeof (Credentials.ModelButton).class_ref ();
 
+    // The type "CredentialsSecretEntry" is referred to from a
+    // GtkBuilder file.
+    typeof (Credentials.SecretEntry).class_ref ();
+
     return (new Credentials.Application ()).run (args);
 }

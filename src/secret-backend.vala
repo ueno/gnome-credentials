@@ -15,6 +15,12 @@ namespace Credentials {
         }
 
         SecretSchema _schema = null;
+        public SecretSchema schema {
+            get {
+                return this._schema;
+            }
+        }
+
         public override void constructed () {
             base.constructed ();
             this._schema = ((SecretBackend) collection.backend).get_schema (this._content.get_schema_name ());
@@ -59,31 +65,6 @@ namespace Credentials {
         public override async void delete (GLib.Cancellable? cancellable) throws GLib.Error {
             yield this._content.delete (cancellable);
             collection.item_removed (this);
-        }
-
-        public string? format_domain () {
-            if (this._schema == null)
-                return null;
-            return this._schema.format_domain (this);
-        }
-
-        public string? format_account () {
-            if (this._schema == null)
-                return null;
-            return this._schema.format_account (this);
-        }
-
-        public string? format_use () {
-            switch (this.use) {
-            case SecretUse.OTHER:
-                return _("other");
-            case SecretUse.WEBSITE:
-                return _("website");
-            case SecretUse.NETWORK:
-                return _("network");
-            default:
-                return_val_if_reached (_("invalid"));
-            }
         }
 
         public override async void load_content (GLib.Cancellable? cancellable) throws GLib.Error {

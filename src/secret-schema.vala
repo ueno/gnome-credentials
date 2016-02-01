@@ -1,11 +1,7 @@
 namespace Credentials {
     interface SecretSchema : GLib.Object {
         public abstract SecretUse use { get; }
-        public abstract string format_use ();
-        public abstract string? get_domain (SecretItem item);
-        public abstract string? get_account (SecretItem item);
-        public abstract string? format_domain (SecretItem item);
-        public abstract string? format_account (SecretItem item);
+        public abstract string? get_desktop_id (SecretItem item);
     }
 
     abstract class SecretSchemaBase : GLib.Object, SecretSchema {
@@ -15,12 +11,30 @@ namespace Credentials {
             }
         }
 
-        public virtual string format_use () {
-            var enum_class = (EnumClass) typeof (SecretUse).class_ref ();
-            var enum_value = enum_class.get_value (use);
-            return enum_value.value_nick;
+        public virtual string? get_desktop_id (SecretItem item) {
+            return null;
         }
-        
+    }
+
+    abstract class SecretSchemaNetwork : SecretSchemaBase {
+        public override SecretUse use {
+            get {
+                return SecretUse.NETWORK;
+            }
+        }
+
+        public virtual string? domain_label {
+            get {
+                return _("Domain");
+            }
+        }
+
+        public virtual string? account_label {
+            get {
+                return _("Account");
+            }
+        }
+
         public virtual string? get_domain (SecretItem item) {
             return null;
         }
@@ -30,27 +44,12 @@ namespace Credentials {
         }
 
         public virtual string? format_domain (SecretItem item) {
-            return get_domain (item);
-        }
-
-        public virtual string? format_account (SecretItem item) {
-            return get_account (item);
-        }
-    }
-
-
-    abstract class SecretSchemaNetwork : SecretSchemaBase {
-        public override SecretUse use {
-            get {
-                return SecretUse.NETWORK;
-            }
-        }
-
-        public override string? format_domain (SecretItem item) {
             var domain = get_domain (item);
             if (domain == null)
                 return null;
             var soup_uri = new Soup.URI (domain);
+            if (soup_uri == null)
+                return domain;
             var host = soup_uri.get_host ();
 
             try {
@@ -59,12 +58,28 @@ namespace Credentials {
                 return host;
             }
         }
+
+        public virtual string? format_account (SecretItem item) {
+            return get_account (item);
+        }
     }
 
     abstract class SecretSchemaWebsite : SecretSchemaNetwork {
         public override SecretUse use {
             get {
                 return SecretUse.WEBSITE;
+            }
+        }
+
+        public override string? domain_label {
+            get {
+                return _("URL");
+            }
+        }
+
+        public override string? account_label {
+            get {
+                return _("Username");
             }
         }
 
@@ -78,6 +93,10 @@ namespace Credentials {
     }
 
     class SecretSchemaEpiphany : SecretSchemaWebsite {
+        public override string? get_desktop_id (SecretItem item) {
+            return "epiphany.desktop";
+        }
+
         public override string? get_uri (SecretItem item) {
             var attributes = item.get_attributes ();
             return attributes.lookup ("uri");
