@@ -62,7 +62,7 @@ namespace Credentials {
                 var appinfo = new DesktopAppInfo (desktop_id);
                 if (appinfo != null) {
                     properties_grid.insert_next_to (notes_label, Gtk.PositionType.BOTTOM);
-                    var label = create_name_label (_("Added-by"));
+                    var label = create_name_label (_("Added by"));
                     label.show ();
                     properties_grid.attach_next_to (label, notes_label, Gtk.PositionType.BOTTOM, 1, 1);
                     var box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 3);
