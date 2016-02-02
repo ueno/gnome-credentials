@@ -1,77 +1,102 @@
 namespace Credentials {
     interface SecretSchema : GLib.Object {
         public abstract SecretUse use { get; }
+        public abstract string format_use ();
+        public abstract string? get_domain (SecretItem item);
+        public abstract string? get_account (SecretItem item);
         public abstract string? format_domain (SecretItem item);
         public abstract string? format_account (SecretItem item);
     }
 
-    class SecretSchemaDefault : GLib.Object, SecretSchema {
+    abstract class SecretSchemaBase : GLib.Object, SecretSchema {
         public virtual SecretUse use {
             get {
                 return SecretUse.INVALID;
             }
         }
 
-        public virtual string? format_domain (SecretItem item) {
+        public virtual string format_use () {
+            var enum_class = (EnumClass) typeof (SecretUse).class_ref ();
+            var enum_value = enum_class.get_value (use);
+            return enum_value.value_nick;
+        }
+        
+        public virtual string? get_domain (SecretItem item) {
             return null;
+        }
+
+        public virtual string? get_account (SecretItem item) {
+            return null;
+        }
+
+        public virtual string? format_domain (SecretItem item) {
+            return get_domain (item);
         }
 
         public virtual string? format_account (SecretItem item) {
+            return get_account (item);
+        }
+    }
+
+
+    abstract class SecretSchemaNetwork : SecretSchemaBase {
+        public override SecretUse use {
+            get {
+                return SecretUse.NETWORK;
+            }
+        }
+
+        public override string? format_domain (SecretItem item) {
+            var domain = get_domain (item);
+            if (domain == null)
+                return null;
+            var soup_uri = new Soup.URI (domain);
+            var host = soup_uri.get_host ();
+
+            try {
+                return Soup.tld_get_base_domain (host);
+            } catch (Error e) {
+                return host;
+            }
+        }
+    }
+
+    abstract class SecretSchemaWebsite : SecretSchemaNetwork {
+        public override SecretUse use {
+            get {
+                return SecretUse.WEBSITE;
+            }
+        }
+
+        public virtual string? get_uri (SecretItem item) {
             return null;
         }
-    }
 
-    class SecretSchemaEpiphany : SecretSchemaDefault {
-        public override SecretUse use {
-            get {
-                return SecretUse.WEBSITE;
-            }
-        }
-
-        public override string? format_domain (SecretItem item) {
-            var attributes = item.get_attributes ();
-            var value = attributes.lookup ("uri");
-            if (value == null)
-                return null;
-
-            var uri = new Soup.URI (value);
-            try {
-                return Soup.tld_get_base_domain (uri.get_host ());
-            } catch (Error e) {
-                return uri.get_host ();
-            }
-        }
-
-        public override string? format_account (SecretItem item) {
-            var attributes = item.get_attributes ();
-            var value = attributes.lookup ("username");
-            return value;
+        public override string? get_domain (SecretItem item) {
+            return get_uri (item);
         }
     }
 
-    class SecretSchemaChrome : SecretSchemaDefault {
-        public override SecretUse use {
-            get {
-                return SecretUse.WEBSITE;
-            }
+    class SecretSchemaEpiphany : SecretSchemaWebsite {
+        public override string? get_uri (SecretItem item) {
+            var attributes = item.get_attributes ();
+            return attributes.lookup ("uri");
         }
 
-        public override string? format_domain (SecretItem item) {
+        public override string? get_account (SecretItem item) {
             var attributes = item.get_attributes ();
-            var value = attributes.lookup ("origin_uri");
-            if (value == null)
-                return null;
-
-            var uri = new Soup.URI (value);
-            try {
-                return Soup.tld_get_base_domain (uri.get_host ());
-            } catch (Error e) {
-                return uri.get_host ();
-            }
+            return attributes.lookup ("username");
         }
     }
 
-    class SecretSchemaGoa : SecretSchemaDefault {
+    class SecretSchemaChrome : SecretSchemaWebsite {
+        public override string? get_uri (SecretItem item) {
+            var attributes = item.get_attributes ();
+            return attributes.lookup ("origin_uri");
+        }
+    }
+
+    class SecretSchemaGoa : SecretSchemaNetwork {
         public override SecretUse use {
             get {
                 return SecretUse.NETWORK;
@@ -94,7 +119,7 @@ namespace Credentials {
             }
         }
 
-        Goa.Account? get_account (SecretItem item) {
+        Goa.Account? get_goa_account (SecretItem item) {
             var attributes = item.get_attributes ();
             var value = attributes.lookup ("goa-identity");
             if (value == null)
@@ -105,33 +130,28 @@ namespace Credentials {
             return this._accounts.lookup (value[index + 1 : value.length]);
         }
 
-        public override string? format_domain (SecretItem item) {
-            var account = get_account (item);
+        public override string? get_domain (SecretItem item) {
+            var account = get_goa_account (item);
+            if (account == null)
+                return null;
             return account.provider_name;
         }
 
-        public override string? format_account (SecretItem item) {
-            var account = get_account (item);
+        public override string? get_account (SecretItem item) {
+            var account = get_goa_account (item);
+            if (account == null)
+                return null;
             return account.presentation_identity;
         }
     }
 
-    class SecretSchemaNetworkPassword : SecretSchemaDefault {
-        public override string? format_domain (SecretItem item) {
+    class SecretSchemaNetworkPassword : SecretSchemaNetwork {
+        public override string? get_domain (SecretItem item) {
             var attributes = item.get_attributes ();
-            var value = attributes.lookup ("domain");
-            if (value == null)
-                return null;
-
-            var uri = new Soup.URI (value);
-            try {
-                return Soup.tld_get_base_domain (uri.get_host ());
-            } catch (Error e) {
-                return uri.get_host ();
-            }
+            return attributes.lookup ("domain");
         }
 
-        public override string? format_account (SecretItem item) {
+        public override string? get_account (SecretItem item) {
             var attributes = item.get_attributes ();
             var value = attributes.lookup ("user");
             return value;
