@@ -13,9 +13,6 @@ namespace Credentials {
         [GtkChild]
         Gtk.TextView notes_textview;
 
-        Gtk.Entry _domain_entry;
-        Gtk.Entry _account_entry;
-
         uint _set_password_idle_handler = 0;
         uint _set_label_idle_handler = 0;
 
@@ -30,27 +27,33 @@ namespace Credentials {
             return label;
         }
 
+        Gtk.Widget prepend_row (Gtk.Widget top, string label, string value) {
+            var label_widget = create_name_label (label);
+            label_widget.show ();
+            properties_grid.attach_next_to (label_widget, top,
+                                            Gtk.PositionType.TOP, 1, 1);
+
+            var value_widget = new Gtk.Entry ();
+            value_widget.set_text (value);
+            value_widget.show ();
+            properties_grid.attach_next_to (value_widget, label_widget,
+                                            Gtk.PositionType.RIGHT, 1, 1);
+            return label_widget;
+        }
+
         construct {
             var _item = (SecretItem) item;
-            var network_schema = _item.schema as SecretSchemaNetwork;
-            if (network_schema != null) {
-                var top = properties_grid.get_child_at (0, 0);
-                var domain_label = create_name_label (network_schema.domain_label);
-                domain_label.show ();
-                properties_grid.attach_next_to (domain_label, top, Gtk.PositionType.TOP, 1, 1);
-                this._domain_entry = new Gtk.Entry ();
-                this._domain_entry.set_text (network_schema.get_domain (_item));
-                this._domain_entry.show ();
-                properties_grid.attach_next_to (this._domain_entry, domain_label, Gtk.PositionType.RIGHT, 1, 1);
 
-                var account_label = create_name_label (network_schema.account_label);
-                account_label.show ();
-                properties_grid.insert_next_to (domain_label, Gtk.PositionType.BOTTOM);
-                properties_grid.attach_next_to (account_label, domain_label, Gtk.PositionType.BOTTOM, 1, 1);
-                this._account_entry = new Gtk.Entry ();
-                this._account_entry.set_text (network_schema.get_account (_item));
-                this._account_entry.show ();
-                properties_grid.attach_next_to (this._account_entry, account_label, Gtk.PositionType.RIGHT, 1, 1);
+            var top = properties_grid.get_child_at (0, 0);
+            var attributes = _item.schema.get_attributes ().copy ();
+            attributes.reverse ();
+            foreach (var attribute in attributes) {
+                var value = _item.schema.get_attribute (_item, attribute.name);
+                if (value == null)
+                    continue;
+
+                var v = _item.schema.format_attribute (attribute.name, value);
+                top = prepend_row (top, attribute.label, v);
             }
 
             var buffer = notes_textview.get_buffer ();

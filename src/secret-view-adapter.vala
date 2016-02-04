@@ -1,50 +1,28 @@
 namespace Credentials {
-    delegate Gtk.Widget SecretItemRenderFunc (SecretItem item);
-
     class SecretViewAdapter : ViewAdapter {
-        string format_use (SecretUse use) {
-            var enum_class = (EnumClass) typeof (SecretUse).class_ref ();
-            var enum_value = enum_class.get_value (use);
-            return enum_value.value_nick;
-        }
-
-        Gtk.Widget render_base (SecretItem item) {
+        Gtk.Widget create_title_widget (SecretItem item)
+        {
             var box = new Gtk.Box (Gtk.Orientation.VERTICAL, 0);
             var context = box.get_style_context ();
             context.add_class ("password-list-details");
 
-            var domain_label = new Gtk.Label (format_use (item.schema.use));
-            context = domain_label.get_style_context ();
-            context.add_class ("password-list-domain");
-            box.pack_start (domain_label, false, false, 0);
-            return box;
-        }
+            var title = item.schema.get_title (item);
+            var label = new Gtk.Label (title);
+            label.xalign = 0;
+            context = label.get_style_context ();
+            context.add_class ("password-list-title");
+            box.pack_start (label, false, false, 0);
 
-        Gtk.Widget render_network (SecretItem item) {
-            var network_schema = item.schema as SecretSchemaNetwork;
-            var box = new Gtk.Box (Gtk.Orientation.VERTICAL, 0);
-            var context = box.get_style_context ();
-            context.add_class ("password-list-details");
+            var secondary_title = item.schema.get_secondary_title (item);
+            if (secondary_title != null) {
+                var secondary_label = new Gtk.Label (secondary_title);
+                secondary_label.xalign = 0;
+                context = secondary_label.get_style_context ();
+                context.add_class ("password-list-secondary-title");
+                context.add_class ("dim-label");
+                box.pack_start (secondary_label, false, false, 0);
+            }
 
-            var domain = network_schema.format_domain (item);
-            if (domain == null)
-                domain = format_use (item.schema.use);
-
-            var domain_label = new Gtk.Label (domain);
-            domain_label.xalign = 0;
-            context = domain_label.get_style_context ();
-            context.add_class ("password-list-domain");
-            box.pack_start (domain_label, false, false, 0);
-
-            var account = network_schema.format_account (item);
-            if (account == null)
-                account = "";
-            var account_label = new Gtk.Label (account);
-            account_label.xalign = 0;
-            context = account_label.get_style_context ();
-            context.add_class ("dim-label");
-            context.add_class ("password-list-account");
-            box.pack_end (account_label, false, false, 0);
             return box;
         }
 
@@ -52,13 +30,8 @@ namespace Credentials {
             var box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 0);
 
             var item = (SecretItem) _item;
-            Gtk.Widget widget;
-            if (item.schema is SecretSchemaNetwork) {
-                widget = render_network (item);
-            } else {
-                widget = render_base (item);
-            }
-            box.pack_start (widget, true, true, 0);
+            var title = create_title_widget (item);
+            box.pack_start (title, true, true, 0);
 
             var modified = (int64) item.get_modified ();
             var date = new GLib.DateTime.from_unix_utc (modified);
