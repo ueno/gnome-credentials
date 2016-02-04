@@ -30,9 +30,9 @@ namespace Credentials {
             return label;
         }
 
-        Gtk.Widget add_attribute_row (Gtk.Widget top,
-                                      SecretSchema.Attribute attribute,
-                                      string value)
+        Gtk.Widget insert_attribute_row (Gtk.Widget top,
+                                         SecretSchema.Attribute attribute,
+                                         string value)
         {
             var label_widget = create_name_label (attribute.label);
             label_widget.show ();
@@ -49,6 +49,34 @@ namespace Credentials {
             return label_widget;
         }
 
+        void insert_application_row (GLib.DesktopAppInfo app_info) {
+            properties_grid.insert_next_to (notes_label,
+                                            Gtk.PositionType.BOTTOM);
+            var label = create_name_label (_("Added by"));
+            label.show ();
+            properties_grid.attach_next_to (label, notes_label,
+                                            Gtk.PositionType.BOTTOM, 1, 1);
+            var box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 3);
+            var gicon = app_info.get_icon ();
+            if (gicon != null) {
+                var icon_theme = Gtk.IconTheme.get_default ();
+                var flags = Gtk.IconLookupFlags.FORCE_SYMBOLIC;
+                var icon_info = icon_theme.lookup_by_gicon (gicon, 16, flags);
+                try {
+                    var pixbuf = icon_info.load_icon ();
+                    var icon = new Gtk.Image.from_pixbuf (pixbuf);
+                    box.pack_start (icon, false, false, 0);
+                } catch (GLib.Error e) {
+                    warning ("cannot load icon: %s", e.message);
+                }
+            }
+            var name_label = new Gtk.Label (app_info.get_name ());
+            box.pack_start (name_label, false, false, 0);
+            box.show_all ();
+            properties_grid.attach_next_to (box, label,
+                                            Gtk.PositionType.RIGHT, 1, 1);
+        }
+
         construct {
             this._attribute_entries = new GLib.HashTable<string,Gtk.Entry> (str_hash, str_equal);
             var _item = (SecretItem) item;
@@ -62,7 +90,7 @@ namespace Credentials {
                     continue;
 
                 var v = _item.schema.format_attribute (attribute.name, value);
-                top = add_attribute_row (top, attribute, v);
+                top = insert_attribute_row (top, attribute, v);
             }
 
             var buffer = notes_textview.get_buffer ();
@@ -71,25 +99,9 @@ namespace Credentials {
 
             var desktop_id = _item.schema.get_desktop_id (_item);
             if (desktop_id != null) {
-                var appinfo = new DesktopAppInfo (desktop_id);
-                if (appinfo != null) {
-                    properties_grid.insert_next_to (notes_label, Gtk.PositionType.BOTTOM);
-                    var label = create_name_label (_("Added by"));
-                    label.show ();
-                    properties_grid.attach_next_to (label, notes_label, Gtk.PositionType.BOTTOM, 1, 1);
-                    var box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 3);
-                    var gicon = appinfo.get_icon ();
-                    if (gicon != null) {
-                        var icon_theme = Gtk.IconTheme.get_default ();
-                        var icon_info = icon_theme.lookup_by_gicon (gicon, 16, Gtk.IconLookupFlags.FORCE_SYMBOLIC);
-                        var pixbuf = icon_info.load_icon ();
-                        var icon = new Gtk.Image.from_pixbuf (pixbuf);
-                        box.pack_start (icon, false, false, 0);
-                    }
-                    var name_label = new Gtk.Label (appinfo.get_name ());
-                    box.pack_start (name_label, false, false, 0);
-                    box.show_all ();
-                    properties_grid.attach_next_to (box, label, Gtk.PositionType.RIGHT, 1, 1);
+                var app_info = new DesktopAppInfo (desktop_id);
+                if (app_info != null) {
+                    insert_application_row (app_info);
                 }
             }
 
