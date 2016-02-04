@@ -62,6 +62,12 @@ namespace Credentials {
             yield this._content.set_secret (value, cancellable);
         }
 
+        public async void set_attributes (Secret.Schema? schema,
+                                          GLib.HashTable<string,string> attributes,
+                                          GLib.Cancellable? cancellable) throws GLib.Error {
+            yield this._content.set_attributes (schema, attributes, cancellable);
+        }
+
         public override async void delete (GLib.Cancellable? cancellable) throws GLib.Error {
             yield this._content.delete (cancellable);
             collection.item_removed (this);

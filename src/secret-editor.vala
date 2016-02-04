@@ -13,8 +13,11 @@ namespace Credentials {
         [GtkChild]
         Gtk.TextView notes_textview;
 
-        uint _set_password_idle_handler = 0;
+        uint _set_secret_idle_handler = 0;
         uint _set_label_idle_handler = 0;
+
+        GLib.HashTable<string,Gtk.Entry> _attribute_entries;
+        uint _set_attributes_idle_handler = 0;
 
         public SecretEditorDialog (Item item) {
             Object (item: item, use_header_bar: 1);
@@ -27,14 +30,19 @@ namespace Credentials {
             return label;
         }
 
-        Gtk.Widget prepend_row (Gtk.Widget top, string label, string value) {
-            var label_widget = create_name_label (label);
+        Gtk.Widget add_attribute_row (Gtk.Widget top,
+                                      SecretSchema.Attribute attribute,
+                                      string value)
+        {
+            var label_widget = create_name_label (attribute.label);
             label_widget.show ();
             properties_grid.attach_next_to (label_widget, top,
                                             Gtk.PositionType.TOP, 1, 1);
 
             var value_widget = new Gtk.Entry ();
             value_widget.set_text (value);
+            this._attribute_entries.insert (attribute.name, value_widget);
+            value_widget.notify["text"].connect (set_attributes_in_idle);
             value_widget.show ();
             properties_grid.attach_next_to (value_widget, label_widget,
                                             Gtk.PositionType.RIGHT, 1, 1);
@@ -42,6 +50,7 @@ namespace Credentials {
         }
 
         construct {
+            this._attribute_entries = new GLib.HashTable<string,Gtk.Entry> (str_hash, str_equal);
             var _item = (SecretItem) item;
 
             var top = properties_grid.get_child_at (0, 0);
@@ -53,7 +62,7 @@ namespace Credentials {
                     continue;
 
                 var v = _item.schema.format_attribute (attribute.name, value);
-                top = prepend_row (top, attribute.label, v);
+                top = add_attribute_row (top, attribute, v);
             }
 
             var buffer = notes_textview.get_buffer ();
@@ -95,7 +104,7 @@ namespace Credentials {
                     var secret = _item.get_secret ();
                     if (secret != null) {
                         password_entry.set_text (secret.get_text ());
-                        password_entry.notify["text"].connect (set_password_in_idle);
+                        password_entry.notify["text"].connect (set_secret_in_idle);
                     } else {
                         password_entry.set_text ("");
                         password_entry.set_sensitive (false);
@@ -103,13 +112,13 @@ namespace Credentials {
                 });
         }
 
-        void set_password_in_idle () {
-            if (this._set_password_idle_handler > 0) {
-                GLib.Source.remove (this._set_password_idle_handler);
-                this._set_password_idle_handler = 0;
+        void set_secret_in_idle () {
+            if (this._set_secret_idle_handler > 0) {
+                GLib.Source.remove (this._set_secret_idle_handler);
+                this._set_secret_idle_handler = 0;
             }
 
-            this._set_password_idle_handler = GLib.Idle.add (() => {
+            this._set_secret_idle_handler = GLib.Idle.add (() => {
                     var _item = (SecretItem) item;
                     var password = password_entry.get_text ();
                     var secret = _item.get_secret ();
@@ -131,7 +140,7 @@ namespace Credentials {
                                 }
                             });
                     }
-                    this._set_password_idle_handler = 0;
+                    this._set_secret_idle_handler = 0;
                     return GLib.Source.REMOVE;
                 });
         }
@@ -164,7 +173,53 @@ namespace Credentials {
                     this._set_label_idle_handler = 0;
                     return GLib.Source.REMOVE;
                 });
-         }
+        }
+
+        GLib.HashTable<string,string> copy_attributes (GLib.HashTable<string,string> attributes) {
+            var result = new GLib.HashTable<string,string> (str_hash, str_equal);
+            var iter = GLib.HashTableIter<string,string> (attributes);
+            string name;
+            string value;
+            while (iter.next (out name, out value)) {
+                result.insert (name, value);
+            }
+            return result;
+        }
+
+        void set_attributes_in_idle () {
+            if (this._set_attributes_idle_handler > 0) {
+                GLib.Source.remove (this._set_attributes_idle_handler);
+                this._set_attributes_idle_handler = 0;
+            }
+
+            this._set_attributes_idle_handler = GLib.Idle.add (() => {
+                    var _item = (SecretItem) item;
+                    var attributes = copy_attributes (_item.get_attributes ());
+                    var iter = GLib.HashTableIter<string,Gtk.Entry> (this._attribute_entries);
+                    string name;
+                    Gtk.Entry entry;
+                    while (iter.next (out name, out entry)) {
+                        attributes.insert (name, entry.get_text ());
+                    }
+                    if (attributes.size () > 0) {
+                        var window = (Gtk.Window) this.get_toplevel ();
+                        _item.set_attributes.begin (
+                            null, attributes, null,
+                            (obj, res) => {
+                                try {
+                                    _item.set_attributes.end (res);
+                                    _item.changed ();
+                                } catch (GLib.Error e) {
+                                    Utils.show_error (window,
+                                                      _("Couldn't write attributes: %s"),
+                                                      e.message);
+                                }
+                            });
+                    }
+                    this._set_attributes_idle_handler = 0;
+                    return GLib.Source.REMOVE;
+                });
+        }
 
         public override void delete_item () {
             var _item = (SecretItem) item;
