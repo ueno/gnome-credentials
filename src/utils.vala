@@ -188,4 +188,17 @@ namespace Credentials.Utils {
         target_value.set_boolean (s != "");
         return true;
     }
+
+    static string format_domain (string domain) {
+        var soup_uri = new Soup.URI (domain);
+        if (soup_uri == null)
+            return domain;
+        var host = soup_uri.get_host ();
+
+        try {
+            return Soup.tld_get_base_domain (host);
+        } catch (Error e) {
+            return host;
+        }
+    }
 }

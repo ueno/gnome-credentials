@@ -47,16 +47,7 @@ namespace Credentials {
             var domain = get_domain (item);
             if (domain == null)
                 return null;
-            var soup_uri = new Soup.URI (domain);
-            if (soup_uri == null)
-                return domain;
-            var host = soup_uri.get_host ();
-
-            try {
-                return Soup.tld_get_base_domain (host);
-            } catch (Error e) {
-                return host;
-            }
+            return Utils.format_domain (domain);
         }
 
         public virtual string? format_account (SecretItem item) {
