@@ -33,7 +33,9 @@ namespace Credentials {
         public abstract async void load_items (GLib.Cancellable? cancellable) throws GLib.Error;
         public abstract GLib.List<Item> get_items ();
 
-        public virtual async void unlock (GLib.Cancellable? cancellable) throws GLib.Error {
+        public virtual async void unlock (GLib.TlsInteraction? interaction,
+                                          GLib.Cancellable? cancellable) throws GLib.Error
+        {
             throw new BackendError.NOT_SUPPORTED ("not supported");
         }
 

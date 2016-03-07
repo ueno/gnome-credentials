@@ -32,7 +32,7 @@ namespace Credentials {
                         collection.name);
                     dialog.response.connect ((res) => {
                             if (res == Gtk.ResponseType.OK)
-                                collection.unlock.begin (null);
+                                collection.unlock.begin (null, null);
                             dialog.destroy ();
                         });
                     dialog.show ();

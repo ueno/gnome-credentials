@@ -146,7 +146,9 @@ namespace Credentials {
             return this._content.get_label ();
         }
 
-        public override async void unlock (GLib.Cancellable? cancellable) throws GLib.Error {
+        public override async void unlock (GLib.TlsInteraction? interaction,
+                                           GLib.Cancellable? cancellable) throws GLib.Error
+        {
             var service = this._content.get_service ();
             GLib.List<GLib.DBusProxy> objects = null;
             GLib.List<GLib.DBusProxy> unlocked;
