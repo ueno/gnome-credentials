@@ -26,6 +26,9 @@ gnome_credentials_SOURCES =			\
 	ssh-editor.vala				\
 	ssh-generator.vala			\
 	ssh-view-adapter.vala			\
+	pkcs11-backend.vala			\
+	pkcs11-view-adapter.vala		\
+	pkcs11-private-key.vala			\
 	model-button.vala			\
 	secret-entry.vala			\
 	list-box-helper.vala			\
@@ -49,6 +52,7 @@ AM_CPPFLAGS =					\
 	-I$(top_srcdir)/libgd			\
 	-I$(top_srcdir)/gpgme-glib		\
 	-I$(top_srcdir)/egg			\
+	-DGCK_API_SUBJECT_TO_CHANGE=1		\
 	-DGOA_API_IS_SUBJECT_TO_CHANGE=1
 AM_VALAFLAGS =					\
 	--target-glib=2.38			\
@@ -61,6 +65,7 @@ AM_VALAFLAGS =					\
 	--vapidir=$(top_builddir)/egg		\
 	--pkg config				\
 	--pkg egg-private-1.0			\
+	--pkg gck-1				\
 	--pkg gcrypt				\
 	--pkg gd-1.0				\
 	--pkg gio-unix-2.0			\
@@ -70,6 +75,7 @@ AM_VALAFLAGS =					\
 	--pkg libsecret-1			\
 	--pkg libsoup-2.4			\
 	--pkg pango				\
+	--pkg pkcs11				\
 	--pkg posix				\
 	--gresources $(gresource_file)
 

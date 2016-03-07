@@ -14,6 +14,7 @@ namespace Credentials {
 
             register_backend (new GpgBackend ("Gpg"), new GpgViewAdapter ());
             register_backend (new SshBackend ("Ssh"), new SshViewAdapter ());
+            register_backend (new Pkcs11Backend ("Pkcs11"), new Pkcs11ViewAdapter ());
 
             map.connect (on_map);
         }

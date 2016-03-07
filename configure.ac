@@ -38,7 +38,7 @@ GOBJECT_INTROSPECTION_REQUIRE([1.35.9])
 APPSTREAM_XML
 
 AM_PROG_VALAC
-VALA_CHECK_MODULES([DEPS], [gio-unix-2.0 gtk+-3.0 libsecret-1 libsoup-2.4 pango])
+VALA_CHECK_MODULES([DEPS], [gck-1 gio-unix-2.0 gtk+-3.0 libsecret-1 libsoup-2.4 pango])
 
 GOBJECT_INTROSPECTION_CHECK([0.9.0])
 
