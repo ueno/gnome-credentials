@@ -80,6 +80,28 @@ namespace Credentials {
             map.connect (on_map);
         }
 
+        void try_unlock_collections (Backend backend) {
+            Window toplevel = (Window) this.get_toplevel ();
+            var collections = backend.get_collections ();
+            foreach (var collection in collections) {
+                if (collection.locked) {
+                    var dialog = new Gtk.MessageDialog (
+                        toplevel,
+                        Gtk.DialogFlags.MODAL,
+                        Gtk.MessageType.QUESTION,
+                        Gtk.ButtonsType.OK_CANCEL,
+                        _("\"%s\" is locked.  Unlock? "),
+                        collection.name);
+                    dialog.response.connect ((res) => {
+                            if (res == Gtk.ResponseType.OK)
+                                collection.unlock.begin (null, null);
+                            dialog.destroy ();
+                        });
+                    dialog.show ();
+                }
+            }
+        }
+
         struct ItemSelection {
             GenericArray<Item> items;
         }
@@ -203,14 +225,32 @@ namespace Credentials {
             }
         }
 
+        bool toplevel_initialized = false;
+
         void on_map () {
-            var toplevel = (Window) get_toplevel ();
-            toplevel.insert_action_group ("list-panel",
-                                          this._selection_actions);
+            if (!toplevel_initialized) {
+                var toplevel = (Window) get_toplevel ();
+                toplevel.insert_action_group ("list-panel",
+                                              this._selection_actions);
+
+                foreach (var backend in this._backends) {
+                    toplevel.unlock_button.clicked.connect (() => {
+                            try_unlock_collections (backend);
+                        });
+                }
+                toplevel_initialized = true;
+            }
         }
 
         public override void constructed () {
             base.constructed ();
+
+            foreach (var backend in this._backends) {
+                backend.notify["has-locked"].connect ((s, p) => {
+                        try_unlock_collections (backend);
+                    });
+            }
+
             load.begin ();
         }
 
