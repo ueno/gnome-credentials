@@ -41,15 +41,12 @@ VALA_CHECK_MODULES([DEPS], [gio-unix-2.0 goa-1.0 gtk+-3.0 libsecret-1 libsoup-2.
 
 GOBJECT_INTROSPECTION_CHECK([0.9.0])
 
-# check vapigen
-VAPIGEN_CHECK
-
 PKG_CHECK_MODULES([GIO], [gio-2.0], ,
   [AC_MSG_ERROR([can't find gio-2.0])])
-AM_PATH_GPGME_PTHREAD
 AM_PATH_LIBGCRYPT
 
 LIBGD_INIT([notification static vapi])
+GPGME_GLIB_INIT([static vapi])
 
 AC_ARG_ENABLE(dogtail,
               [AS_HELP_STRING([--enable-dogtail],

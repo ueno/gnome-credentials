@@ -40,8 +40,13 @@ gnome_credentials_LDADD =				\
 
 gresource_file = $(top_srcdir)/data/org.gnome.Credentials.gresource.xml
 
-AM_CPPFLAGS = -I$(top_srcdir) -include config.h \
-	$(DEPS_CFLAGS) $(LIBGCRYPT_CFLAGS) -I$(top_srcdir)/libgd \
+AM_CPPFLAGS =					\
+	-I$(top_srcdir)				\
+	-include config.h			\
+	$(DEPS_CFLAGS)				\
+	$(LIBGCRYPT_CFLAGS)			\
+	-I$(top_srcdir)/libgd			\
+	-I$(top_srcdir)/gpgme-glib		\
 	-DGOA_API_IS_SUBJECT_TO_CHANGE=1
 AM_VALAFLAGS =					\
 	--target-glib=2.38			\
