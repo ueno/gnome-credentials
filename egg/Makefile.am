@@ -11,12 +11,11 @@ libegg_secmem_la_SOURCES =			\
 	egg-secure-memory.h			\
 	egg-secure-memory.c
 
-libegg_private_la_sources =			\
+libegg_private_la_SOURCES =			\
+	egg-private.h				\
+	egg-secure-entry-buffer.h		\
 	egg-secure-entry-buffer.c
-libegg_private_la_headers =			\
-	egg-secure-entry-buffer.h
 
-libegg_private_la_SOURCES = $(libegg_private_la_sources)
 libegg_private_la_CFLAGS = $(EGG_CFLAGS) -I$(top_srcdir)
 libegg_private_la_LIBADD = $(EGG_LIBS) libegg-secmem.la
 
@@ -34,7 +33,7 @@ Egg_1_0_gir_SCANNERFLAGS =			\
 Egg_1_0_gir_INCLUDES = Gio-2.0 Gdk-3.0 Gtk-3.0
 Egg_1_0_gir_CFLAGS = $(libegg_private_la_CFLAGS)
 Egg_1_0_gir_LIBS = libegg-private.la
-Egg_1_0_gir_FILES = $(libegg_private_la_sources) $(libegg_private_la_headers)
+Egg_1_0_gir_FILES = $(libegg_private_la_SOURCES)
 
 noinst_DATA += $(srcdir)/Egg-1.0.gir
 EXTRA_DIST += $(srcdir)/Egg-1.0.gir
@@ -52,7 +51,7 @@ egg_private_1_0_vapi_DEPS = gio-2.0 gtk+-3.0
 egg_private_1_0_vapi_METADATADIRS = $(srcdir)
 egg_private_1_0_vapi_FILES = Egg-1.0.gir
 
-egg-private.deps: Makefile
+egg-private.deps: Makefile.am
 	$(AM_V_GEN) echo $(egg_private_vapi_DEPS) | tr ' ' '\n' > $@
 
 noinst_DATA += $(VAPIGEN_VAPIS)
