@@ -11,6 +11,7 @@
 [type: gettext/glade]data/ui/list-panel.ui
 [type: gettext/glade]data/ui/menu.ui
 [type: gettext/glade]data/ui/secret-editor-dialog.ui
+[type: gettext/glade]data/ui/selection-menu.ui
 [type: gettext/glade]data/ui/ssh-editor-dialog.ui
 [type: gettext/glade]data/ui/ssh-generator-dialog.ui
 [type: gettext/glade]data/ui/window.ui
@@ -37,6 +38,7 @@ src/model-button.vala
 src/password-list-panel.vala
 src/secret-backend.vala
 src/secret-editor.vala
+src/secret-schema.vala
 src/secret-view-adapter.vala
 src/ssh-backend.vala
 src/ssh-editor.vala

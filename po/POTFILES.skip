@@ -17,6 +17,7 @@ src/password-list-panel.c
 src/resources.c
 src/secret-backend.c
 src/secret-editor.c
+src/secret-schema.c
 src/secret-view-adapter.c
 src/ssh-backend.c
 src/ssh-editor.c
