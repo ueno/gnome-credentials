@@ -36,7 +36,8 @@ gnome_credentials_LDADD =				\
 	$(DEPS_LIBS)					\
 	$(LIBGCRYPT_LIBS)				\
 	$(top_builddir)/gpgme-glib/libgpgme-glib.la	\
-	$(top_builddir)/libgd/libgd.la
+	$(top_builddir)/libgd/libgd.la			\
+	$(top_builddir)/egg/libegg-private.la
 
 gresource_file = $(top_srcdir)/data/org.gnome.Credentials.gresource.xml
 
@@ -47,6 +48,7 @@ AM_CPPFLAGS =					\
 	$(LIBGCRYPT_CFLAGS)			\
 	-I$(top_srcdir)/libgd			\
 	-I$(top_srcdir)/gpgme-glib		\
+	-I$(top_srcdir)/egg			\
 	-DGOA_API_IS_SUBJECT_TO_CHANGE=1
 AM_VALAFLAGS =					\
 	--target-glib=2.38			\
@@ -55,7 +57,10 @@ AM_VALAFLAGS =					\
 	--vapidir=$(top_builddir)/gpgme-glib	\
 	--vapidir=$(top_srcdir)/libgd		\
 	--vapidir=$(top_builddir)/libgd		\
+	--vapidir=$(top_srcdir)/egg		\
+	--vapidir=$(top_builddir)/egg		\
 	--pkg config				\
+	--pkg egg-private-1.0			\
 	--pkg gcrypt				\
 	--pkg gd-1.0				\
 	--pkg gio-unix-2.0			\

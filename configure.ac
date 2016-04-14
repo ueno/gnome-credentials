@@ -45,6 +45,10 @@ PKG_CHECK_MODULES([GIO], [gio-2.0], ,
   [AC_MSG_ERROR([can't find gio-2.0])])
 AM_PATH_LIBGCRYPT
 
+PKG_CHECK_MODULES([EGG], [gio-2.0 gtk+-3.0], ,
+  [AC_MSG_ERROR([can't find egg dependencies])])
+AC_CHECK_FUNCS(mlock)
+
 LIBGD_INIT([notification static vapi])
 GPGME_GLIB_INIT([static vapi])
 
@@ -85,6 +89,7 @@ AC_SUBST(GLIB_COMPILE_RESOURCES)
 
 AC_CONFIG_FILES([
   Makefile
+  egg/Makefile
   data/Makefile
   data/icons/Makefile
   gpgme-glib/Makefile

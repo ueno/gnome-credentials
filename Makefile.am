@@ -1,7 +1,7 @@
 ACLOCAL_AMFLAGS = -I m4 -I libgd -I gpgme-glib ${ACLOCAL_FLAGS}
 DISTCHECK_CONFIGURE_FLAGS = --disable-dogtail
 
-SUBDIRS = po data gpgme-glib libgd src tests
+SUBDIRS = po data gpgme-glib libgd egg src tests
 
 MAINTAINERCLEANFILES = \
 	INSTALL \
