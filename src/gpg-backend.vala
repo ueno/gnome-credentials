@@ -510,7 +510,7 @@ namespace Credentials {
     }
 
     class GpgBackend : Backend {
-        static const GpgCollectionEntry[] entries = {
+        const GpgCollectionEntry[] entries = {
             { GGpg.Protocol.OPENPGP, "openpgp" }
         };
 

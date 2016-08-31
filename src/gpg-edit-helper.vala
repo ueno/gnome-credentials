@@ -77,11 +77,11 @@ namespace Credentials {
                                          GGpg.StatusCode status,
                                          string args) throws GLib.Error;
 
-        public static const string QUIT = "quit";
-        public static const string YES = "Y";
-        public static const string NO = "N";
-        public static const string PROMPT = "keyedit.prompt";
-        public static const string SAVE = "keyedit.save.okay";
+        public const string QUIT = "quit";
+        public const string YES = "Y";
+        public const string NO = "N";
+        public const string PROMPT = "keyedit.prompt";
+        public const string SAVE = "keyedit.save.okay";
 
         public uint state { set; get; }
 

@@ -113,8 +113,8 @@ namespace Credentials {
     }
 
     class SecretSchemaEpiphany : SecretSchemaWebsite {
-        static const string ATTR_URI = "uri";
-        static const string ATTR_USERNAME = "username";
+        const string ATTR_URI = "uri";
+        const string ATTR_USERNAME = "username";
 
         public override string? get_desktop_id (SecretItem item) {
             return "epiphany.desktop";
@@ -144,7 +144,7 @@ namespace Credentials {
     }
 
     class SecretSchemaChrome : SecretSchemaWebsite {
-        static const string ATTR_ORIGIN_URI = "origin_uri";
+        const string ATTR_ORIGIN_URI = "origin_uri";
 
         construct {
             SecretSchema.Attribute attr;
@@ -161,8 +161,8 @@ namespace Credentials {
     }
 
     class SecretSchemaNetworkPassword : SecretSchemaNetwork {
-        static const string ATTR_DOMAIN = "domain";
-        static const string ATTR_USER = "user";
+        const string ATTR_DOMAIN = "domain";
+        const string ATTR_USER = "user";
 
         construct {
             SecretSchema.Attribute attr;
@@ -188,8 +188,8 @@ namespace Credentials {
     }
 
     class SecretSchemaGoa : SecretSchemaNetwork {
-        static const string ATTR_PROVIDER = "provider";
-        static const string ATTR_IDENTITY = "identity";
+        const string ATTR_PROVIDER = "provider";
+        const string ATTR_IDENTITY = "identity";
 
         public Goa.Client client { get; construct set; }
         GLib.HashTable<string,Goa.Account> _accounts;
