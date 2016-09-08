@@ -231,9 +231,6 @@ namespace Credentials {
                 return;
 
             var item = new SecretItem (this, _item);
-            if (!schema.is_valid (item))
-                return;
-
             this._items.insert (object_path, item);
             item_added (item);
         }

@@ -33,7 +33,6 @@ namespace Credentials {
         public abstract string format_attribute (string name, string value);
         public abstract string get_title (SecretItem item);
         public abstract string? get_secondary_title (SecretItem item);
-        public abstract bool is_valid (SecretItem item);
     }
 
     abstract class SecretSchemaBase : GLib.Object, SecretSchema {
@@ -89,10 +88,6 @@ namespace Credentials {
 
         public virtual string? get_secondary_title (SecretItem item) {
             return null;
-        }
-
-        public virtual bool is_valid (SecretItem item) {
-            return true;
         }
     }
 
