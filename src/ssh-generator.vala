@@ -85,13 +85,13 @@ namespace Credentials {
             path_button.set_data ("credentials-selected-path", path);
         }
 
-        public override GeneratedItemParameters build_parameters () {
+        public override ItemGenerationParameters build_parameters () {
             Gtk.TreeIter iter;
             key_type_combobox.get_active_iter (out iter);
             SshKeySpec? spec;
             key_type_combobox.get_model ().get (iter, 0, out spec);
 
-            return new SshGeneratedItemParameters (
+            return new SshItemGenerationParameters (
                 path_button.get_data ("credentails-selected-path"),
                 comment_entry.get_text (),
                 spec,

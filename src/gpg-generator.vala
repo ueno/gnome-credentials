@@ -69,13 +69,13 @@ namespace Credentials {
             length_spinbutton.set_editable (true);
         }
 
-        public override GeneratedItemParameters build_parameters () {
+        public override ItemGenerationParameters build_parameters () {
             Gtk.TreeIter iter;
             key_type_combobox.get_active_iter (out iter);
             GpgGeneratedKeySpec? spec;
             key_type_combobox.get_model ().get (iter, 0, out spec);
 
-            return new GpgGeneratedItemParameters (
+            return new GpgItemGenerationParameters (
                 spec,
                 name_entry.get_text (),
                 email_entry.get_text (),

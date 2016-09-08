@@ -150,13 +150,13 @@ namespace Credentials {
         }
     }
 
-    class SshGeneratedItemParameters : GeneratedItemParameters {
+    class SshItemGenerationParameters : ItemGenerationParameters {
         public string path { construct set; get; }
         public string comment { construct set; get; }
         public SshKeySpec spec { construct set; get; }
         public uint length { construct set; get; }
 
-        public SshGeneratedItemParameters (string path, string comment,
+        public SshItemGenerationParameters (string path, string comment,
                                            SshKeySpec spec, uint length)
         {
             Object (path: path, comment: comment, spec: spec, length: length);
@@ -387,7 +387,7 @@ namespace Credentials {
             return items;
         }
 
-        string[] parameters_to_arguments (SshGeneratedItemParameters parameters) {
+        string[] parameters_to_arguments (SshItemGenerationParameters parameters) {
             string[] args = { "ssh-keygen", "-q" };
             args += "-f";
             args += parameters.path;
@@ -404,10 +404,10 @@ namespace Credentials {
             return ((SshBackend) backend).get_specs ();
         }
 
-        public override async void generate_item (GeneratedItemParameters parameters,
+        public override async void generate_item (ItemGenerationParameters parameters,
                                                   GLib.Cancellable? cancellable) throws GLib.Error {
             var args = parameters_to_arguments (
-                (SshGeneratedItemParameters) parameters);
+                (SshItemGenerationParameters) parameters);
             var subprocess =
                 new GLib.Subprocess.newv (args,
                                           GLib.SubprocessFlags.NONE);

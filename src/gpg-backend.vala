@@ -52,7 +52,7 @@ namespace Credentials {
         }
     }
 
-    class GpgGeneratedItemParameters : GeneratedItemParameters {
+    class GpgItemGenerationParameters : ItemGenerationParameters {
         public GpgGeneratedKeySpec spec { construct set; get; }
         public string name { construct set; get; }
         public string email { construct set; get; }
@@ -60,7 +60,7 @@ namespace Credentials {
         public uint length { construct set; get; }
         public GpgExpirationSpec expires { construct set; get; }
 
-        public GpgGeneratedItemParameters (GpgGeneratedKeySpec spec,
+        public GpgItemGenerationParameters (GpgGeneratedKeySpec spec,
                                            string name,
                                            string email,
                                            string comment,
@@ -386,7 +386,7 @@ namespace Credentials {
             return enum_value.value_nick.up ();
         }
 
-        string parameters_to_string (GpgGeneratedItemParameters parameters) {
+        string parameters_to_string (GpgItemGenerationParameters parameters) {
             var buffer = new StringBuilder ();
             buffer.append ("<GnupgKeyParms format=\"internal\">\n");
             buffer.append_printf ("Key-Type: %s\n",
@@ -428,14 +428,14 @@ namespace Credentials {
                               (double) current / (double) total);
         }
 
-        public override async void generate_item (GeneratedItemParameters parameters,
+        public override async void generate_item (ItemGenerationParameters parameters,
                                          GLib.Cancellable? cancellable) throws GLib.Error
         {
             var ctx = new GGpg.Ctx ();
             ctx.protocol = protocol;
             ctx.set_progress_callback (this.progress_callback_wrapper);
             yield ctx.generate_key (
-                parameters_to_string ((GpgGeneratedItemParameters) parameters),
+                parameters_to_string ((GpgItemGenerationParameters) parameters),
                 null, null,
                 cancellable);
             yield load_items (cancellable);

@@ -2,7 +2,7 @@ namespace Credentials {
     abstract class GeneratorDialog : Gtk.Dialog {
         public Collection collection { construct set; get; }
 
-        public abstract GeneratedItemParameters build_parameters ();
+        public abstract ItemGenerationParameters build_parameters ();
 
         public virtual void generate_item () {
             var parameters = build_parameters ();
