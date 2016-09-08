@@ -284,13 +284,6 @@ namespace Credentials {
                                   new SecretSchemaChrome ());
             this._schemas.insert ("org.gnome.keyring.NetworkPassword",
                                   new SecretSchemaNetworkPassword ());
-            try {
-                var client = new Goa.Client.sync ();
-                this._schemas.insert ("org.gnome.OnlineAccounts",
-                                      new SecretSchemaGoa (client));
-            } catch (Error e) {
-                warning ("cannot create GOA client: %s", e.message);
-            }
         }
 
         public SecretBackend (string name) {
