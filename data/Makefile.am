@@ -7,7 +7,8 @@ resource_files = $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir=$(srcdir) --gener
 appsdir = $(datadir)/applications
 apps_DATA = $(PACKAGE_DESKTOP_NAME).desktop
 
-@INTLTOOL_DESKTOP_RULE@
+org.gnome.Credentials.desktop: org.gnome.Credentials.desktop.in
+	$(AM_V_GEN) $(MSGFMT) --desktop --template $< -d $(top_srcdir)/po -o $@
 
 gsettings_SCHEMAS = $(PACKAGE_DESKTOP_NAME).gschema.xml
 
@@ -15,8 +16,10 @@ gsettings_SCHEMAS = $(PACKAGE_DESKTOP_NAME).gschema.xml
 
 appstream_XML = $(PACKAGE_DESKTOP_NAME).appdata.xml
 
+org.gnome.Credentials.appdata.xml: org.gnome.Credentials.appdata.xml.in
+	$(AM_V_GEN) $(MSGFMT) --xml --template $< -d $(top_srcdir)/po -o $@
+
 @APPSTREAM_XML_RULES@
-@INTLTOOL_XML_RULE@
 
 $(PACKAGE_DESKTOP_NAME).service: $(PACKAGE_DESKTOP_NAME).service.in
 	$(AM_V_GEN) sed \
@@ -36,6 +39,8 @@ EXTRA_DIST = \
 	$(gsettings_SCHEMAS) \
 	$(PACKAGE_DESKTOP_NAME).appdata.xml.in \
 	$(resource_files) \
+	$(apps_DATA) \
+	$(appstream_XML) \
 	$(NULL)
 
 CLEANFILES = \

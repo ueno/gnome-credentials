@@ -1,20 +1,20 @@
-[type: gettext/glade]data/ui/app-menu.ui
-[type: gettext/glade]data/ui/gpg-add-subkey-dialog.ui
-[type: gettext/glade]data/ui/gpg-add-user-id-dialog.ui
-[type: gettext/glade]data/ui/gpg-editor-dialog.ui
-[type: gettext/glade]data/ui/gpg-editor-widget.ui
-[type: gettext/glade]data/ui/gpg-edit-subkey-widget.ui
-[type: gettext/glade]data/ui/gpg-edit-user-id-widget.ui
-[type: gettext/glade]data/ui/gpg-expires-popover.ui
-[type: gettext/glade]data/ui/gpg-fetcher-dialog.ui
-[type: gettext/glade]data/ui/gpg-generator-dialog.ui
-[type: gettext/glade]data/ui/list-panel.ui
-[type: gettext/glade]data/ui/menu.ui
-[type: gettext/glade]data/ui/secret-editor-dialog.ui
-[type: gettext/glade]data/ui/selection-menu.ui
-[type: gettext/glade]data/ui/ssh-editor-dialog.ui
-[type: gettext/glade]data/ui/ssh-generator-dialog.ui
-[type: gettext/glade]data/ui/window.ui
+data/ui/app-menu.ui
+data/ui/gpg-add-subkey-dialog.ui
+data/ui/gpg-add-user-id-dialog.ui
+data/ui/gpg-editor-dialog.ui
+data/ui/gpg-editor-widget.ui
+data/ui/gpg-edit-subkey-widget.ui
+data/ui/gpg-edit-user-id-widget.ui
+data/ui/gpg-expires-popover.ui
+data/ui/gpg-fetcher-dialog.ui
+data/ui/gpg-generator-dialog.ui
+data/ui/list-panel.ui
+data/ui/menu.ui
+data/ui/secret-editor-dialog.ui
+data/ui/selection-menu.ui
+data/ui/ssh-editor-dialog.ui
+data/ui/ssh-generator-dialog.ui
+data/ui/window.ui
 
 data/org.gnome.Credentials.appdata.xml.in
 data/org.gnome.Credentials.desktop.in
