@@ -234,6 +234,9 @@ namespace Credentials {
         }
 
         public override void delete_item () {
+            // XXX: The confirmation dialog transient for another
+            // dialog doesn't work on Wayland
+#if false
             var _item = (SecretItem) item;
             var window = (Gtk.Window) this.get_toplevel ();
             var confirm_dialog =
@@ -250,6 +253,9 @@ namespace Credentials {
                     confirm_dialog.destroy ();
                 });
             confirm_dialog.show ();
+#else
+            base.delete_item ();
+#endif
         }
     }
 }

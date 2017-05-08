@@ -634,6 +634,9 @@ namespace Credentials {
                     break;
                 index++;
             }
+            // XXX: The confirmation dialog transient for another
+            // dialog doesn't work on Wayland
+#if false
             var dialog = new Gtk.MessageDialog (
                 (Gtk.Window) this.get_toplevel (),
                 Gtk.DialogFlags.MODAL,
@@ -649,6 +652,10 @@ namespace Credentials {
                     dialog.destroy ();
                 });
             dialog.show ();
+#else
+            call_edit_delkey (index);
+            visible_child_name = "main";
+#endif
         }
 
         void call_edit_delkey (uint index) {
@@ -752,6 +759,9 @@ namespace Credentials {
                 index++;
             }
 
+            // XXX: The confirmation dialog transient for another
+            // dialog doesn't work on Wayland
+#if false
             var dialog = new Gtk.MessageDialog (
                 (Gtk.Window) this.get_toplevel (),
                 Gtk.DialogFlags.MODAL,
@@ -767,6 +777,10 @@ namespace Credentials {
                     dialog.destroy ();
                 });
             dialog.show ();
+#else
+            call_edit_deluid (index);
+            visible_child_name = "main";
+#endif
         }
 
         void call_edit_deluid (uint index) {
