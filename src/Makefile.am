@@ -36,6 +36,7 @@ gnome_credentials_SOURCES =			\
 gnome_credentials_LDADD =				\
 	$(DEPS_LIBS)					\
 	$(LIBGCRYPT_LIBS)				\
+	$(PWQUALITY_LIBS)				\
 	$(top_builddir)/gpgme-glib/libgpgme-glib.la	\
 	$(top_builddir)/libgd/libgd.la			\
 	$(top_builddir)/egg/libegg-private.la
@@ -47,6 +48,7 @@ AM_CPPFLAGS =					\
 	-include config.h			\
 	$(DEPS_CFLAGS)				\
 	$(LIBGCRYPT_CFLAGS)			\
+	$(PWQUALITY_CFLAGS)			\
 	-I$(top_srcdir)/libgd			\
 	-I$(top_srcdir)/gpgme-glib		\
 	-I$(top_srcdir)/egg			\
@@ -72,13 +74,14 @@ AM_VALAFLAGS =					\
 	--pkg libsoup-2.4			\
 	--pkg pango				\
 	--pkg posix				\
+	--pkg pwquality				\
 	--gresources $(gresource_file)
 
 resource_files = $(shell $(GLIB_COMPILE_RESOURCES) --generate-dependencies --sourcedir=$(top_srcdir)/data $(gresource_file))
 resources.c: $(gresource_file) $(resource_files)
 	$(AM_V_GEN) $(GLIB_COMPILE_RESOURCES) --target=$@ --sourcedir=$(top_srcdir)/data --generate-source $<
 
-EXTRA_DIST = config.vapi
+EXTRA_DIST = config.vapi gcrypt.vapi pwquality.vapi
 
 GITIGNOREFILES = *.c *.stamp
 

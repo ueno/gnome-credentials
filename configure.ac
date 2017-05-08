@@ -46,6 +46,9 @@ PKG_CHECK_MODULES([GIO], [gio-2.0], ,
   [AC_MSG_ERROR([can't find gio-2.0])])
 AM_PATH_LIBGCRYPT
 
+PKG_CHECK_MODULES([PWQUALITY], [pwquality], ,
+  [AC_MSG_ERROR([can't find pwquality])])
+
 PKG_CHECK_MODULES([EGG], [gio-2.0 gtk+-3.0], ,
   [AC_MSG_ERROR([can't find egg dependencies])])
 AC_CHECK_FUNCS(mlock)

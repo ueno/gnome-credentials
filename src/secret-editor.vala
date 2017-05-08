@@ -8,6 +8,9 @@ namespace Credentials {
         SecretEntry password_entry;
 
         [GtkChild]
+        Gtk.LevelBar password_level;
+
+        [GtkChild]
         Gtk.Label notes_label;
 
         [GtkChild]
@@ -18,6 +21,8 @@ namespace Credentials {
 
         GLib.HashTable<string,Gtk.Entry> _attribute_entries;
         uint _set_attributes_idle_handler = 0;
+
+        PasswordQuality.Settings _pwquality;
 
         public SecretEditorDialog (Item item) {
             Object (item: item, use_header_bar: 1);
@@ -93,6 +98,12 @@ namespace Credentials {
                 top = insert_attribute_row (top, attribute, v);
             }
 
+            this._pwquality = new PasswordQuality.Settings ();
+            password_entry.bind_property ("text",
+                                          password_level, "value",
+                                          GLib.BindingFlags.SYNC_CREATE,
+                                          transform_password_quality);
+
             var buffer = notes_textview.get_buffer ();
             buffer.set_text (item.get_label ());
             buffer.notify["text"].connect (set_label_in_idle);
@@ -122,6 +133,24 @@ namespace Credentials {
                         password_entry.set_sensitive (false);
                     }
                 });
+        }
+
+        bool transform_password_quality (GLib.Binding binding,
+                                         GLib.Value source_value,
+                                         ref GLib.Value target_value)
+        {
+            var password = source_value.get_string ();
+            var quality = this._pwquality.check (password);
+            if (quality < 0) {
+                // XXX: Should the error message be shown somewhere?
+                target_value.set_double (0);
+            } else {
+                var min_level = password_level.get_min_value ();
+                var max_level = password_level.get_max_value ();
+                var level = (quality / (max_level - min_level)) + min_level;
+                target_value.set_double (level);
+            }
+            return true;
         }
 
         void set_secret_in_idle () {
