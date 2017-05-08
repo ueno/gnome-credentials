@@ -116,6 +116,7 @@ namespace Credentials {
             case GGpg.StatusCode.KEYEXPIRED:
             case GGpg.StatusCode.PROGRESS:
             case GGpg.StatusCode.KEY_CREATED:
+            case GGpg.StatusCode.KEY_CONSIDERED:
             case GGpg.StatusCode.ALREADY_SIGNED:
             case GGpg.StatusCode.MISSING_PASSPHRASE:
             case GGpg.StatusCode.PINENTRY_LAUNCHED:
