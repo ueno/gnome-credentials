@@ -181,4 +181,31 @@ namespace Credentials {
             return format_attribute (ATTR_USER, value);
         }
     }
+
+    class SecretSchemaCredentialsNote : SecretSchemaNetwork {
+        const string ATTR_NAME = "name";
+        const string ATTR_EMAIL = "email";
+
+        construct {
+            SecretSchema.Attribute attr;
+
+            attr = SecretSchema.Attribute (ATTR_NAME, N_("Name"));
+            register_attribute (attr, new SecretAttributeFormatterSimple ());
+
+            attr = SecretSchema.Attribute (ATTR_EMAIL, N_("Email"));
+            register_attribute (attr, new SecretAttributeFormatterSimple ());
+        }
+
+        public override string get_title (SecretItem item) {
+            var value = get_attribute (item, ATTR_NAME);
+            return_val_if_fail (value != null, "");
+            return format_attribute (ATTR_NAME, value);
+        }
+
+        public override string? get_secondary_title (SecretItem item) {
+            var value = get_attribute (item, ATTR_EMAIL);
+            return_val_if_fail (value != null, null);
+            return format_attribute (ATTR_EMAIL, value);
+        }
+    }
 }

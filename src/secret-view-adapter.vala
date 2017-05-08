@@ -49,5 +49,9 @@ namespace Credentials {
         public override EditorDialog create_editor_dialog (Item item) {
             return new SecretEditorDialog (item);
         }
+
+        public override GeneratorDialog create_generator_dialog (Collection collection) {
+            return new SecretGeneratorDialog (collection);
+        }
     }
 }

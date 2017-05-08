@@ -19,6 +19,25 @@
 	  </packing>
 	</child>
 	<child>
+	  <object class="GtkButton" id="add_button">
+            <property name="can_focus">False</property>
+            <property name="visible">False</property>
+	    <property name="action-name">generator.Login</property>
+            <style>
+              <class name="image-button"/>
+            </style>
+            <child>
+              <object class="GtkImage">
+		<property name="visible">True</property>
+		<property name="icon-name">list-add-symbolic</property>
+              </object>
+            </child>
+	  </object>
+	  <packing>
+            <property name="pack-type">start</property>
+	  </packing>
+	</child>
+	<child>
 	  <object class="GtkMenuButton" id="generators_menu_button">
             <property name="can_focus">False</property>
             <property name="visible">False</property>

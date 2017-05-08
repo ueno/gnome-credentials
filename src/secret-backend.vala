@@ -6,6 +6,22 @@ namespace Credentials {
         NETWORK,
     }
 
+    class SecretGeneratedItemParameters : GeneratedItemParameters {
+        public string name { construct set; get; }
+        public string email { construct set; get; }
+        public string notes { construct set; get; }
+        public string password { construct set; get; }
+
+        public SecretGeneratedItemParameters (string name,
+                                              string email,
+                                              string notes,
+                                              string password)
+        {
+            Object (name: name, email: email, notes: notes,
+                    password: password);
+        }
+    }
+
     class SecretItem : Item {
         Secret.Item _content;
         public Secret.Item content {
@@ -245,6 +261,26 @@ namespace Credentials {
 
             return GLib.strcmp (label, other_label);
         }
+
+        public override async void generate_item (GeneratedItemParameters parameters,
+                                                  GLib.Cancellable? cancellable) throws GLib.Error
+        {
+            SecretGeneratedItemParameters _parameters = (SecretGeneratedItemParameters) parameters;
+            var secret = new Secret.Value (_parameters.password, -1, "text/plain");
+            var schema = new Secret.Schema ("org.gnome.credentials.Note",
+                                            Secret.SchemaFlags.NONE,
+                                            "name", Secret.SchemaAttributeType.STRING,
+                                            "email", Secret.SchemaAttributeType.STRING);
+            var attributes = new GLib.HashTable<string, string> (GLib.str_hash,
+                                                                 GLib.str_equal);
+            attributes.set ("name", _parameters.name);
+            attributes.set ("email", _parameters.email);
+            yield Secret.Item.create (this._content, schema, attributes,
+                                      _parameters.notes,
+                                      secret, Secret.ItemCreateFlags.NONE,
+                                      cancellable);
+            yield load_items (cancellable);
+        }
     }
 
     class SecretBackend : Backend {
@@ -281,6 +317,8 @@ namespace Credentials {
                                   new SecretSchemaChrome ());
             this._schemas.insert ("org.gnome.keyring.NetworkPassword",
                                   new SecretSchemaNetworkPassword ());
+            this._schemas.insert ("org.gnome.credentials.Note",
+                                  new SecretSchemaCredentialsNote ());
         }
 
         public SecretBackend (string name) {

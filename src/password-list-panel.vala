@@ -11,6 +11,7 @@ namespace Credentials {
 
         void on_map () {
             Window toplevel = (Window) this.get_toplevel ();
+            toplevel.add_button.show ();
             toplevel.generators_menu_button.hide ();
             toplevel.selection_mode_enable_button.hide ();
 

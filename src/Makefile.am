@@ -12,6 +12,7 @@ gnome_credentials_SOURCES =			\
 	key-list-panel.vala			\
 	secret-backend.vala			\
 	secret-editor.vala			\
+	secret-generator.vala			\
 	secret-view-adapter.vala		\
 	secret-schema.vala			\
 	gpg-backend.vala			\

@@ -231,13 +231,13 @@ namespace Credentials {
         bool toplevel_initialized = false;
 
         void on_map () {
-            if (!toplevel_initialized) {
-                var toplevel = (Window) get_toplevel ();
-                toplevel.insert_action_group ("list-panel",
-                                              this._selection_actions);
-                toplevel.insert_action_group ("generator",
-                                              this._generator_actions);
+            var toplevel = (Window) get_toplevel ();
+            toplevel.insert_action_group ("list-panel",
+                                          this._selection_actions);
+            toplevel.insert_action_group ("generator",
+                                          this._generator_actions);
 
+            if (!toplevel_initialized) {
                 foreach (var backend in this._backends) {
                     toplevel.unlock_button.clicked.connect (() => {
                             try_unlock_collections (backend);
