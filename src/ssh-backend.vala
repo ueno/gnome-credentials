@@ -210,6 +210,7 @@ namespace Credentials {
             } catch (GLib.Error e) {
                 warning ("cannot monitor file %s: %s", this._authorized_keys_path, e.message);
             }
+            this._authorized_keys_bytes = new GLib.Bytes.static(new uint8[0]);
             load_authorized_keys.begin (null);
         }
 
