@@ -257,5 +257,11 @@ namespace Credentials {
             base.delete_item ();
 #endif
         }
+
+        [GtkCallback]
+        void on_copy_clicked (Gtk.Button button) {
+            var clipboard = Gtk.Clipboard.get_default (Gdk.Display.get_default ());
+            clipboard.set_text (password_entry.get_text (), -1);
+        }
     }
 }
