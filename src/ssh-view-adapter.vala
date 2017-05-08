@@ -1,12 +1,5 @@
 namespace Credentials {
     class SshViewAdapter : ViewAdapter {
-        public override void attached (Backend backend, ListPanel list_panel) {
-            backend.collection_added.connect ((collection) => {
-                    var key_list_panel = (KeyListPanel) list_panel;
-                    key_list_panel.register_generator_action_for_collection (collection);
-                });
-        }
-
         public override Gtk.Widget create_list_box_row (Item _item) {
             var item = (SshItem) _item;
             var box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 10);

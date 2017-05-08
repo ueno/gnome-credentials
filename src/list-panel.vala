@@ -13,6 +13,7 @@ namespace Credentials {
         GLib.HashTable<Backend,ViewAdapter> _adapters;
 
         GLib.SimpleActionGroup _selection_actions;
+        GLib.SimpleActionGroup _generator_actions;
 
         public bool selection_mode { construct set; get; default = false; }
 
@@ -57,6 +58,8 @@ namespace Credentials {
             action = new GLib.SimpleAction ("unselect-all", null);
             action.activate.connect ((v) => { unselect_all (); });
             this._selection_actions.add_action (action);
+
+            this._generator_actions = new GLib.SimpleActionGroup ();
 
             this._store = new GLib.ListStore (typeof (Item));
             this._filtered_store = new GLib.ListStore (typeof (Item));
@@ -232,6 +235,8 @@ namespace Credentials {
                 var toplevel = (Window) get_toplevel ();
                 toplevel.insert_action_group ("list-panel",
                                               this._selection_actions);
+                toplevel.insert_action_group ("generator",
+                                              this._generator_actions);
 
                 foreach (var backend in this._backends) {
                     toplevel.unlock_button.clicked.connect (() => {
@@ -293,6 +298,7 @@ namespace Credentials {
             collection.item_added.connect (on_item_added);
             collection.item_removed.connect (on_item_removed);
             collection.load_items.begin (null);
+            register_generator_action_for_collection (collection);
             sync_visible_child ();
         }
 
@@ -402,6 +408,28 @@ namespace Credentials {
                         dialog.show ();
                     });
             }
+        }
+
+        public virtual void register_generator_action (GLib.SimpleAction action) {
+            this._generator_actions.add_action (action);
+        }
+
+        public virtual void register_generator_action_for_collection (Collection collection) {
+            var action = new GLib.SimpleAction (collection.name, null);
+            action.activate.connect (() => {
+                    show_generator_dialog (collection);
+                });
+            register_generator_action (action);
+        }
+
+        void show_generator_dialog (Collection collection) {
+            var adapter = get_view_adapter (collection.backend);
+            var dialog = adapter.create_generator_dialog (collection);
+            dialog.response.connect_after ((res) => {
+                    dialog.destroy ();
+                });
+            dialog.set_transient_for ((Gtk.Window) this.get_toplevel ());
+            dialog.show ();
         }
     }
 }

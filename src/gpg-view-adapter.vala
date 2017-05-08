@@ -16,8 +16,6 @@ namespace Credentials {
                                                   (GpgCollection) collection);
                         });
                     key_list_panel.register_generator_action (action);
-
-                    key_list_panel.register_generator_action_for_collection (collection);
                 });
         }
 
