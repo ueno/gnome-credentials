@@ -261,8 +261,7 @@ namespace Credentials {
             list_box.bind_model (this._filtered_store, this.create_item_widget);
             cancellable.connect (() => {
                     list_box.bind_model (this._store, this.create_item_widget);
-                    this.visible_child_name = "listing";
-                    list_box_adjust_scrolling (list_box, false);
+                    sync_visible_child ();
                 });
             for (var i = 0; i < this._store.get_n_items (); i++) {
                 var item = (Item) this._store.get_item (i);

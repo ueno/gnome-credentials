@@ -218,6 +218,11 @@ namespace Credentials {
                                            this._cancellable);
         }
 
+        [GtkCallback]
+        void on_stop_search (Gtk.SearchEntry entry) {
+            this._cancellable.cancel ();
+        }
+
         public void add_notification (Gtk.Widget notification) {
             overlay.add_overlay (notification);
         }

@@ -108,6 +108,7 @@
 		    <property name="width-request">500</property>
 		    <property name="halign">center</property>
 		    <signal name="search-changed" handler="on_search_changed"/>
+		    <signal name="stop-search" handler="on_stop_search"/>
 		  </object>
 		</child>
 	      </object>
