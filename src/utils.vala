@@ -176,7 +176,7 @@ namespace Credentials.Utils {
             source_object.bind_property (source_property,
                                          widget, target_property,
                                          flags,
-                                         (owned) transform);
+                                         transform);
         }
     }
 
