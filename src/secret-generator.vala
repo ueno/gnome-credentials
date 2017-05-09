@@ -16,6 +16,9 @@ namespace Credentials {
         [GtkChild]
         Gtk.TextView notes_textview;
 
+		[GtkChild]
+		Gtk.Button generate_button;
+
         PasswordQuality.Settings _pwquality;
 
         public SecretGeneratorDialog (Collection collection) {
@@ -24,6 +27,11 @@ namespace Credentials {
 
         construct {
             name_entry.set_text (GLib.Environment.get_real_name ());
+			name_entry.bind_property ("text",
+									  generate_button, "sensitive",
+									  GLib.BindingFlags.SYNC_CREATE,
+									  Utils.transform_is_non_empty_string);
+
             this._pwquality = new PasswordQuality.Settings ();
             password_entry.bind_property ("text",
                                           password_level, "value",

@@ -21,6 +21,9 @@ namespace Credentials {
 
         GpgExpirationSpec _expires;
 
+		[GtkChild]
+		Gtk.Button generate_button;
+
         public GpgGeneratorDialog (Collection collection) {
             Object (collection: collection, use_header_bar: 1);
         }
@@ -44,6 +47,10 @@ namespace Credentials {
             key_type_combobox.set_active (0);
 
             name_entry.set_text (GLib.Environment.get_real_name ());
+			name_entry.bind_property ("text",
+									  generate_button, "sensitive",
+									  GLib.BindingFlags.SYNC_CREATE,
+									  Utils.transform_is_non_empty_string);
 
             var expires = GpgExpirationSpec (GpgExpirationFormat.NEVER, 0);
             var popover = new GpgExpiresPopover (expires, false);
