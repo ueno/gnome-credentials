@@ -1,8 +1,7 @@
 AC_PREREQ(2.63)
 AC_INIT([gnome-credentials], [0.1],
-        [bugs@vala-app.example.com],
-        [gnome-credentials],
-        [http://www.example.com/gnome-credentials/])
+        [https://github.com/ueno/gnome-credentials/issues],
+        [gnome-credentials])
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
