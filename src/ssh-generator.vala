@@ -54,7 +54,7 @@ namespace Credentials {
                             if (res == Gtk.ResponseType.OK) {
                                 var path = chooser.get_filename ();
                                 path_button.set_label (Utils.format_path (path));
-                                path_button.set_data ("credentails-selected-path", path);
+                                path_button.set_data ("credentials-selected-path", path);
                             }
                             chooser.destroy ();
                         });
@@ -92,7 +92,7 @@ namespace Credentials {
             key_type_combobox.get_model ().get (iter, 0, out spec);
 
             return new SshGeneratedItemParameters (
-                path_button.get_data ("credentails-selected-path"),
+                path_button.get_data ("credentials-selected-path"),
                 comment_entry.get_text (),
                 spec,
                 length_spinbutton.get_value_as_int ());
