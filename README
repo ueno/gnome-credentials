@@ -3,11 +3,7 @@ About gnome-credentials
 
 gnome-credentials is a prototyping effort to implement the new
 "Passwords and Keys" application design:
-https://bugzilla.gnome.org/show_bug.cgi?id=711252
-https://raw.githubusercontent.com/gnome-design-team/gnome-mockups/master/passwords-and-keys/passwords-and-keys.png
-
-The code is largely based on Seahorse, and it might be eventually
-merged back, once the design and features have been finalized.
+https://wiki.gnome.org/Design/Apps/PasswordsAndKeys
 
 License
 =======
