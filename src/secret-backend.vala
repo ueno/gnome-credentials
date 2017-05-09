@@ -223,7 +223,9 @@ namespace Credentials {
                 foreach (var item in _content.get_items ()) {
                     if (cancellable.is_cancelled ())
                         return;
-                    add_item (item);
+                    var object_path = item.get_object_path ();
+                    if (!this._items.contains (object_path))
+                        add_item (item);
                 }
             }
         }
