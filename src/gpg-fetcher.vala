@@ -94,7 +94,7 @@ namespace Credentials {
                         var remaining = uids.next.length () - count;
                         if (remaining > 0)
                             secondary_label =
-                                _("%s, and %d more…").printf (secondary_label,
+                                _("%s, and %u more…").printf (secondary_label,
                                                               remaining);
                         secondary_labels += secondary_label;
                         break;

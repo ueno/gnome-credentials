@@ -134,8 +134,8 @@ namespace Credentials {
                         if (this._area.selection_count == 0) {
                             label = _("Click on items to select them");
                         } else {
-                            label = ngettext ("%d selected",
-                                              "%d selected",
+                            label = ngettext ("%u selected",
+                                              "%u selected",
                                               this._area.selection_count).printf (this._area.selection_count);
                         }
                         this._selection_menu_button.set_label (label);

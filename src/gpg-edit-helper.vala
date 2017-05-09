@@ -29,16 +29,16 @@ namespace Credentials {
                 return _("Forever");
 
             case GpgExpirationFormat.DAYS:
-                return ngettext ("%d day", "%d days", (ulong) value).printf (value);
+                return ngettext ("%d day", "%d days", (ulong) value).printf ((int) value);
 
             case GpgExpirationFormat.WEEKS:
-                return ngettext ("%d week", "%d weeks", (ulong) value).printf (value);
+                return ngettext ("%d week", "%d weeks", (ulong) value).printf ((int) value);
 
             case GpgExpirationFormat.MONTHS:
-                return ngettext ("%d month", "%d months", (ulong) value).printf (value);
+                return ngettext ("%d month", "%d months", (ulong) value).printf ((int) value);
 
             case GpgExpirationFormat.YEARS:
-                return ngettext ("%d year", "%d years", (ulong) value).printf (value);
+                return ngettext ("%d year", "%d years", (ulong) value).printf ((int) value);
 
             case GpgExpirationFormat.DATE:
                 return new GLib.DateTime.from_unix_utc (value).to_local ().format ("%Y-%m-%d");
