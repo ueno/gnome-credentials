@@ -57,6 +57,16 @@ namespace Credentials {
             return true;
         }
 
+        [GtkCallback]
+        void on_generate_password_clicked (Gtk.Button button) {
+            string password;
+
+            // XXX: The parameters should be specified through the UI
+            var error = this._pwquality.generate (16, out password);
+            if (error == PasswordQuality.Error.SUCCESS)
+                password_entry.set_text (password);
+        }
+
         public override GeneratedItemParameters build_parameters () {
             var buffer = notes_textview.get_buffer ();
             Gtk.TextIter start_iter, end_iter;
