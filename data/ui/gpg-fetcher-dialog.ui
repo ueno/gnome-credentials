@@ -146,7 +146,7 @@
 			    <property name="selection-mode">none</property>
                             <property name="activate-on-single-click">True</property>
                             <signal name="row-activated" handler="on_key_selected"/>
-			    <property name="valign">fill</property>
+                            <property name="vexpand">True</property>
 			  </object>
 			</child>
 		      </object>
