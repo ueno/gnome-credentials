@@ -352,8 +352,8 @@ namespace Credentials {
                     yield backend.load_collections (null);
                 } catch (GLib.Error e) {
                     warning ("cannot load collections: %s", e.message);
-                    continue;
                 }
+                sync_visible_child ();
             }
         }
 
