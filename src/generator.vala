@@ -12,9 +12,15 @@ namespace Credentials {
                 (obj, res) => {
                     try {
                         collection.generate_item.end (res);
+                        // XXX: The notification area covers the newly
+                        // added entry.  Maybe we should consider a
+                        // better way to show the progress of
+                        // generation.
+#if false
                         Utils.show_notification (window,
                                                  _("%s generated"),
                                                  collection.item_type);
+#endif
                     } catch (GLib.Error e) {
                         Utils.show_error (window,
                                           "Couldn't generate item: %s",
